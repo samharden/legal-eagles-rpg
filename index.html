@@ -39,16 +39,41 @@
   }
   .tb:active { border-color:#f0c75e; background:rgba(58,47,85,.9); }
   #tbM {
-    pointer-events:auto; position:absolute; right:14px; bottom:184px; width:40px; height:40px;
+    pointer-events:auto; position:absolute; left:50%; transform:translateX(-50%); bottom:24px;
+    width:40px; height:40px;
     border-radius:50%; background:rgba(36,29,54,.8); border:2px solid #4a3f63; color:#e8e0f0;
     font-family:inherit; font-size:15px;
   }
   @media (pointer:coarse){
     body { padding:6px; }
-    h1 { font-size:18px; letter-spacing:1px; }
-    .tagline { font-size:11px; }
+    h1 { font-size:16px; letter-spacing:1px; margin:2px 0; }
+    .tagline { display:none; }
     #ui { display:none; }
   }
+  /* ---- mobile panel: HUD + dialogs in the space between canvas and controls ---- */
+  #mpanel { display:none; width:100%; max-width:966px; margin-top:8px; padding-bottom:210px; }
+  #mrank { color:#f0c75e; font-size:14px; font-weight:bold; }
+  #mhpbar { height:12px; background:#3a2440; border-radius:5px; overflow:hidden; margin:5px 0 3px; }
+  #mhpfill { height:100%; background:#9be05e; width:100%; }
+  #mxpbar { height:7px; background:#3a2440; border-radius:4px; overflow:hidden; margin-bottom:6px; }
+  #mxpfill { height:100%; background:#f0c75e; width:0%; }
+  #mquest { color:#5ec8f0; font-size:13px; line-height:1.4; }
+  #mside { color:#9be05e; font-size:12px; line-height:1.4; }
+  #mmsg { color:#e8e0f0; font-size:13px; line-height:1.45; min-height:19px; margin-top:5px; }
+  #mdlg {
+    display:none; margin-top:8px; background:rgba(13,10,20,.95);
+    border:2px solid #f0c75e; border-radius:8px; padding:10px;
+  }
+  #mdlgHead { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  #mdlgHead img { width:44px; height:44px; image-rendering:pixelated; background:#241d36; border:1px solid #4a3f63; border-radius:4px; }
+  #mdlgHead b { color:#f0c75e; font-size:14px; }
+  #mdlgText { color:#e8e0f0; font-size:14px; line-height:1.5; }
+  #mdlgChoices { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+  #mdlgChoices button {
+    font-family:inherit; text-align:left; background:#241d36; border:2px solid #4a3f63;
+    color:#5ec8f0; font-size:14px; font-weight:bold; padding:11px 12px; border-radius:8px;
+  }
+  #mdlgChoices button:active { border-color:#f0c75e; background:#3a2f55; }
   /* ---- character creation overlay ---- */
   #menu {
     position:absolute; inset:0; background:rgba(13,10,20,.96); border-radius:6px; z-index:10;
@@ -102,6 +127,21 @@
       <button class="tb" id="tbK">FIRE</button>
     </div>
     <button id="tbM">♪</button>
+  </div>
+</div>
+<div id="mpanel">
+  <div id="mstatus">
+    <b id="mrank"></b>
+    <div id="mhpbar"><div id="mhpfill"></div></div>
+    <div id="mxpbar"><div id="mxpfill"></div></div>
+    <div id="mquest"></div>
+    <div id="mside"></div>
+    <div id="mmsg"></div>
+  </div>
+  <div id="mdlg">
+    <div id="mdlgHead"><img id="mdlgImg" alt=""><b id="mdlgName"></b></div>
+    <div id="mdlgText"></div>
+    <div id="mdlgChoices"></div>
   </div>
 </div>
 <div id="ui">
@@ -3003,7 +3043,7 @@ function draw(){
   }
   ctx.restore(); // end world zoom — HUD, announcements, dialogs are screen-space
 
-  drawHUD();
+  if(!IS_TOUCH) drawHUD(); // on touch the HUD lives in the DOM panel below the canvas
 
   // announcement
   if(msg.t>0){
@@ -3086,23 +3126,26 @@ function drawHUD(){
   ctx.fillText(questProgressText(), W-420, y0+38);
   ctx.fillStyle='#9b8fb5';
   ctx.fillText(player.cls.nm + ' — ' + player.cls.atk, W-420, y0+52);
-  const sideLines = [];
-  if(flags.rosaQ===1) sideLines.push(flags.hasStamper ? '* Rosa: return the Bates stamper' : '* Rosa: find the Bates stamper (annex vault)');
-  if(flags.bennyQ===1) sideLines.push(flags.serversFixed>=3 ? '* Benny: report back' : `* Benny: reboot servers ${flags.serversFixed}/3`);
-  if(flags.doloresQ===1) sideLines.push('* Dolores: deliver envelope to Chad');
-  if(flags.rosaQ===2 && flags.mailQ===0 && flags.mailFailed) sideLines.push('* Rosa: the cart awaits (retry)');
-  if(flags.mailQ===1) sideLines.push('* ESCORT: guard the mail cart!');
-  if(flags.mailQ===2) sideLines.push('* Rosa: report the delivery');
+  ctx.fillStyle='#9be05e';
+  sideQuestLines().forEach((l,i)=>ctx.fillText(l, W-420, y0+70+i*14));
+}
+function sideQuestLines(){
+  const s = [];
+  if(flags.rosaQ===1) s.push(flags.hasStamper ? '* Rosa: return the Bates stamper' : '* Rosa: find the Bates stamper (annex vault)');
+  if(flags.bennyQ===1) s.push(flags.serversFixed>=3 ? '* Benny: report back' : `* Benny: reboot servers ${flags.serversFixed}/3`);
+  if(flags.doloresQ===1) s.push('* Dolores: deliver envelope to Chad');
+  if(flags.rosaQ===2 && flags.mailQ===0 && flags.mailFailed) s.push('* Rosa: the cart awaits (retry)');
+  if(flags.mailQ===1) s.push('* ESCORT: guard the mail cart!');
+  if(flags.mailQ===2) s.push('* Rosa: report the delivery');
   if(flags.coffeeQ===1){
     const cp = (flags.partDescaler?1:0)+(flags.partElement?1:0)+(flags.partChad?1:0);
-    sideLines.push(flags.coffeeBrief ? `* Coffee rebuild: parts ${cp}/3` : '* Coffee machine DOWN — see Benny (IT)');
+    s.push(flags.coffeeBrief ? `* Coffee rebuild: parts ${cp}/3` : '* Coffee machine DOWN — see Benny (IT)');
   }
-  if(flags.lennyQ===1) sideLines.push(flags.lennyKills>=3 ? '* Lenny: return his file' : `* Lenny: golems with his file ${flags.lennyKills}/3`);
-  if(flags.portraits>0 && !flags.eleven) sideLines.push(`* Library portraits: ${flags.portraits}/11`);
-  if(flags.eleven && !flags.baneWeak && questIdx>=6) sideLines.push('* Ask Dolores about the eleven');
-  if(questIdx===8 && questPhase==='active' && !flags.baneSpawned) sideLines.push(`* Jury won: ${flags.jury}/12`);
-  ctx.fillStyle='#9be05e';
-  sideLines.forEach((l,i)=>ctx.fillText(l, W-420, y0+70+i*14));
+  if(flags.lennyQ===1) s.push(flags.lennyKills>=3 ? '* Lenny: return his file' : `* Lenny: golems with his file ${flags.lennyKills}/3`);
+  if(flags.portraits>0 && !flags.eleven) s.push(`* Library portraits: ${flags.portraits}/11`);
+  if(flags.eleven && !flags.baneWeak && questIdx>=6) s.push('* Ask Dolores about the eleven');
+  if(questIdx===8 && questPhase==='active' && !flags.baneSpawned) s.push(`* Jury won: ${flags.jury}/12`);
+  return s;
 }
 
 function drawEnd(){
@@ -3166,14 +3209,69 @@ function drawEnd(){
   ctx.fillText('Press R to file an appeal (restart)', W/2, CH-110);
 }
 
+// ============================== MOBILE PANEL ==============================
+// On touch devices the HUD and dialogs render as DOM below the canvas — native
+// font sizes instead of canvas pixels scaled down to a phone width.
+let mdlgKey = null, mhudKey = '';
+function updateMobilePanel(){
+  if(!IS_TOUCH) return;
+  const box = document.getElementById('mdlg');
+  if(state==='dialog' && dlg){
+    const d = dlg.nodes[dlg.i];
+    const key = dlg.i + '|' + d.text;
+    if(key !== mdlgKey){
+      mdlgKey = key;
+      document.getElementById('mdlgImg').src = SPR[d.spr].toDataURL();
+      document.getElementById('mdlgName').textContent = d.nm;
+      document.getElementById('mdlgText').textContent = d.text;
+      const chBox = document.getElementById('mdlgChoices');
+      chBox.innerHTML = '';
+      if(d.choices){
+        d.choices.forEach((c,i)=>{
+          const b = document.createElement('button');
+          b.textContent = c.t;
+          b.onclick = () => chooseDialog(i);
+          chBox.appendChild(b);
+        });
+      } else {
+        const b = document.createElement('button');
+        b.textContent = 'continue ▸';
+        b.onclick = () => advDialog();
+        chBox.appendChild(b);
+      }
+      box.style.display = 'block';
+      document.getElementById('mstatus').style.display = 'none'; // dialog takes the HUD's spot
+    }
+  } else if(box.style.display !== 'none'){
+    box.style.display = 'none'; mdlgKey = null;
+    document.getElementById('mstatus').style.display = 'block';
+  }
+  if(!player) return;
+  document.getElementById('mhpfill').style.width = Math.max(0, player.hp/player.maxhp*100) + '%';
+  const cur = player.rank, next = RANKS[Math.min(RANKS.length-1, cur.lvl)];
+  document.getElementById('mxpfill').style.width =
+    (cur.lvl < 6 ? Math.min(100, (player.xp-cur.xp)/(next.xp-cur.xp)*100) : 100) + '%';
+  const q = QUESTS[questIdx];
+  const side = sideQuestLines().join('   ');
+  const hudKey = [player.rank.title, Math.ceil(player.hp), worldId, q.name, questProgressText(), side, msg.t>0 ? msg.text : ''].join('|');
+  if(hudKey === mhudKey) return;
+  mhudKey = hudKey;
+  document.getElementById('mrank').textContent =
+    `${player.rank.title} · ⚡${Math.max(0,Math.ceil(player.hp))}/${player.maxhp} · ${WORLD_NAME[worldId]}`;
+  document.getElementById('mquest').textContent = `MATTER ${questIdx+1}/${QUESTS.length}: ${q.name} — ${questProgressText()}`;
+  document.getElementById('mside').textContent = side;
+  document.getElementById('mmsg').textContent = msg.t > 0 ? msg.text : '';
+}
+
 // ============================== LOOP & INPUT ==============================
 let last = performance.now();
 function step(now){
   const dt = Math.min(0.05, (now-last)/1000); last = now;
   musicTick();
   if(state==='play'){ update(dt); draw(); }
-  else if(state==='dialog'){ draw(); drawDialog(); }
+  else if(state==='dialog'){ draw(); if(!IS_TOUCH) drawDialog(); }
   else if(state==='gameover'||state==='victory'){ draw(); drawEnd(); }
+  updateMobilePanel();
 }
 function loop(now){
   step(now);
@@ -3215,6 +3313,12 @@ const joy = { dx:0, dy:0, on:false };
 const touchEl = document.getElementById('touch');
 if(IS_TOUCH){
   touchEl.style.display = 'block';
+  document.getElementById('mpanel').style.display = 'block';
+  // crop the canvas to the playfield — the bottom HUD strip moved into #mpanel
+  const wrapEl = document.getElementById('wrap');
+  wrapEl.style.overflow = 'hidden';
+  wrapEl.style.aspectRatio = '966 / 609';
+  wrapEl.style.borderRadius = '6px';
 
   // virtual joystick
   const joyEl = document.getElementById('joy'), stickEl = document.getElementById('stick');
