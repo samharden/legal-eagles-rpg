@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>LEGAL EAGLES: Rise to Partner</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -11,15 +12,46 @@
   }
   h1 { font-size:26px; letter-spacing:3px; color:#f0c75e; text-shadow:0 0 12px #7a5c00; margin:6px 0 2px; }
   .tagline { color:#9b8fb5; font-style:italic; margin-bottom:8px; font-size:13px; }
-  #wrap { position:relative; }
-  canvas { background:#0d0a14; border:3px solid #4a3f63; border-radius:6px; display:block; }
+  #wrap { position:relative; width:100%; max-width:966px; }
+  canvas { background:#0d0a14; border:3px solid #4a3f63; border-radius:6px; display:block;
+           width:100%; height:auto; touch-action:none; }
   #ui {
-    width:960px; display:flex; justify-content:space-between; margin-top:6px;
+    width:100%; max-width:960px; display:flex; justify-content:space-between; margin-top:6px;
     font-size:12px; color:#9b8fb5;
+  }
+  /* ---- touch controls (shown only on coarse-pointer devices) ----
+     fixed to the viewport, not the canvas: on phones they live in the dead
+     space below the playfield, where thumbs naturally rest */
+  #touch { display:none; position:fixed; inset:0; pointer-events:none; z-index:5; }
+  #joy {
+    pointer-events:auto; position:absolute; left:16px; bottom:16px; width:124px; height:124px;
+    border-radius:50%; background:rgba(255,255,255,.07); border:2px solid #4a3f63; touch-action:none;
+  }
+  #stick {
+    position:absolute; left:50%; top:50%; width:54px; height:54px; margin:-27px 0 0 -27px;
+    border-radius:50%; background:rgba(240,199,94,.4); border:2px solid #f0c75e;
+  }
+  #btns { position:absolute; right:14px; bottom:16px; display:grid; grid-template-columns:repeat(2,62px); gap:10px; }
+  .tb {
+    pointer-events:auto; width:62px; height:62px; border-radius:50%; touch-action:none;
+    background:rgba(36,29,54,.8); border:2px solid #4a3f63; color:#e8e0f0;
+    font-family:inherit; font-size:10px; font-weight:bold; line-height:1.2;
+  }
+  .tb:active { border-color:#f0c75e; background:rgba(58,47,85,.9); }
+  #tbM {
+    pointer-events:auto; position:absolute; right:14px; bottom:184px; width:40px; height:40px;
+    border-radius:50%; background:rgba(36,29,54,.8); border:2px solid #4a3f63; color:#e8e0f0;
+    font-family:inherit; font-size:15px;
+  }
+  @media (pointer:coarse){
+    body { padding:6px; }
+    h1 { font-size:18px; letter-spacing:1px; }
+    .tagline { font-size:11px; }
+    #ui { display:none; }
   }
   /* ---- character creation overlay ---- */
   #menu {
-    position:absolute; inset:0; background:rgba(13,10,20,.96); border-radius:6px;
+    position:absolute; inset:0; background:rgba(13,10,20,.96); border-radius:6px; z-index:10;
     display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:8px;
     padding:14px; text-align:center; overflow-y:auto;
   }
@@ -60,6 +92,16 @@
     <div class="lbl">SELECT PRACTICE AREA</div>
     <div class="pickrow" id="classRow"></div>
     <button id="startBtn" disabled>SIGN ENGAGEMENT LETTER</button>
+  </div>
+  <div id="touch">
+    <div id="joy"><div id="stick"></div></div>
+    <div id="btns">
+      <button class="tb" id="tbE">TALK<br>USE</button>
+      <button class="tb" id="tbJ">STRIKE</button>
+      <button class="tb" id="tbL">SPIN</button>
+      <button class="tb" id="tbK">FIRE</button>
+    </div>
+    <button id="tbM">♪</button>
   </div>
 </div>
 <div id="ui">
@@ -1055,6 +1097,158 @@ SPR.jug = makeSprite([
 "................",
 ], { w:'#cfe8ef', r:'#c0392b' });
 
+SPR.assoc = makeSprite([
+"................",
+".....yyyyyy.....",
+"....yyyyyyyy....",
+"....yyffffff....",
+"....fkffffkf....",
+"....ffffffff....",
+".....ffffff.....",
+"......ffff......",
+"....nnnnnnnn....",
+"...nnnwtwnnnn...",
+"...nnnwtwnnnn...",
+"...nnnoonnnnn...",
+"...n.nnnnnn.n...",
+".....nn..nn.....",
+".....nn..nn.....",
+".....kk..kk.....",
+], { y:'#d8c66a', f:SKIN, k:K, n:'#24435e', w:WHT, t:'#2e6e62', o:'#f0c75e' });
+
+SPR.bailiff = makeSprite([
+"................",
+".....uuuuuu.....",
+"....uuuuuuuu....",
+"....uffffffu....",
+"....fkffffkf....",
+"....ffffffff....",
+".....ffffff.....",
+"......ffff......",
+"....bbbbbbbb....",
+"...bbobbbbbbb...",
+"...bbbbbbbbbb...",
+"...b.bbbbbb.b...",
+"....bbbbbbbb....",
+".....bb..bb.....",
+".....bb..bb.....",
+".....kk..kk.....",
+], { u:'#6e5a36', f:SKIN, k:K, b:'#4a4434', o:'#e7c34c' });
+
+SPR.gremlin = makeSprite([
+"................",
+"................",
+"................",
+"................",
+"....g......g....",
+"....gg....gg....",
+".....gggggg.....",
+"....gggggggg....",
+"....gekggkeg....",
+"....gggggggg....",
+".....gwwwwg.....",
+".....gggggg.....",
+"......g..g......",
+".....gg..gg.....",
+"................",
+"................",
+], { g:'#6e4a26', e:'#f0c75e', k:K, w:WHT });
+
+SPR.bane = makeSprite([
+"................",
+"....wwwwwwww....",
+"....wffffffw....",
+"....ffffffff....",
+"....fkffffkf....",
+"....ffffffff....",
+"....fmmmmmmf....",
+".....ffffff.....",
+"....jjjjjjjj....",
+"...jjjwwjjjjj...",
+"...jjjwwjjjjgg..",
+"...jjjjjjjjjgg..",
+"...j.jjjjjj.j...",
+".....jj..jj.....",
+".....jj..jj.....",
+".....kk..kk.....",
+], { w:'#e8e8e8', f:'#e3c39a', k:K, m:'#cfcfcf', j:'#15151c', g:'#8a6a3e' });
+
+SPR.portrait = makeSprite([
+"................",
+"..oooooooooooo..",
+"..okkkkkkkkkko..",
+"..okffffffffko..",
+"..okfnffffnfko..",
+"..okffffffffko..",
+"..okfmmmmmmfko..",
+"..okffffffffko..",
+"..okkkkkkkkkko..",
+"..oooooooooooo..",
+"................",
+"................",
+"................",
+"................",
+"................",
+"................",
+], { o:'#caa84a', k:'#23262e', f:'#d8cfc4', n:'#1d1d22', m:'#8a8a96' });
+
+SPR.juror = makeSprite([
+"................",
+"................",
+"......ffff......",
+".....ffffff.....",
+".....fkffkf.....",
+".....ffffff.....",
+"......ffff......",
+".....cccccc.....",
+"....cccccccc....",
+"....cccccccc....",
+"....cccccccc....",
+"................",
+"................",
+"................",
+"................",
+"................",
+], { f:'#d9a878', k:K, c:'#4a3f63' });
+
+SPR.seat = makeSprite([
+"................",
+"................",
+"....kkkkkkkk....",
+"....k......k....",
+"....k......k....",
+"....k......k....",
+"....kkkkkkkk....",
+"....kk....kk....",
+"....kk....kk....",
+"................",
+"................",
+"................",
+"................",
+"................",
+"................",
+"................",
+], { k:'#4a3320' });
+
+SPR.lenny = makeSprite([
+"................",
+".....aaaaaa.....",
+"....aaaaaaaa....",
+"....affffffa....",
+"....fkffffkf....",
+"....ffffffff....",
+".....ffffff.....",
+"......ffff......",
+"....rrgrrgrr....",
+"...rrgrrgrrrr...",
+"...rrrgrrgrrr...",
+"...r.rrrrrr.r...",
+".....rr..rr.....",
+".....rr..rr.....",
+".....kk..kk.....",
+"................",
+], { a:'#5d6470', f:SKIN, k:K, r:'#7a3a2e', g:'#3e4d3e' });
+
 // ============================== AUDIO ==============================
 // All sound is synthesized via Web Audio — no asset files. The context is
 // created on the start-button click (user gesture, satisfies autoplay policy).
@@ -1126,6 +1320,12 @@ const SONGS = {
   boss:{ bpm:148, hat:true,
     bass:[33,33,45,33,33,33,45,36,31,31,43,31,38,38,40,41],
     lead:[69,0,69,72,0,74,0,76,0,75,0,72,74,0,71,0] },
+  floor24:{ bpm:120, hat:true,
+    bass:[40,0,47,0,43,0,47,0,38,0,45,0,40,0,46,47],
+    lead:[76,0,75,0,72,0,0,71,0,72,0,75,0,0,76,0] },
+  courtroom:{ bpm:100, hat:false,
+    bass:[36,0,43,0,40,0,43,0,36,0,43,0,41,0,38,0],
+    lead:[0,0,72,0,0,0,67,0,0,0,71,0,0,0,0,0] },
 };
 function musicTick(){
   if(!AU.ctx || !AU.on) return;
@@ -1194,6 +1394,10 @@ const ENEMY_TYPES = {
   expert:    { nm:'Hostile Expert Witness', hp:380, spd:60, dmg:18, xp:120,r:26, shoots:true, shotCd:1.1, boss:true },
   emeritus:  { nm:'Senior Partner Emeritus',hp:650, spd:80, dmg:22, xp:250,r:28, shoots:true, shotCd:0.8, boss:true },
   grandfather:{ nm:"Worthington II, 'The Grandfather'", hp:420, spd:75, dmg:18, xp:140, r:24, shoots:true, shotCd:1.0, boss:true },
+  assoc:     { nm:'Associate of the Month', hp:60,  spd:110, dmg:12, xp:25, r:14, shoots:true,  shotCd:1.3 },
+  bailiff:   { nm:'Bailiff',                hp:90,  spd:70,  dmg:16, xp:20, r:16, shoots:false },
+  gremlin:   { nm:'Decaf Gremlin',          hp:20,  spd:150, dmg:6,  xp:8,  r:11, shoots:false },
+  bane:      { nm:'The Hon. Mortimer Bane', hp:800, spd:65,  dmg:20, xp:400,r:28, shoots:true,  shotCd:0.9, boss:true },
 };
 
 const QUESTS = [
@@ -1203,6 +1407,10 @@ const QUESTS = [
   { id:3, name:'Meet & Confer (Violently)', goal:{type:'kill', enemy:'counsel', n:4}, xp:150, spawn:[['counsel',5],['wraith',4]] },
   { id:4, name:'The Deposition of Dr. Payne', goal:{type:'kill', enemy:'expert', n:1}, xp:180, spawn:[['expert',1],['intern',6]] },
   { id:5, name:'Partnership Review',        goal:{type:'kill', enemy:'emeritus', n:1}, xp:300, spawn:[['emeritus',1],['counsel',3],['wraith',4]] },
+  // ---- ACT II: THE APPEAL ----
+  { id:6, name:'Notice of Appeal',          goal:{type:'kill', enemy:'assoc', n:6}, xp:200, spawn:[['assoc',6],['counsel',2]], world:'floor24' },
+  { id:7, name:'Discovery, Again',          goal:{type:'killcollect', enemy:'golem', n:6, items:4}, xp:240, spawn:[['golem',8],['wraith',5]], world:'annex', relock:true, itemSpr:'dossier', itemLabel:'TRUST INSTRUMENT SECURED' },
+  { id:8, name:"Bane's Court",              goal:{type:'kill', enemy:'bane', n:1}, xp:400, spawn:[], world:'courtroom' },
 ];
 
 const KILL_QUIPS = ['Sustained!','Sanctioned!','Case dismissed!','Stricken from the record!','Per curiam!','Res judicata, baby!','Moot!','SO ORDERED.'];
@@ -1241,6 +1449,8 @@ function buildOffice(){
   hline(g,33,42,25,1); g[25][35]=0; g[25][36]=0;
   g[28][40]=7;
   g[21][2]=7; // freight elevator (mailroom) down to the parking garage
+  g[28][30]=7; // elevator bank (lobby) up to the 24th floor — Act II
+  g[28][13]=7; // firm car (lobby) to the courthouse — Act II
   // lobby
   hline(g,12,31,25,1); [17,18,25,26].forEach(x=>g[25][x]=0);
   for(const x of [19,20,23,24]) g[28][x]=2;
@@ -1256,12 +1466,30 @@ function buildOffice(){
     pickups:[
       { x:6*TILE+20, y:3*TILE+20, spr:'dossier', kind:'lore', idx:0, t:0 },
       { x:9*TILE+20, y:13*TILE+20, spr:'dossier', kind:'lore', idx:1, t:1 },
+      { x:8*TILE+20, y:29*TILE+20, spr:'dossier', kind:'lore', idx:4, t:2 },
     ],
     crates:[ {tx:13,ty:22,ox:13,oy:22}, {tx:28,ty:12,ox:28,oy:12} ],
     plates:[], gates:{}, levers:[], signs:[], recall:null,
+    portraits:[
+      { tx:2,  ty:1, seen:false, text:"EZEKIEL DEWEY (1908–1929). Founded the firm with a handshake. Died of a different handshake." },
+      { tx:3,  ty:1, seen:false, text:"MORTIMER CHEATHAM (1929–1941). Pioneered the billable hour. Then billed for pioneering it." },
+      { tx:4,  ty:1, seen:false, text:"REGINALD HOWE (1941–1953). Argued 44 cases before the Supreme Court. Won 12. Framed all 44." },
+      { tx:5,  ty:1, seen:false, text:"AUGUSTINE PLY (1953–1958). Merged the firm with itself in a tax maneuver no one has successfully explained." },
+      { tx:6,  ty:1, seen:false, text:"CORNELIA VANCE (1958–1964). Made the artist repaint this eleven times. He hangs in the basement now." },
+      { tx:7,  ty:1, seen:false, text:"BARNABY QUILL (1964–1970). Believed the building was 'just a building.' The building disagreed." },
+      { tx:8,  ty:1, seen:false, text:"HENRY WORTHINGTON II (1970–1976). Took his bonus in parking. You've met him." },
+      { tx:9,  ty:1, seen:false, text:"PRUDENCE LOCKE (1976–1981). Banned midnight meetings. Vanished at 11:59 p.m. Technically compliant." },
+      { tx:10, ty:1, seen:false, text:"SILAS GRABBIT (1981–1984). Left to found a rival firm. Took the good pens." },
+      { tx:11, ty:1, seen:false, text:"T. GRAVES III (1984–1987). The frame is empty. The nameplate is warm." },
+      { tx:12, ty:1, seen:false, text:"O. HARGROVE (1987–    ). Decades younger. Visibly terrified. The placard's first initial has been scratched at, repeatedly, with a letter opener." },
+    ],
     stairs:[
       { tx:40, ty:28, to:'annex',  dx:5*TILE+20, dy:3*TILE+20,  label:'[E] Records Annex' },
       { tx:2,  ty:21, to:'garage', dx:2*TILE+20, dy:4*TILE+20,  label:'[E] freight elevator (P3)' },
+      { tx:30, ty:28, to:'floor24', dx:3*TILE+20, dy:22*TILE+20, label:'[E] elevator — 24th floor',
+        locked:()=>questIdx<6, lockMsg:'The 24-button is dark. A brass plaque: GRABBIT & RUNN LLP — BY APPOINTMENT ONLY.' },
+      { tx:13, ty:28, to:'courtroom', dx:15*TILE+20, dy:19*TILE+20, label:'[E] firm car — courthouse',
+        locked:()=>questIdx<8, lockMsg:'The firm car idles, judgmentally. Nothing on the court calendar. Yet.' },
     ],
   };
 }
@@ -1298,7 +1526,7 @@ function buildAnnex(){
     plates:[ {tx:12,ty:3,gate:'g1',done:false} ],
     gates:{ g1:{open:false,tiles:[[17,5]]}, g2:{open:false,tiles:[[23,9],[24,9]]}, g3:{open:false,tiles:[[24,14],[25,14]]} },
     levers:[ {tx:20,ty:2,id:'A',on:false}, {tx:23,ty:2,id:'B',on:false}, {tx:26,ty:2,id:'C',on:false} ],
-    leverOrder:['B','A','C'], leverProgress:0,
+    leverOrder:['B','A','C'], leverProgress:0, leverGate:'g2', leverFail:[24,5],
     signs:[ {tx:28,ty:5,text:"RE-FILING PROTOCOL (REV. 1987): The BOTTOM DRAWER (B) first. Then the ARCHIVE (A). The CATALOG (C) last. Improper filing wakes the hours."} ],
     recall:{tx:9,ty:7},
     stairs:[ { tx:3, ty:3, to:'office', dx:39*TILE+20, dy:28*TILE+20, label:'[E] back upstairs' } ],
@@ -1347,7 +1575,72 @@ function buildGarage(){
   mk('counsel',29,8); mk('counsel',32,16);
 }
 
-function buildWorlds(){ worlds = {}; buildOffice(); buildAnnex(); buildGarage(); }
+function buildFloor24(){
+  const g = mkGrid(36,26,0);
+  // partner offices north (their executive carpet, colder)
+  hline(g,1,34,7,1); [5,6,17,18,29,30].forEach(x=>g[7][x]=0);
+  vline(g,12,1,6,1); vline(g,24,1,6,1);
+  rectF(g,13,1,23,6,3);
+  // records room east, behind the conflicts-check gate
+  vline(g,27,9,16,1); hline(g,28,34,9,1); hline(g,28,34,16,1);
+  g[12][27]=0; g[13][27]=0;
+  // bullpen
+  for(const y of [11,14,17]) for(const x of [4,5,9,10,14,15,19,20]) g[y][x]=2;
+  // reception south
+  hline(g,1,34,20,1); [8,9,26,27].forEach(x=>g[20][x]=0);
+  for(const x of [16,17,18,19]) g[22][x]=2;
+  g[22][31]=5; // the decaf machine
+  g[23][3]=7;  // elevator home
+  for(const [x,y] of [[2,8],[34,8],[2,19],[14,22],[21,22]]) if(g[y][x]===0) g[y][x]=4;
+  worlds.floor24 = {
+    grid:g, w:36, h:26,
+    colors:{ floor:'#16202e', carpet:'#1d2a3e', wall:'#2e4a6e', wallIn:'#223850' },
+    enemies:[],
+    pickups:[
+      { x:31*TILE+20, y:12*TILE+20, spr:'dossier', kind:'lore', idx:5, t:0 },
+      { x:33*TILE+20, y:14*TILE+20, spr:'chest', kind:'chest', t:0.5 },
+    ],
+    crates:[], plates:[],
+    levers:[ {tx:29,ty:18,id:'A',on:false}, {tx:31,ty:18,id:'B',on:false}, {tx:33,ty:18,id:'C',on:false} ],
+    leverOrder:['C','B','A'], leverProgress:0, leverGate:'g1', leverFail:[30,19],
+    signs:[
+      { tx:34, ty:18, text:"CONFLICTS CHECK PROTOCOL (G&R REV. 12): Clear the CATALOG (C) first. Then the BOTTOM DRAWER (B). The ARCHIVE (A) last. We file like we bill: backwards." },
+      { tx:12, ty:21, text:"WELCOME TO GRABBIT & RUNN LLP. Visitors must sign in, waive liability, and surrender outerwear of quality." },
+    ],
+    gates:{ g1:{ open:false, tiles:[[27,12],[27,13]] } },
+    recall:null,
+    stairs:[ { tx:3, ty:23, to:'office', dx:30*TILE+20, dy:27*TILE+20, label:'[E] elevator — down to DC&H' } ],
+  };
+  const mk=(t,x,y)=>{ const e=ENEMY_TYPES[t]; worlds.floor24.enemies.push({ type:t, ...e, x:x*TILE+20, y:y*TILE+20, hp:e.hp, maxhp:e.hp, shotT:1, hurtT:0, wob:Math.random()*7 }); };
+  mk('gremlin',16,12); mk('gremlin',7,15); mk('gremlin',22,16); mk('counsel',18,4); mk('counsel',8,4);
+}
+
+function buildCourtroom(){
+  const g = mkGrid(30,22,0);
+  rectF(g,11,2,18,3,8);                       // the bench
+  g[8][21]=8;                                 // witness stand
+  vline(g,8,4,13,1); g[9][8]=0; g[10][8]=0;   // jury box rail
+  // gallery pews with a center aisle
+  for(const y of [15,17,19]){ for(let x=4;x<=11;x++) g[y][x]=8; for(let x=18;x<=25;x++) g[y][x]=8; }
+  for(let y=5;y<=19;y++){ g[y][14]=3; g[y][15]=3; }
+  g[20][15]=7;                                // doors south — firm car
+  worlds.courtroom = {
+    grid:g, w:30, h:22,
+    colors:{ floor:'#2c2824', carpet:'#5a1620', wall:'#5a5044', wallIn:'#463e34' },
+    enemies:[],
+    pickups:[ { x:24*TILE+20, y:3*TILE+20, spr:'dossier', kind:'lore', idx:6, t:0 } ],
+    crates:[], plates:[], levers:[],
+    signs:[
+      { tx:21, ty:7, text:"WITNESS STAND. Occupancy: 1. Perjury: frowned upon. The chair remembers everyone who has lied in it." },
+      { tx:9, ty:4, text:"JURY BOX — TWELVE SEATS. Win them with argument. The court does not accept fruit baskets. Anymore." },
+    ],
+    gates:{}, recall:null,
+    jury:[[2,5],[4,5],[6,5],[2,7],[4,7],[6,7],[2,9],[4,9],[6,9],[2,11],[4,11],[6,11]],
+    stairs:[ { tx:15, ty:20, to:'office', dx:13*TILE+20, dy:27*TILE+20, label:'[E] firm car — back to the office' } ],
+  };
+}
+
+function buildWorlds(){ worlds = {}; buildOffice(); buildAnnex(); buildGarage(); buildFloor24(); buildCourtroom(); }
 function loadWorld(id){
   worldId = id; const w = worlds[id];
   map = w.grid; MAPW = w.w; MAPH = w.h;
@@ -1359,6 +1652,10 @@ function setWorld(id, px, py){
   player.x = px; player.y = py;
   shots = []; enemyShots = [];
   for(const al of allies){ al.x = player.x+34; al.y = player.y; }
+  if(pendingSpawn && pendingSpawn.world === worldId){
+    const q = pendingSpawn.q; pendingSpawn = null;
+    doQuestSpawns(q);
+  }
 }
 
 function tileAt(px,py){
@@ -1415,21 +1712,22 @@ function resetCrates(){
   announce('CRATE RECALL. The boxes shuffle back, deeply embarrassed.', false, 3);
 }
 function pullLever(lv){
-  const w = worlds.annex;
-  if(w.gates.g2.open){ announce('The levers are spent. The gate remembers.', false, 2.5); return; }
+  const w = worlds[worldId];
+  if(w.gates[w.leverGate].open){ announce('The levers are spent. The gate remembers.', false, 2.5); return; }
   if(lv.id === w.leverOrder[w.leverProgress]){
     lv.on = true; w.leverProgress++;
     SFX.lever();
     if(w.leverProgress >= w.leverOrder.length){
-      w.gates.g2.open = true;
+      w.gates[w.leverGate].open = true;
       SFX.gate();
-      announce('KA-CHUNK. Proper filing! The archive gate grinds open, almost approvingly.', false, 4);
+      announce(worldId==='annex' ? 'KA-CHUNK. Proper filing! The archive gate grinds open, almost approvingly.'
+                                 : 'BEEP. CONFLICTS CLEARED. The records room unlocks with corporate reluctance.', false, 4);
     } else announce('CLUNK. That felt... procedurally correct.', false, 2.5);
   } else {
     w.leverProgress = 0; w.levers.forEach(l=>l.on=false);
     SFX.buzz();
     announce('A buzzer of pure disappointment. The levers reset. Something hisses awake.', false, 3.5);
-    spawnEnemy('wraith', 24*TILE+20, 5*TILE+20);
+    spawnEnemy('wraith', w.leverFail[0]*TILE+20, w.leverFail[1]*TILE+20);
   }
 }
 
@@ -1440,16 +1738,22 @@ let cam = {x:0,y:0};
 let questIdx, questPhase; // phase: 'get'|'active'|'turnin'|'none'
 let allies = [], servers = [], dlg = null, flags = {};
 let cart = null, cartSpawnT = 0; // Rosa's mail-cart escort (office only)
+let pendingSpawn = null;         // quest spawns deferred until the player reaches the quest's world
+let orderT = 6, orderActive = false, orderFired = false; // ORDER IN THE COURT (Q9)
 const CART_WP = [[4,24],[5,24],[5,21],[5,17],[9,17],[9,13],[12,13],[17,13],[17,10],[21,10],[21,5]];
 const WORLD_GREET = {
   annex:  'THE RECORDS ANNEX — SUBLEVEL B4. It is cold. The files are watching.',
   garage: 'SUBLEVEL P3 — THE PARKING GARAGE. The temperature drops. Somewhere in the dark, a luxury sedan settles.',
   office: 'Back upstairs. The fluorescent hum has never sounded so friendly.',
+  floor24:'THE 24TH FLOOR — GRABBIT & RUNN LLP. The thermostat is set to "deposition."',
+  courtroom:'THE COURTHOUSE — DEPT. 13, HON. MORTIMER BANE PRESIDING. The gavel is already warm.',
 };
 const WORLD_NAME = {
   office: 'DEWEY, CHEATHAM & HOWE — MAIN FLOOR',
   annex:  'THE RECORDS ANNEX — SUBLEVEL B4',
   garage: 'THE PARKING GARAGE — SUBLEVEL P3',
+  floor24:'GRABBIT & RUNN LLP — 24TH FLOOR',
+  courtroom:'COURTHOUSE — DEPARTMENT 13',
 };
 let killCount, collectCount;
 let msg = { text:'', t:0, big:false };
@@ -1463,6 +1767,7 @@ const NPCS = [
   { id:'benny',    nm:'Benny (IT)',                spr:'benny',    x:38*TILE, y:4*TILE },
   { id:'rosa',     nm:'Rosa (Mailroom)',           spr:'rosa',     x:4*TILE,  y:26*TILE },
   { id:'chad',     nm:'Chad Worthington IV',       spr:'chad',     x:30*TILE, y:26*TILE },
+  { id:'lenny',    nm:'Lenny (Pro Bono, est. 2019)', spr:'lenny',  x:16*TILE, y:27*TILE },
 ];
 
 // ============================== DIALOGUE ENGINE ==============================
@@ -1476,6 +1781,7 @@ const WHO = {
   payne:   { nm:'Dr. Ima Payne', spr:'expert' },
   memo:    { nm:'FIRM MEMO', spr:'file' },
   dusty:   { nm:'DUSTY CASE FILE', spr:'dossier' },
+  lenny:   { nm:'Lenny (Pro Bono, est. 2019)', spr:'lenny' },
 };
 const N = (who, text, choices) => ({ nm:WHO[who].nm, spr:WHO[who].spr, text, choices });
 
@@ -1560,7 +1866,43 @@ const QD = [
       { t:"So partnership equity is... edible. Interesting.", say:"...I am choosing to believe that was a joke. Go. And associate — be careful in there.", a:2 }],
     outro:[
       "It's done. The corner office is just an office. The coffee machine works. Somewhere, four hundred lawyers feel suddenly, inexplicably rested.",
-      "The partners voted at dawn. Unanimous. Welcome to the letterhead... PARTNER."] },
+      "The partners voted at dawn. Unanimous. Welcome to the letterhead... PARTNER.",
+      "(A process server bursts in, panting.) Or it WAS unanimous, until 6:01 a.m., when we were served THIS:",
+      "NOTICE OF APPEAL — In re the Estate of Thaddeus Graves III. The appellant is a numbered trust. They want the hours back, partner. ALL of them."] },
+  { intro:[
+      "The estate of Graves has appealed. The named appellant is the trust — and Grabbit & Runn just leased the 24th floor. Of OUR building. The audacity has a floor plan.",
+      "Their 'Associates of the Month' are up there deposing OUR clients as we speak. There's a wall of plaques. All of them. Every month. Don't ask how.",
+      "Take the elevator. Disrupt six of them. Politely. With prejudice."],
+    prompt:"You ask:",
+    opts:[
+      { t:"Is an appeal by a man who dissolved into CLE credits even justiciable?", say:"You'd think not! And yet the clerk accepted the filing. The law is a wheel, partner. A big, stupid wheel.", e:1 },
+      { t:"If we win, do we get their floor?", say:"...I'll have facilities measure for drapes.", a:1 }],
+    outro:[
+      "They've stopped deposing. Their managing partner sent a fruit basket labeled 'WITHOUT PREJUDICE'. I ate it WITH prejudice.",
+      "But the appeal reopened discovery — the trust documents got remanded to OUR Records Annex overnight. And the annex has... reorganized itself. It does that when it's nervous."] },
+  { intro:[
+      "The annex re-filed itself overnight. Gates down. Levers reset. The crates look SMUG. Somewhere inside are four trust instruments naming the beneficiary only as 'MIDNIGHT'.",
+      "Recover all four. And mind the golems — they've unionized."],
+    prompt:"Before you descend:",
+    opts:[
+      { t:"Who is MIDNIGHT, Hargrove?", say:"(He checks his watch like it owes him money.) Bring me the instruments and we'll both find out.", e:1 },
+      { t:"Is there a finder's fee?", say:"Your fee is precedent.", a:1 }],
+    outro:[
+      "Four instruments, one beneficiary: 'MIDNIGHT, c/o The Honorable Mortimer Bane.' A sitting judge. Of course it's a sitting judge.",
+      "Bane and Graves — law school roommates. Class of 1959. He's been hearing this firm's cases for forty years, and now he's hearing OURS.",
+      "Final hearing tomorrow. His courtroom. Department 13. Take the firm car. And partner — bring everything you know."] },
+  { intro:[
+      "This is it. In re the Estate of Graves, before the Honorable Mortimer Bane. At stake: every hour this firm has ever billed.",
+      "Win the jury. All twelve. Bane will throw bailiffs, sanctions, and — historically — his gavel.",
+      "One more thing: when court is called to ORDER, hold your fire. He punishes contempt with reinforcements."],
+    prompt:"You stand. You say:",
+    opts:[
+      { t:"We win this clean. On the record.", say:"(He straightens your collar. It is the most paternal thing he has ever done.) Go get him, counselor.", e:2 },
+      { t:"After I win, I argue ALL our appeals.", say:"After you win, you can argue with GOD. Go.", a:2 }],
+    outro:[
+      "VERDICT FOR THE FIRM. Twelve jurors, zero dissents, one judge escorted out by his own bailiffs.",
+      "The MIDNIGHT trust is dissolved. Forty years of hours, remanded to the people who billed them.",
+      "The partners voted again at dawn. Still unanimous. Welcome — properly, finally, appeal-proof — to the letterhead."] },
 ];
 
 const LORE = [
@@ -1568,6 +1910,9 @@ const LORE = [
   "FILE 1987-B — Timekeeper memo. 'Anomaly: T.G. III billed 25.0 hours on 3/13/87. Investigated. Resolution: do not investigate.'",
   "FILE 1987-C — Settlement agreement, unsigned. 'Clause 9: The Emeritus shall release all harvested hours upon invocation by any attorney of the firm in good standing.' A sticky note reads: 'nobody ever reads Clause 9.'",
   "FILE 1987-D — Garage deed. 'Sublevel P3 conveyed to the Worthington Family Trust in exchange for services rendered, March 1987.' The signature line for 'services' is just a long red smear.",
+  "FILE 1987-E — Mailroom memo, March '87: 'The mail has begun delivering itself. Productivity up 340%. Morale: see attached scream.' Nothing is attached.",
+  "FILE 1987-F — Trust deed. 'THE MIDNIGHT TRUST, est. 3/13/87. Corpus: 219,000 billable hours. Trustee: Grabbit & Runn LLP. Beneficiary: [SEALED BY ORDER OF HON. M. BANE].'",
+  "FILE 1959-A — Law school yearbook page. 'Mortimer Bane: Most Likely to Hold a Grudge. Roommate: T. Graves III.' Below, in fresh ink: 'Still counting, Thaddeus.'",
 ];
 
 const HARGROVE_NAGS = [
@@ -1589,10 +1934,11 @@ function questOutroScene(){
   const i = questIdx;
   startDialog(QD[i].outro.map(t => N('hargrove', t)), () => {
     gainXP(QUESTS[i].xp);
-    if(i === 5){ flags.ending = flags.ethics >= flags.ambition ? 'reform' : 'power'; state = 'victory'; SFX.jingleWin(); return; }
+    if(i === 8){ flags.ending = flags.ethics >= flags.ambition ? 'reform' : 'power'; state = 'victory'; SFX.jingleWin(); return; }
     questIdx++; questPhase = 'get';
     if(i === 2) chadBeat1();
     if(i === 4) chadBeat2();
+    if(i === 5){ announce('ACT II — THE APPEAL', true, 4.5); SFX.promote(); }
   });
 }
 function chadBeat1(){
@@ -1729,7 +2075,14 @@ function talkBenny(){
   }
 }
 function talkDolores(){
-  if(flags.doloresQ === 0){
+  if(flags.eleven && !flags.baneWeak && questIdx >= 6){
+    startDialog([
+      N('dolores', "You've met all eleven, then. I typed for every one of them. I typed Ezekiel's eulogy, Prudence's resignation, and the thing we do not call a confession."),
+      N('dolores', "I also typed Mortimer Bane's clerkship rejection. 1959. This firm turned him down in eleven words. He has never forgiven us — or footnote four."),
+      N('dolores', "His law review note, dear. 12 Yale L.J. 404. He cited HIMSELF. Incorrectly. Recite it back to him on the bench and he will simply... come apart. (She types the citation. You memorize it.)"),
+    ], () => { flags.baneWeak = true; gainXP(40); });
+  }
+  else if(flags.doloresQ === 0){
     startDialog([
       N('dolores', "Young one. I have typed for this firm since 1974. I have outlived eleven managing partners and two of my own retirements."),
       N('dolores', "Take this envelope to young Mister Worthington. Sealed. SEALED, I said. The last associate who steamed one open billed two thousand hours that year and was never seen again.", [
@@ -1770,6 +2123,37 @@ function talkChad(){
     startDialog([N('chad', CHAD_BANTER[Math.floor(Math.random()*CHAD_BANTER.length)])]);
   }
 }
+function talkLenny(){
+  if(flags.lennyQ === 0){
+    startDialog([
+      N('lenny', "Oh! A lawyer! A REAL one? I've been in this lobby since 2019. I had a consultation. They said someone would be 'right with me.' I've seen three Christmas parties and a small fire."),
+      N('lenny', "It's my security deposit. $850. The firm took my case pro bono, then the paperwork golems took my FILE in The Reorganization. Three of them have it. I'd know that file anywhere — it has a coffee ring shaped like Ohio.", [
+        { t:"I'll get your file back, Lenny.", say:"Really?? No one ever— okay. Okay! I'll be here. Obviously. I'm always here.", fx:()=>{
+            flags.lennyQ = 1;
+            for(let i=0;i<3;i++){
+              let p; do { p = findOpen(player.x, player.y, 320); } while(Math.hypot(p.x-player.x, p.y-player.y) < 200);
+              spawnEnemy('golem', p.x, p.y);
+              enemies[enemies.length-1].proBono = true;
+            }
+          } },
+        { t:"Billing partner says no.", say:"I understand. Billables. (He settles deeper into the chair. The chair has accepted him as one of its own.)" },
+      ]),
+    ]);
+  } else if(flags.lennyQ === 1 && flags.lennyKills < 3){
+    startDialog([N('lenny', `Three golems. ${3-flags.lennyKills} still have pieces of my file. I believe in you the way I no longer believe in elevator small talk.`)]);
+  } else if(flags.lennyQ === 1){
+    startDialog([
+      N('lenny', "My file! Ohio and everything! What do I owe— oh. Oh no. I can't pay you. I couldn't even pay the DEPOSIT, that's the whole case."),
+      N('lenny', "(He shakes your hand for a very long time. Somewhere, an ethics professor feels a disturbance and smiles.)"),
+    ], () => {
+      flags.lennyQ = 2; flags.ethics += 2;
+      floaters.push({ x:player.x, y:player.y-22, text:'+0 XP (PRO BONO) · +2 ETHICS', t:1.6, color:'#9be05e' });
+      announce('Case closed. Fee: nothing. It was simply the right thing to do.', false, 4);
+    });
+  } else {
+    startDialog([N('lenny', "I won! Well — YOU won. The deposit comes back in six to eight business eons. I'm staying in the lobby though. It's load-bearing now. I'm load-bearing.")]);
+  }
+}
 function talkTo(n){
   if(n.id === 'hargrove'){
     if(questPhase === 'get') questIntroScene();
@@ -1780,6 +2164,7 @@ function talkTo(n){
   else if(n.id === 'benny') talkBenny();
   else if(n.id === 'dolores') talkDolores();
   else if(n.id === 'chad') talkChad();
+  else if(n.id === 'lenny') talkLenny();
 }
 function npcMarker(n){
   switch(n.id){
@@ -1788,19 +2173,22 @@ function npcMarker(n){
                           : (flags.rosaQ===1 && flags.hasStamper) || flags.mailQ===2 ? '?'
                           : (flags.rosaQ===2 && flags.mailQ===0) ? '!' : null;
     case 'benny':    return flags.bennyQ===0 || (flags.coffeeQ===1 && !flags.coffeeBrief) ? '!' : (flags.bennyQ===1 && flags.serversFixed>=3 ? '?' : null);
-    case 'dolores':  return flags.doloresQ===0 ? '!' : null;
+    case 'dolores':  return flags.doloresQ===0 ? '!' : (flags.eleven && !flags.baneWeak && questIdx>=6) ? '!' : null;
+    case 'lenny':    return flags.lennyQ===0 ? '!' : (flags.lennyQ===1 && flags.lennyKills>=3) ? '?' : null;
     case 'chad':     return flags.doloresQ===1 ? '?' : (flags.grandfatherDown && !flags.chadGpa) || (flags.coffeeBrief && !flags.partChad) ? '!' : null;
   }
   return null;
 }
 
+let dlgRects = []; // tappable choice hitboxes in canvas coords, rebuilt each drawDialog
 function drawDialog(){
   if(!dlg) return;
   const d = dlg.nodes[dlg.i];
   const lines = wrap(d.text, 80);
   const nch = d.choices ? d.choices.length : 0;
   const bh = Math.max(100, 56 + lines.length*18 + nch*20 + (nch ? 12 : 20));
-  const bx = 40, bw = W - 80, by = CH - bh - 10;
+  // anchor in the upper-middle of the viewport so it's visible without scrolling
+  const bx = 40, bw = W - 80, by = Math.max(14, (H - bh)*0.32);
   ctx.fillStyle = 'rgba(13,10,20,0.94)'; ctx.fillRect(bx, by, bw, bh);
   ctx.strokeStyle = '#f0c75e'; ctx.lineWidth = 2; ctx.strokeRect(bx, by, bw, bh);
   ctx.fillStyle = '#241d36'; ctx.fillRect(bx+12, by+12, 72, 72);
@@ -1812,9 +2200,13 @@ function drawDialog(){
   ctx.font = '13px monospace'; ctx.fillStyle = '#e8e0f0';
   lines.forEach((l,i) => ctx.fillText(l, bx+100, by+48 + i*18));
   const yy = by + 48 + lines.length*18 + 8;
+  dlgRects = [];
   if(d.choices){
     ctx.font = 'bold 13px monospace'; ctx.fillStyle = '#5ec8f0';
-    d.choices.forEach((c,i) => ctx.fillText(`[${i+1}] ${c.t}`, bx+100, yy + i*20));
+    d.choices.forEach((c,i) => {
+      ctx.fillText(`[${i+1}] ${c.t}`, bx+100, yy + i*20);
+      dlgRects.push({ x:bx+96, y:yy + i*20 - 15, w:bw-110, h:20 });
+    });
   } else {
     ctx.font = '12px monospace'; ctx.fillStyle = '#9b8fb5';
     ctx.fillText('[E] continue', bx+bw-130, by+bh-12);
@@ -1847,8 +2239,12 @@ function startGame(genderId, classId){
             hasStamper:false, hasKey:false, serversFixed:0, lore:0, chadAlly:false, ending:null,
             mailQ:0, mailFailed:false, coffeeQ:0, coffeeBrief:false, coffeeUp:false,
             partDescaler:false, partElement:false, partChad:false,
-            hasValetKey:false, grandfatherDown:false, chadGpa:false };
+            hasValetKey:false, grandfatherDown:false, chadGpa:false,
+            portraits:0, eleven:false, baneWeak:false,
+            trialWave:0, jury:0, baneSpawned:false,
+            lennyQ:0, lennyKills:0 };
   cart = null; cartSpawnT = 0;
+  pendingSpawn = null; orderT = 6; orderActive = false; orderFired = false;
   NPCS.forEach(n => n.hidden = false);
   questIdx = 0; questPhase = 'get'; killCount=0; collectCount=0;
   gameTime = 0;
@@ -1860,13 +2256,8 @@ function startGame(genderId, classId){
 }
 
 // ============================== QUESTS ==============================
-function acceptQuest(){
-  const q = QUESTS[questIdx];
-  questPhase = 'active'; killCount = 0; collectCount = 0;
-  SFX.quest();
-  announce(`MATTER: ${q.name}`, true, 3.2);
-  if(questIdx === 5) return; // the finale spawns via the Graves confrontation
-  // spawn enemies scattered around map, away from player
+function doQuestSpawns(q){
+  // spawn enemies scattered around the current map, away from the player
   for(const [type, n] of q.spawn){
     for(let i=0;i<n;i++){
       let p;
@@ -1878,8 +2269,30 @@ function acceptQuest(){
   if(q.goal.items){
     for(let i=0;i<q.goal.items;i++){
       const p = findOpen(MAPW*TILE/2, MAPH*TILE/2, MAPW*TILE/2);
-      pickups.push({ x:p.x, y:p.y, spr:'file', kind:'file', t:0 });
+      pickups.push({ x:p.x, y:p.y, spr:q.itemSpr||'file', kind:'file', label:q.itemLabel, t:0 });
     }
+  }
+}
+function relockAnnex(){
+  const w = worlds.annex;
+  for(const k in w.gates) w.gates[k].open = false;
+  w.plates.forEach(p=>p.done=false);
+  w.levers.forEach(l=>l.on=false); w.leverProgress = 0;
+  w.crates.forEach(c=>{ c.tx=c.ox; c.ty=c.oy; });
+}
+function acceptQuest(){
+  const q = QUESTS[questIdx];
+  questPhase = 'active'; killCount = 0; collectCount = 0;
+  SFX.quest();
+  if(questIdx === 5){ announce(`MATTER: ${q.name}`, true, 3.2); return; } // the finale spawns via the Graves confrontation
+  if(q.relock) relockAnnex();
+  const tw = q.world || 'office';
+  if(tw === worldId){
+    announce(`MATTER: ${q.name}`, true, 3.2);
+    doQuestSpawns(q);
+  } else {
+    pendingSpawn = { world: tw, q };
+    announce(`MATTER: ${q.name} — proceed to ${WORLD_NAME[tw]}`, true, 4);
   }
 }
 function questGoalMet(){
@@ -1924,6 +2337,13 @@ function fire(){
   const c = player.cls;
   if(player.cd > 0) return;
   player.cd = c.cd;
+  if(orderActive && worldId==='courtroom' && !orderFired){
+    orderFired = true;
+    const p = findOpen(player.x, player.y, 180);
+    spawnEnemy('bailiff', p.x, p.y);
+    SFX.buzz();
+    announce('CONTEMPT OF COURT. A bailiff is summoned from the clerk\'s office.', false, 3);
+  }
   SFX.shoot(c.id);
   const ang = Math.atan2(player.face.y, player.face.x);
   const mk = (a) => shots.push({
@@ -1997,6 +2417,7 @@ function update(dt){
   if(keys['s']||keys['arrowdown']) dy++;
   if(keys['a']||keys['arrowleft']) dx--;
   if(keys['d']||keys['arrowright']) dx++;
+  if(!dx && !dy && joy.on && Math.hypot(joy.dx, joy.dy) > 0.25){ dx = joy.dx; dy = joy.dy; }
   if(dx||dy){ const l=Math.hypot(dx,dy); moveEntity(player, dx/l*220, dy/l*220, dt); player.face = {x:dx/l, y:dy/l}; }
   player.pushCd = (player.pushCd||0) - dt;
   if((dx||dy) && player.pushCd <= 0){
@@ -2021,7 +2442,28 @@ function update(dt){
   if(keys['e']){
     keys['e'] = false;
     let used = false;
-    if(worldId==='office') for(const n of NPCS){
+    // portraits outrank NPCs (Dolores stands within talk range of the middle frames);
+    // frames hang 40px apart, so always pick the nearest one in range
+    if(worldId==='office'){
+      let pt = null, ptD = 60;
+      for(const p of worlds.office.portraits){
+        const d = Math.hypot(player.x-(p.tx*TILE+20), player.y-(p.ty*TILE+20));
+        if(d < ptD){ ptD = d; pt = p; }
+      }
+      if(pt){
+        startDialog([{nm:'PORTRAIT', spr:'portrait', text:pt.text}]);
+        if(!pt.seen){
+          pt.seen = true; flags.portraits++;
+          gainXP(5);
+          if(flags.portraits === 11){
+            flags.eleven = true;
+            announce('Eleven portraits. Eleven managing partners. All by the same artist. All facing the corner office. Dolores would know more.', false, 6);
+          }
+        }
+        used = true;
+      }
+    }
+    if(!used && worldId==='office') for(const n of NPCS){
       if(n.hidden) continue;
       if(Math.hypot(player.x-n.x, player.y-n.y) < 70){ talkTo(n); used = true; break; }
     }
@@ -2035,10 +2477,16 @@ function update(dt){
       }
     }
     const nearT = o => Math.hypot(player.x-(o.tx*TILE+20), player.y-(o.ty*TILE+20)) < 60;
+    if(!used) for(const lv of worlds[worldId].levers){ if(nearT(lv)){ pullLever(lv); used = true; break; } }
+    if(!used && worldId==='floor24' && Math.hypot(player.x-(31*TILE+20), player.y-(22*TILE+20)) < 70){
+      player.hp = Math.max(1, player.hp - 15);
+      SFX.buzz();
+      announce('You drink from the enemy machine. It is DECAF. (-15 Billable Energy) You feel betrayal, then sleepy.', false, 3.5);
+      used = true;
+    }
     if(!used && worldId==='annex'){
       const w = worlds.annex;
-      for(const lv of w.levers){ if(nearT(lv)){ pullLever(lv); used = true; break; } }
-      if(!used && w.recall && nearT(w.recall)){ resetCrates(); used = true; }
+      if(w.recall && nearT(w.recall)){ resetCrates(); used = true; }
       if(!used && !w.gates.g3.open && Math.hypot(player.x-25*TILE, player.y-14.5*TILE) < 80){
         if(flags.hasKey){ w.gates.g3.open = true; SFX.gate(); announce('The brass key turns. The Vault of Misfiled Things exhales forty years of dust.', false, 4); }
         else announce('Locked. A brass keyhole, dusty with judgment.', false, 3);
@@ -2062,6 +2510,7 @@ function update(dt){
     }
     if(!used) for(const st of worlds[worldId].stairs){
       if(nearT(st)){
+        if(st.locked && st.locked()){ announce(st.lockMsg, false, 3.5); used = true; break; }
         setWorld(st.to, st.dx, st.dy);
         SFX.stairs();
         announce(WORLD_GREET[st.to], false, 4);
@@ -2135,6 +2584,48 @@ function update(dt){
     }
   }
 
+  // the trial (Q9): waves of witnesses fill the jury box, then Bane takes the bench
+  if(worldId==='courtroom' && questIdx===8 && questPhase==='active'){
+    if(!flags.baneSpawned && enemies.length===0){
+      if(flags.trialWave < 3){
+        flags.trialWave++;
+        flags.jury = (flags.trialWave-1)*4;
+        const waves = [
+          [['bailiff',2],['assoc',2]],
+          [['bailiff',3],['assoc',2],['gremlin',2]],
+          [['bailiff',3],['assoc',3],['counsel',2]],
+        ];
+        for(const [t,n] of waves[flags.trialWave-1]) for(let i=0;i<n;i++){
+          let p;
+          do { p = findOpen(15*TILE, 9*TILE, 300); }
+          while(Math.hypot(p.x-player.x, p.y-player.y) < 180);
+          spawnEnemy(t, p.x, p.y);
+        }
+        SFX.quest();
+        announce(`THE COURT CALLS ITS ${['FIRST','SECOND','THIRD'][flags.trialWave-1]} WAVE OF WITNESSES`, true, 3);
+      } else {
+        flags.baneSpawned = true; flags.jury = 12;
+        spawnEnemy('bane', 15*TILE, 5*TILE);
+        const b = enemies[enemies.length-1];
+        let mult = 1, edge = '';
+        if(flags.baneWeak){ mult *= 0.65; edge += ' You cite 12 Yale L.J. 404 (1959). He flinches, structurally.'; }
+        if(flags.lore >= 7){ mult *= 0.75; edge += ' Seven files of evidence burn in your briefcase.'; }
+        b.hp = b.maxhp * mult;
+        SFX.boom(); shake = Math.max(shake, 12);
+        announce('BANE TAKES THE BENCH. "Forty years on this docket, counselor. Overruled — ALL of it."' + edge, false, 6);
+      }
+    }
+    // ORDER IN THE COURT — fire during it and be sanctioned
+    orderT -= dt;
+    if(orderActive){
+      if(orderT <= 0){ orderActive = false; orderFired = false; orderT = 11 + Math.random()*5; }
+    } else if(orderT <= 0 && enemies.length > 0){
+      orderActive = true; orderT = 2.4;
+      SFX.gate();
+      announce('ORDER IN THE COURT — HOLD YOUR FIRE', true, 2.4);
+    }
+  } else orderActive = false;
+
   // shots
   for(const s of shots){
     if(s.homing){
@@ -2183,8 +2674,27 @@ function update(dt){
     // Must also exceed the 30px approach standoff above, where melee enemies park.
     const touch = (e.boss ? 30 : 17) + 17;
     if(d < touch){
-      if(tgt === player) hurtPlayer(e.dmg*dt*2.2, true);
+      if(tgt === player){
+        hurtPlayer(e.dmg*dt*2.2, true);
+        if(e.type==='gremlin' && player.coffeeCd < 8){
+          player.coffeeCd = 8;
+          floaters.push({ x:player.x, y:player.y-30, text:'CAFFEINE STOLEN!', t:0.9, color:'#9be05e' });
+        }
+      }
       else cart.hp -= e.dmg*dt*2.2;
+    }
+    // Bane's gavel: periodic radial shockwave
+    if(e.type==='bane'){
+      e.novaT = (e.novaT===undefined ? 3.5 : e.novaT) - dt;
+      if(e.novaT <= 0){
+        e.novaT = 5;
+        for(let i=0;i<12;i++){
+          const a = i/12*Math.PI*2;
+          enemyShots.push({ x:e.x, y:e.y, vx:Math.cos(a)*210, vy:Math.sin(a)*210, dmg:e.dmg, r:7, life:2.2 });
+        }
+        floaters.push({ x:e.x, y:e.y-44, text:'GAVEL.', t:0.9, color:'#ff9bb0' });
+        shake = Math.max(shake, 8); SFX.boom();
+      }
     }
     // shooting (always aims at the player; carts don't bleed)
     if(e.shoots){
@@ -2216,6 +2726,7 @@ function update(dt){
       const q = QUESTS[questIdx];
       if(questPhase==='active' && e.type===q.goal.enemy) killCount++;
       gainXP(e.xp);
+      if(e.proBono) flags.lennyKills++;
       if(e.boss) SFX.boom(); else SFX.die();
       if(e.type==='grandfather'){
         flags.grandfatherDown = true;
@@ -2259,6 +2770,7 @@ function update(dt){
         flags.lore++; gainXP(10);
         startDialog([N('dusty', LORE[p.idx])], () => {
           if(flags.lore === 3) announce('You understand Clause 9 now. Something new will be possible at midnight.', false, 5);
+          if(flags.lore === 7) announce('Seven files. The whole sordid ledger, 1959 to now. Bane will not enjoy how much you know.', false, 5);
         });
       } else if(p.kind === 'stamper'){
         flags.hasStamper = true;
@@ -2277,7 +2789,7 @@ function update(dt){
         announce('A forgotten retainer chest! Sixty XP of pre-paid, never-billed 1986 legal fees.', false, 4);
       } else if(p.kind === 'file'){
         collectCount++;
-        floaters.push({ x:player.x, y:player.y-22, text:'PRIVILEGED FILE SECURED', t:1, color:'#5ec8f0' });
+        floaters.push({ x:player.x, y:player.y-22, text:p.label||'PRIVILEGED FILE SECURED', t:1, color:'#5ec8f0' });
       }
       p.dead = true;
     }
@@ -2361,6 +2873,17 @@ function draw(){
   for(const st of wd.stairs) nearLbl(st.tx*TILE+20, st.ty*TILE+20, st.label);
   if(worldId==='annex' && !wd.gates.g3.open) nearLbl(25*TILE, 14.5*TILE, '[E] vault door');
   if(worldId==='garage' && !wd.gates.g1.open) nearLbl(26*TILE+20, 12*TILE, '[E] valet cage');
+  // library portraits
+  if(wd.portraits) for(const pt of wd.portraits){
+    drawSprite(SPR.portrait, pt.tx*TILE+20-cam.x, pt.ty*TILE+12-cam.y, 34, false, pt.seen?0.6:1);
+    nearLbl(pt.tx*TILE+20, pt.ty*TILE+20, '[E] portrait');
+  }
+  // jury box
+  if(wd.jury) for(let i=0;i<wd.jury.length;i++){
+    const [jx,jy] = wd.jury[i];
+    drawSprite(i < (flags.jury||0) ? SPR.juror : SPR.seat, jx*TILE+20-cam.x, jy*TILE+20-cam.y, 32);
+  }
+  if(worldId==='floor24') nearLbl(31*TILE+20, 22*TILE+20, '[E] coffee (?)');
 
   // pickups
   for(const p of pickups){
@@ -2465,7 +2988,7 @@ function draw(){
   }
   ctx.globalAlpha=1;
 
-  if(worldId!=='office'){
+  if(worldId==='annex' || worldId==='garage'){
     const vg = ctx.createRadialGradient(player.x-cam.x, player.y-cam.y, 90, player.x-cam.x, player.y-cam.y, 420);
     vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,0.55)');
     ctx.fillStyle = vg; ctx.fillRect(0,0,W,H);
@@ -2536,7 +3059,7 @@ function drawHUD(){
     ctx.fillStyle='#fff'; ctx.fillText(`${player.xp}/${next.xp}`, 220, y0+81);
   } else { ctx.fillStyle='#f0c75e'; ctx.fillRect(14, y0+72, 200, 10); }
   ctx.fillStyle='#9b8fb5';
-  ctx.fillText(`ETHICS ${flags.ethics} · AMBITION ${flags.ambition} · 1987 FILES ${flags.lore}/4`, 14, y0+98);
+  ctx.fillText(`ETHICS ${flags.ethics} · AMBITION ${flags.ambition} · 1987 FILES ${flags.lore}/7`, 14, y0+98);
   ctx.fillText(WORLD_NAME[worldId], 14, y0+112);
 
   // --- middle: arsenal ---
@@ -2565,6 +3088,10 @@ function drawHUD(){
     const cp = (flags.partDescaler?1:0)+(flags.partElement?1:0)+(flags.partChad?1:0);
     sideLines.push(flags.coffeeBrief ? `* Coffee rebuild: parts ${cp}/3` : '* Coffee machine DOWN — see Benny (IT)');
   }
+  if(flags.lennyQ===1) sideLines.push(flags.lennyKills>=3 ? '* Lenny: return his file' : `* Lenny: golems with his file ${flags.lennyKills}/3`);
+  if(flags.portraits>0 && !flags.eleven) sideLines.push(`* Library portraits: ${flags.portraits}/11`);
+  if(flags.eleven && !flags.baneWeak && questIdx>=6) sideLines.push('* Ask Dolores about the eleven');
+  if(questIdx===8 && questPhase==='active' && !flags.baneSpawned) sideLines.push(`* Jury won: ${flags.jury}/12`);
   ctx.fillStyle='#9be05e';
   sideLines.forEach((l,i)=>ctx.fillText(l, W-420, y0+70+i*14));
 }
@@ -2590,27 +3117,28 @@ function drawEnd(){
         `Total XP billed: ${player.xp}`,
       ];
     } else if(flags.ending === 'reform'){
-      title = 'YOU MADE PARTNER'; glow = '#9be05e';
+      title = 'APPEAL DISMISSED — YOU MADE PARTNER'; glow = '#9be05e';
       lines = [
-        'Graves dissolves into a cloud of expired CLE credits and unredeemed vacation days.',
-        'You file Clause 9 with the court. Forty years of stolen hours flow back into the building.',
+        "Bane's gavel cracks, splinters, and files itself into evidence. The appeal is DISMISSED —",
+        'with prejudice, with costs, and with a standing ovation from the court reporter.',
+        'You file Clause 9 with a clean court. The MIDNIGHT trust dissolves; forty years of stolen hours flow home.',
         'Four hundred lawyers wake up rested for the first time since 1987. Two of them retire immediately.',
         '',
         'The firm is renamed: Dewey, Cheatham & [YOUR NAME HERE].',
         chadEp,
         '',
-        `Ethics ${flags.ethics} · Ambition ${flags.ambition} · 1987 Files ${flags.lore}/4 · XP billed: ${player.xp}`,
+        `Ethics ${flags.ethics} · Ambition ${flags.ambition} · 1987 Files ${flags.lore}/7 · XP billed: ${player.xp}`,
       ];
     } else {
-      title = 'YOU MADE PARTNER'; glow = '#f0c75e';
+      title = 'APPEAL DISMISSED — YOU MADE PARTNER'; glow = '#f0c75e';
       lines = [
-        'Graves dissolves into a cloud of expired CLE credits. The corner office is yours.',
-        'So is the strange little hunger you feel when associates mention overtime.',
+        'Bane dissolves into a cloud of vacated opinions. The corner office is yours.',
+        'So is the MIDNIGHT trust. Someone has to administer forty years of hours. Why not you?',
         "You tell yourself you'll be different. The office hums approvingly.",
         '',
         chadEp,
         '',
-        `Ethics ${flags.ethics} · Ambition ${flags.ambition} · 1987 Files ${flags.lore}/4 · XP billed: ${player.xp}`,
+        `Ethics ${flags.ethics} · Ambition ${flags.ambition} · 1987 Files ${flags.lore}/7 · XP billed: ${player.xp}`,
       ];
     }
     ctx.font='bold 32px monospace'; ctx.fillStyle=glow;
@@ -2672,6 +3200,68 @@ cv.addEventListener('mousemove', e=>{
 });
 cv.addEventListener('mousedown', ()=>mouse.down=true);
 window.addEventListener('mouseup', ()=>mouse.down=false);
+
+// ============================== TOUCH CONTROLS ==============================
+const joy = { dx:0, dy:0, on:false };
+const touchEl = document.getElementById('touch');
+if(window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window){
+  touchEl.style.display = 'block';
+
+  // virtual joystick
+  const joyEl = document.getElementById('joy'), stickEl = document.getElementById('stick');
+  const joyMove = t => {
+    const r = joyEl.getBoundingClientRect();
+    let jx = (t.clientX - (r.left + r.width/2)) / (r.width/2);
+    let jy = (t.clientY - (r.top + r.height/2)) / (r.height/2);
+    const m = Math.hypot(jx, jy);
+    if(m > 1){ jx /= m; jy /= m; }
+    joy.dx = jx; joy.dy = jy; joy.on = true;
+    stickEl.style.transform = `translate(${jx*34}px, ${jy*34}px)`;
+  };
+  joyEl.addEventListener('touchstart', e=>{ e.preventDefault(); joyMove(e.changedTouches[0]); }, {passive:false});
+  joyEl.addEventListener('touchmove',  e=>{ e.preventDefault(); joyMove(e.changedTouches[0]); }, {passive:false});
+  const joyEnd = e=>{ e.preventDefault(); joy.dx=0; joy.dy=0; joy.on=false; stickEl.style.transform=''; };
+  joyEl.addEventListener('touchend', joyEnd, {passive:false});
+  joyEl.addEventListener('touchcancel', joyEnd, {passive:false});
+
+  // action buttons (hold-down maps onto the key state the game already reads)
+  const bindBtn = (id, key) => {
+    const el = document.getElementById(id);
+    el.addEventListener('touchstart', e=>{
+      e.preventDefault();
+      if(key === 'e' && state==='dialog' && dlg){
+        const node = dlg.nodes[dlg.i];
+        if(!node.choices) advDialog();
+        return;
+      }
+      keys[key] = true;
+    }, {passive:false});
+    const up = e=>{ e.preventDefault(); keys[key] = false; };
+    el.addEventListener('touchend', up, {passive:false});
+    el.addEventListener('touchcancel', up, {passive:false});
+  };
+  bindBtn('tbJ','j'); bindBtn('tbK','k'); bindBtn('tbL','l'); bindBtn('tbE','e');
+  document.getElementById('tbM').addEventListener('touchstart', e=>{ e.preventDefault(); toggleMute(); }, {passive:false});
+
+  // taps on the canvas: advance dialog, pick choices, restart from end screens
+  cv.addEventListener('touchstart', e=>{
+    e.preventDefault();
+    const t = e.changedTouches[0], r = cv.getBoundingClientRect();
+    const x = (t.clientX - r.left)*(W/r.width), y = (t.clientY - r.top)*(CH/r.height);
+    if(state==='dialog' && dlg){
+      const node = dlg.nodes[dlg.i];
+      if(node.choices){
+        for(let i=0;i<dlgRects.length;i++){
+          const rc = dlgRects[i];
+          if(x >= rc.x && x <= rc.x+rc.w && y >= rc.y && y <= rc.y+rc.h){ chooseDialog(i); return; }
+        }
+      } else advDialog();
+    } else if(state==='gameover' || state==='victory'){
+      document.getElementById('menu').style.display = 'flex';
+      state = 'menu';
+    }
+  }, {passive:false});
+}
 
 // ============================== MENU ==============================
 let selGender=null, selClass=null;
