@@ -44,34 +44,43 @@
     border-radius:50%; background:rgba(36,29,54,.8); border:2px solid #4a3f63; color:#e8e0f0;
     font-family:inherit; font-size:15px;
   }
-  @media (pointer:coarse){
-    body { padding:6px; }
-    h1 { font-size:16px; letter-spacing:1px; margin:2px 0; }
-    .tagline { display:none; }
-    #ui { display:none; }
+  /* ---- body.touch: applied by JS on coarse-pointer devices ---- */
+  body.touch { padding:6px; }
+  body.touch h1 { font-size:16px; letter-spacing:1px; margin:2px 0; }
+  body.touch .tagline { display:none; }
+  body.touch #ui { display:none; }
+  body.touch #wrap { overflow:hidden; aspect-ratio:966 / 609; border-radius:6px; }
+  body.touch #touch { display:block; }
+  /* character creation gets the whole screen on mobile — the cropped canvas can't hold it */
+  body.touch #menu { position:fixed; inset:0; border-radius:0; z-index:30; padding-bottom:96px; }
+  body.touch #startBtn {
+    position:fixed; left:0; right:0; bottom:0; width:100%;
+    border-radius:0; padding:18px; font-size:17px; z-index:40;
   }
   /* ---- mobile panel: HUD + dialogs in the space between canvas and controls ---- */
   #mpanel { display:none; width:100%; max-width:966px; margin-top:8px; padding-bottom:210px; }
-  #mrank { color:#f0c75e; font-size:14px; font-weight:bold; }
-  #mhpbar { height:12px; background:#3a2440; border-radius:5px; overflow:hidden; margin:5px 0 3px; }
+  #mrank { color:#f0c75e; font-size:16px; font-weight:bold; }
+  #mhpbar { position:relative; height:22px; background:#3a2440; border:1px solid #4a3f63; border-radius:6px; overflow:hidden; margin:7px 0 5px; }
   #mhpfill { height:100%; background:#9be05e; width:100%; }
-  #mxpbar { height:7px; background:#3a2440; border-radius:4px; overflow:hidden; margin-bottom:6px; }
+  #mhplabel { position:absolute; inset:0; text-align:center; font-size:13px; font-weight:bold; color:#fff; line-height:22px; letter-spacing:1px; text-shadow:0 1px 3px #000, 0 0 4px #000; }
+  #mxpbar { position:relative; height:16px; background:#3a2440; border:1px solid #4a3f63; border-radius:5px; overflow:hidden; margin-bottom:8px; }
   #mxpfill { height:100%; background:#f0c75e; width:0%; }
-  #mquest { color:#5ec8f0; font-size:13px; line-height:1.4; }
-  #mside { color:#9be05e; font-size:12px; line-height:1.4; }
-  #mmsg { color:#e8e0f0; font-size:13px; line-height:1.45; min-height:19px; margin-top:5px; }
+  #mxplabel { position:absolute; inset:0; text-align:center; font-size:11px; font-weight:bold; color:#fff; line-height:16px; letter-spacing:1px; text-shadow:0 1px 3px #000, 0 0 4px #000; }
+  #mquest { color:#5ec8f0; font-size:15px; line-height:1.45; }
+  #mside { color:#9be05e; font-size:14px; line-height:1.45; }
+  #mmsg { color:#e8e0f0; font-size:15px; line-height:1.5; min-height:22px; margin-top:6px; }
   #mdlg {
     display:none; margin-top:8px; background:rgba(13,10,20,.95);
     border:2px solid #f0c75e; border-radius:8px; padding:10px;
   }
   #mdlgHead { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
   #mdlgHead img { width:44px; height:44px; image-rendering:pixelated; background:#241d36; border:1px solid #4a3f63; border-radius:4px; }
-  #mdlgHead b { color:#f0c75e; font-size:14px; }
-  #mdlgText { color:#e8e0f0; font-size:14px; line-height:1.5; }
+  #mdlgHead b { color:#f0c75e; font-size:16px; }
+  #mdlgText { color:#e8e0f0; font-size:16px; line-height:1.5; }
   #mdlgChoices { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
   #mdlgChoices button {
     font-family:inherit; text-align:left; background:#241d36; border:2px solid #4a3f63;
-    color:#5ec8f0; font-size:14px; font-weight:bold; padding:11px 12px; border-radius:8px;
+    color:#5ec8f0; font-size:16px; font-weight:bold; padding:11px 12px; border-radius:8px;
   }
   #mdlgChoices button:active { border-color:#f0c75e; background:#3a2f55; }
   /* ---- character creation overlay ---- */
@@ -132,8 +141,8 @@
 <div id="mpanel">
   <div id="mstatus">
     <b id="mrank"></b>
-    <div id="mhpbar"><div id="mhpfill"></div></div>
-    <div id="mxpbar"><div id="mxpfill"></div></div>
+    <div id="mhpbar"><div id="mhpfill"></div><span id="mhplabel"></span></div>
+    <div id="mxpbar"><div id="mxpfill"></div><span id="mxplabel"></span></div>
     <div id="mquest"></div>
     <div id="mside"></div>
     <div id="mmsg"></div>
@@ -3215,6 +3224,11 @@ function drawEnd(){
 let mdlgKey = null, mhudKey = '';
 function updateMobilePanel(){
   if(!IS_TOUCH) return;
+  // the panel only exists during gameplay — the menu is full-screen on mobile
+  const panel = document.getElementById('mpanel');
+  const wanted = state !== 'menu' ? 'block' : 'none';
+  if(panel.style.display !== wanted) panel.style.display = wanted;
+  if(wanted === 'none') return;
   const box = document.getElementById('mdlg');
   if(state==='dialog' && dlg){
     const d = dlg.nodes[dlg.i];
@@ -3247,17 +3261,23 @@ function updateMobilePanel(){
     document.getElementById('mstatus').style.display = 'block';
   }
   if(!player) return;
-  document.getElementById('mhpfill').style.width = Math.max(0, player.hp/player.maxhp*100) + '%';
+  const hpFrac = Math.max(0, player.hp/player.maxhp);
+  const hpFill = document.getElementById('mhpfill');
+  hpFill.style.width = hpFrac*100 + '%';
+  hpFill.style.background = hpFrac > 0.3 ? '#9be05e' : '#ff6b6b';
+  document.getElementById('mhplabel').textContent = `ENERGY ${Math.max(0,Math.ceil(player.hp))} / ${player.maxhp}`;
   const cur = player.rank, next = RANKS[Math.min(RANKS.length-1, cur.lvl)];
   document.getElementById('mxpfill').style.width =
     (cur.lvl < 6 ? Math.min(100, (player.xp-cur.xp)/(next.xp-cur.xp)*100) : 100) + '%';
+  document.getElementById('mxplabel').textContent =
+    cur.lvl < 6 ? `XP ${player.xp} / ${next.xp} → ${next.title.toUpperCase()}` : 'MAXIMUM PRESTIGE';
   const q = QUESTS[questIdx];
   const side = sideQuestLines().join('   ');
-  const hudKey = [player.rank.title, Math.ceil(player.hp), worldId, q.name, questProgressText(), side, msg.t>0 ? msg.text : ''].join('|');
+  const hudKey = [player.rank.title, worldId, q.name, questProgressText(), side, msg.t>0 ? msg.text : ''].join('|');
   if(hudKey === mhudKey) return;
   mhudKey = hudKey;
   document.getElementById('mrank').textContent =
-    `${player.rank.title} · ⚡${Math.max(0,Math.ceil(player.hp))}/${player.maxhp} · ${WORLD_NAME[worldId]}`;
+    `${player.rank.title} (Lv ${player.rank.lvl}) · ${WORLD_NAME[worldId]}`;
   document.getElementById('mquest').textContent = `MATTER ${questIdx+1}/${QUESTS.length}: ${q.name} — ${questProgressText()}`;
   document.getElementById('mside').textContent = side;
   document.getElementById('mmsg').textContent = msg.t > 0 ? msg.text : '';
@@ -3310,15 +3330,10 @@ window.addEventListener('mouseup', ()=>mouse.down=false);
 
 // ============================== TOUCH CONTROLS ==============================
 const joy = { dx:0, dy:0, on:false };
-const touchEl = document.getElementById('touch');
 if(IS_TOUCH){
-  touchEl.style.display = 'block';
-  document.getElementById('mpanel').style.display = 'block';
-  // crop the canvas to the playfield — the bottom HUD strip moved into #mpanel
-  const wrapEl = document.getElementById('wrap');
-  wrapEl.style.overflow = 'hidden';
-  wrapEl.style.aspectRatio = '966 / 609';
-  wrapEl.style.borderRadius = '6px';
+  // body.touch drives all the mobile layout: cropped canvas, full-screen menu,
+  // visible controls, hidden keyboard hints (see CSS)
+  document.body.classList.add('touch');
 
   // virtual joystick
   const joyEl = document.getElementById('joy'), stickEl = document.getElementById('stick');
