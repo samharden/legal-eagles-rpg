@@ -57,6 +57,10 @@
     position:fixed; left:0; right:0; bottom:0; width:100%;
     border-radius:0; padding:18px; font-size:17px; z-index:40;
   }
+  body.touch #continueBtn {
+    position:fixed; left:0; right:0; bottom:62px; width:100%;
+    border-radius:0; padding:18px; font-size:17px; z-index:40;
+  }
   /* ---- mobile panel: HUD + dialogs in the space between canvas and controls ---- */
   #mpanel { display:none; width:100%; max-width:966px; margin-top:8px; padding-bottom:210px; }
   #mrank { color:#f0c75e; font-size:16px; font-weight:bold; }
@@ -102,13 +106,14 @@
   .pick .em img { image-rendering:pixelated; width:40px; height:40px; }
   .pick .nm { font-weight:bold; color:#f0c75e; display:block; margin:4px 0 2px; font-size:13px; }
   .pick .ds { font-size:11px; color:#9b8fb5; line-height:1.4; }
-  #startBtn {
+  #startBtn, #continueBtn {
     background:#f0c75e; color:#1a1626; font-family:inherit; font-weight:bold; font-size:16px;
     padding:12px 34px; border:none; border-radius:8px; cursor:pointer; letter-spacing:2px;
     position:sticky; bottom:4px; flex-shrink:0; box-shadow:0 4px 18px rgba(0,0,0,.6);
   }
+  #continueBtn { background:#9be05e; }
   #startBtn:disabled { opacity:.35; cursor:not-allowed; }
-  #startBtn:not(:disabled):hover { box-shadow:0 0 18px rgba(240,199,94,.6); }
+  #startBtn:not(:disabled):hover, #continueBtn:hover { box-shadow:0 0 18px rgba(240,199,94,.6); }
   .lbl { color:#f0c75e; font-size:13px; letter-spacing:2px; margin-top:4px; }
 </style>
 </head>
@@ -125,6 +130,7 @@
     <div class="pickrow" id="genderRow"></div>
     <div class="lbl">SELECT PRACTICE AREA</div>
     <div class="pickrow" id="classRow"></div>
+    <button id="continueBtn" style="display:none">RESUME REPRESENTATION (CONTINUE)</button>
     <button id="startBtn" disabled>SIGN ENGAGEMENT LETTER</button>
   </div>
   <div id="touch">
@@ -1709,11 +1715,12 @@ function setWorld(id, px, py){
     const q = pendingSpawn.q; pendingSpawn = null;
     doQuestSpawns(q);
   }
+  saveGame();
 }
 
 function tileAt(px,py){
   const tx=Math.floor(px/TILE), ty=Math.floor(py/TILE);
-  if(tx<0||ty<0||tx>=MAPW||ty>=MAPH) return 1;
+  if(!(tx>=0&&ty>=0&&tx<MAPW&&ty<MAPH)) return 1; // NaN-safe: treat anything out of range as wall
   return map[ty][tx];
 }
 function dynBlockAt(tx,ty){
@@ -1987,8 +1994,9 @@ function questOutroScene(){
   const i = questIdx;
   startDialog(QD[i].outro.map(t => N('hargrove', t)), () => {
     gainXP(QUESTS[i].xp);
-    if(i === 8){ flags.ending = flags.ethics >= flags.ambition ? 'reform' : 'power'; state = 'victory'; SFX.jingleWin(); return; }
+    if(i === 8){ flags.ending = flags.ethics >= flags.ambition ? 'reform' : 'power'; state = 'victory'; SFX.jingleWin(); clearSave(); return; }
     questIdx++; questPhase = 'get';
+    saveGame();
     if(i === 2) chadBeat1();
     if(i === 4) chadBeat2();
     if(i === 5){ announce('ACT II — THE APPEAL', true, 4.5); SFX.promote(); }
@@ -2014,7 +2022,7 @@ function chadBeat2(){
 function gravesConfrontation(){
   const ch = [
     { t:"I'd rather be disbarred.", say:"DELIGHTFUL. I haven't tasted a fresh associate since 1987.", fx:()=>beginFinalBattle(1) },
-    { t:"...Where do I sign?", fx:()=>{ flags.ending='dark'; dlg=null; state='victory'; SFX.jingleLose(); return 'stop'; } },
+    { t:"...Where do I sign?", fx:()=>{ flags.ending='dark'; dlg=null; state='victory'; SFX.jingleLose(); clearSave(); return 'stop'; } },
   ];
   if(flags.lore >= 3) ch.push({ t:"I invoke Clause 9 of the 1987 Settlement.", say:"You— WHAT? Who let you into the records annex?! (The invoked clause burns in the air. He staggers.)", fx:()=>beginFinalBattle(0.6) });
   startDialog([
@@ -2037,7 +2045,7 @@ function beginFinalBattle(mult){
   const chadNPC = NPCS.find(n => n.id === 'chad');
   if(flags.chad >= 2){
     flags.chadAlly = true; chadNPC.hidden = true;
-    allies.push({ x:player.x+46, y:player.y+10, spr:'chad', cd:1 });
+    allies.push({ x:player.x+46, y:player.y+10, r:14, spr:'chad', cd:1 });
     announce('Chad bursts in: "OBJECTION! The Worthingtons bill for THIS."', false, 5);
   } else if(flags.chad <= -1){
     chadNPC.hidden = true;
@@ -2310,6 +2318,102 @@ function startGame(genderId, classId){
   ]);
 }
 
+// ============================== SAVE / LOAD ==============================
+// Checkpoint save to localStorage. Only plain data goes in: world structure
+// (grids, stairs, locked() closures) is rebuilt by buildWorlds() on load, and
+// the save layers the mutable bits (enemies, gates, crates, flags...) on top.
+const SAVE_KEY = 'legalEagles.save.v1';
+
+function snapshotWorlds(){
+  worlds[worldId].enemies = enemies; worlds[worldId].pickups = pickups; // fold live arrays back in, like setWorld does
+  const out = {};
+  for(const id in worlds){
+    const w = worlds[id];
+    out[id] = {
+      enemies: w.enemies, pickups: w.pickups,
+      crates: w.crates.map(c=>({tx:c.tx, ty:c.ty})),
+      gates: Object.fromEntries(Object.entries(w.gates).map(([k,g])=>[k, g.open])),
+      levers: w.levers.map(l=>l.on),
+      plates: w.plates.map(p=>p.done),
+      portraits: (w.portraits||[]).map(p=>p.seen),
+    };
+  }
+  return out;
+}
+
+function saveGame(){
+  if(!player || (state!=='play' && state!=='dialog')) return;
+  try{
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      v: 1,
+      genderId: player.spr.slice(2), classId: player.cls.id,
+      player: { x:player.x, y:player.y, hp:player.hp, maxhp:player.maxhp, xp:player.xp },
+      worldId, questIdx, questPhase, killCount, collectCount, gameTime,
+      flags, npcHidden: NPCS.map(n=>!!n.hidden),
+      servers, cart, cartSpawnT, orderT, orderActive, orderFired,
+      pendingSpawn: pendingSpawn ? { world: pendingSpawn.world, qid: pendingSpawn.q.id } : null,
+      worlds: snapshotWorlds(),
+    }));
+  }catch(e){ /* storage full or unavailable (private mode) — play on without saving */ }
+}
+
+function clearSave(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
+
+function readSave(){
+  try{
+    const d = JSON.parse(localStorage.getItem(SAVE_KEY));
+    if(d && d.v===1 && d.worlds && d.worlds[d.worldId]
+       && GENDERS.some(g=>g.id===d.genderId) && CLASSES.some(c=>c.id===d.classId)
+       && QUESTS[d.questIdx]) return d;
+  }catch(e){}
+  return null;
+}
+
+function loadGame(){
+  const d = readSave();
+  if(!d){ clearSave(); return false; }
+  try{
+    startGame(d.genderId, d.classId);   // clean baseline: worlds, flags, NPCs, quest state
+    dlg = null; state = 'play';         // skip the intro memo
+    Object.assign(player, d.player);
+    player.rank = rankFor(player.xp);
+    Object.assign(flags, d.flags);      // merge so flags added in future versions keep their defaults
+    questIdx = d.questIdx; questPhase = d.questPhase;
+    killCount = d.killCount|0; collectCount = d.collectCount|0;
+    gameTime = d.gameTime || 0;
+    NPCS.forEach((n,i)=>{ n.hidden = !!(d.npcHidden && d.npcHidden[i]); });
+    servers = d.servers || [];
+    cart = d.cart || null; cartSpawnT = d.cartSpawnT || 0;
+    orderT = d.orderT ?? 6; orderActive = !!d.orderActive; orderFired = !!d.orderFired;
+    pendingSpawn = null;
+    if(d.pendingSpawn){
+      const q = QUESTS.find(q=>q.id===d.pendingSpawn.qid);
+      if(q) pendingSpawn = { world: d.pendingSpawn.world, q };
+    }
+    for(const id in worlds){
+      const w = worlds[id], s = d.worlds[id]; if(!s) continue;
+      w.enemies = s.enemies || []; w.pickups = s.pickups || [];
+      (s.crates||[]).forEach((c,i)=>{ if(w.crates[i]){ w.crates[i].tx=c.tx; w.crates[i].ty=c.ty; } });
+      for(const k in (s.gates||{})) if(w.gates[k]) w.gates[k].open = !!s.gates[k];
+      (s.levers||[]).forEach((on,i)=>{ if(w.levers[i]) w.levers[i].on = !!on; });
+      (s.plates||[]).forEach((done,i)=>{ if(w.plates[i]) w.plates[i].done = !!done; });
+      (s.portraits||[]).forEach((seen,i)=>{ if(w.portraits && w.portraits[i]) w.portraits[i].seen = !!seen; });
+    }
+    loadWorld(d.worldId);
+    if(flags.chadAlly) allies = [{ x:player.x+34, y:player.y, r:14, spr:'chad', cd:1 }];
+    announce('CASE FILE RESTORED. The firm never forgets.', false, 3.5);
+    return true;
+  }catch(e){
+    clearSave();
+    return false;
+  }
+}
+
+// autosave: every 10s of play, plus on tab close / hide
+setInterval(()=>{ if(state==='play' && !dlg) saveGame(); }, 10000);
+window.addEventListener('beforeunload', saveGame);
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden') saveGame(); });
+
 // ============================== QUESTS ==============================
 function doQuestSpawns(q){
   // spawn enemies scattered around the current map, away from the player
@@ -2349,6 +2453,7 @@ function acceptQuest(){
     pendingSpawn = { world: tw, q };
     announce(`MATTER: ${q.name} — proceed to ${WORLD_NAME[tw]}`, true, 4);
   }
+  saveGame();
 }
 function questGoalMet(){
   const q = QUESTS[questIdx];
@@ -3318,6 +3423,7 @@ window.addEventListener('keydown', e=>{
   if(k==='r' && (state==='gameover'||state==='victory')){
     document.getElementById('menu').style.display='flex';
     state='menu';
+    refreshContinue();
   }
 });
 window.addEventListener('keyup', e=>{ keys[e.key.toLowerCase()]=false; });
@@ -3387,6 +3493,7 @@ if(IS_TOUCH){
     } else if(state==='gameover' || state==='victory'){
       document.getElementById('menu').style.display = 'flex';
       state = 'menu';
+      refreshContinue();
     }
   }, {passive:false});
 }
@@ -3407,9 +3514,20 @@ CLASSES.forEach(c=>mkPick(classRow,c,id=>selClass=id));
 function checkReady(){ startBtn.disabled = !(selGender&&selClass); }
 startBtn.onclick=()=>{
   audioInit(); // user gesture: safe to start the AudioContext here
+  clearSave(); // signing a fresh engagement letter abandons the old case file
   document.getElementById('menu').style.display='none';
   startGame(selGender, selClass);
   SFX.quest();
+};
+const continueBtn=document.getElementById('continueBtn');
+function refreshContinue(){ continueBtn.style.display = readSave() ? '' : 'none'; }
+refreshContinue();
+continueBtn.onclick=()=>{
+  audioInit();
+  if(loadGame()){
+    document.getElementById('menu').style.display='none';
+    SFX.quest();
+  } else refreshContinue(); // save was corrupt and got cleared — hide the button
 };
 
 requestAnimationFrame(loop);
