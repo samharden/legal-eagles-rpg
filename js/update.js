@@ -1,0 +1,419 @@
+"use strict";
+// ============================== UPDATE ==============================
+function moveEntity(e, vx, vy, dt){
+  const nx = e.x + vx*dt, ny = e.y + vy*dt;
+  if(!collides(nx, e.y, e.r)) e.x = nx;
+  if(!collides(e.x, ny, e.r)) e.y = ny;
+}
+
+function update(dt){
+  gameTime += dt;
+  if(msg.t>0) msg.t -= dt;
+  if(levelFlash>0) levelFlash -= dt;
+  if(shake>0) shake -= dt*40;
+
+  // player movement
+  let dx=0, dy=0;
+  if(keys['w']||keys['arrowup']) dy--;
+  if(keys['s']||keys['arrowdown']) dy++;
+  if(keys['a']||keys['arrowleft']) dx--;
+  if(keys['d']||keys['arrowright']) dx++;
+  if(!dx && !dy && joy.on && Math.hypot(joy.dx, joy.dy) > 0.25){ dx = joy.dx; dy = joy.dy; }
+  if(dx||dy){ const l=Math.hypot(dx,dy); moveEntity(player, dx/l*220, dy/l*220, dt); player.face = {x:dx/l, y:dy/l}; }
+  player.pushCd = (player.pushCd||0) - dt;
+  if((dx||dy) && player.pushCd <= 0){
+    if(dx && tryPush(Math.sign(dx),0)) player.pushCd = 0.22;
+    else if(dy && tryPush(0,Math.sign(dy))) player.pushCd = 0.22;
+  }
+  player.cd -= dt;
+  player.meleeCd -= dt; player.spinCd -= dt;
+  if(player.swingT>0) player.swingT -= dt;
+  if(player.spinT>0) player.spinT -= dt;
+  if(player.hurtT>0) player.hurtT -= dt;
+  if(player.coffeeCd>0) player.coffeeCd -= dt;
+  if(keys[' '] || keys['j']) melee();
+  if(keys['k'] || mouse.down) fire();
+  if(keys['l']) spin();
+
+  // camera
+  cam.x = Math.max(0, Math.min(MAPW*TILE - VW, player.x - VW/2));
+  cam.y = Math.max(0, Math.min(MAPH*TILE - VH, player.y - VH/2));
+
+  // E interactions
+  if(keys['e']){
+    keys['e'] = false;
+    let used = false;
+    // portraits outrank NPCs (Dolores stands within talk range of the middle frames);
+    // frames hang 40px apart, so always pick the nearest one in range
+    if(worldId==='office'){
+      let pt = null, ptD = 60;
+      for(const p of worlds.office.portraits){
+        const d = Math.hypot(player.x-(p.tx*TILE+20), player.y-(p.ty*TILE+20));
+        if(d < ptD){ ptD = d; pt = p; }
+      }
+      if(pt){
+        startDialog([{nm:'PORTRAIT', spr:'portrait', text:pt.text}]);
+        if(!pt.seen){
+          pt.seen = true; flags.portraits++;
+          gainXP(5);
+          if(flags.portraits === 11){
+            flags.eleven = true;
+            announce('Eleven portraits. Eleven managing partners. All by the same artist. All facing the corner office. Dolores would know more.', false, 6);
+          }
+        }
+        used = true;
+      }
+    }
+    if(!used && worldId==='office') for(const n of NPCS){
+      if(n.hidden) continue;
+      if(Math.hypot(player.x-n.x, player.y-n.y) < 70){ talkTo(n); used = true; break; }
+    }
+    if(!used && worldId==='office') for(const sv of servers){
+      if(!sv.done && Math.hypot(player.x-sv.x, player.y-sv.y) < 64){
+        sv.done = true; flags.serversFixed++;
+        SFX.hit(); SFX.lever();
+        announce('PERCUSSIVE REBOOT SUCCESSFUL. The server forgives you. The interns do not.', false, 3.5);
+        for(let i=0;i<2;i++){ const p = findOpen(sv.x, sv.y, 110); spawnEnemy('intern', p.x, p.y); }
+        used = true; break;
+      }
+    }
+    const nearT = o => Math.hypot(player.x-(o.tx*TILE+20), player.y-(o.ty*TILE+20)) < 60;
+    if(!used) for(const lv of worlds[worldId].levers){ if(nearT(lv)){ pullLever(lv); used = true; break; } }
+    if(!used && worldId==='floor24' && Math.hypot(player.x-(31*TILE+20), player.y-(22*TILE+20)) < 70){
+      player.hp = Math.max(1, player.hp - 15);
+      SFX.buzz();
+      announce('You drink from the enemy machine. It is DECAF. (-15 Billable Energy) You feel betrayal, then sleepy.', false, 3.5);
+      used = true;
+    }
+    if(!used && worldId==='annex'){
+      const w = worlds.annex;
+      if(w.recall && nearT(w.recall)){ resetCrates(); used = true; }
+      if(!used && !w.gates.g3.open && Math.hypot(player.x-25*TILE, player.y-14.5*TILE) < 80){
+        if(flags.hasKey){ w.gates.g3.open = true; SFX.gate(); announce('The brass key turns. The Vault of Misfiled Things exhales forty years of dust.', false, 4); }
+        else announce('Locked. A brass keyhole, dusty with judgment.', false, 3);
+        used = true;
+      }
+    }
+    if(!used && worldId==='garage' && !worlds.garage.gates.g1.open
+       && Math.hypot(player.x-(26*TILE+20), player.y-12*TILE) < 80){
+      if(flags.hasValetKey){
+        worlds.garage.gates.g1.open = true;
+        SFX.gate();
+        tone({f:60, f2:30, type:'sawtooth', t:1.2, vol:0.25}); // something old exhales
+        spawnEnemy('grandfather', 31*TILE+20, 12*TILE+20);
+        announce('The valet cage swings open. Cigar smoke gathers into a shape behind the partner sedans. "Billables aren\'t everything, associate. They\'re the ONLY thing."', false, 5.5);
+        shake = Math.max(shake, 10);
+      } else announce('A valet cage, padlocked. A small brass plate: KEY WITH VALET. Below it, engraved: W. A Worthington might still have it.', false, 3.5);
+      used = true;
+    }
+    if(!used) for(const sg of worlds[worldId].signs){
+      if(nearT(sg)){ startDialog([{nm:'FADED SIGN', spr:'sign', text:sg.text}]); used = true; break; }
+    }
+    if(!used) for(const st of worlds[worldId].stairs){
+      if(nearT(st)){
+        if(st.locked && st.locked()){ announce(st.lockMsg, false, 3.5); used = true; break; }
+        setWorld(st.to, st.dx, st.dy);
+        SFX.stairs();
+        announce(WORLD_GREET[st.to], false, 4);
+        used = true; break;
+      }
+    }
+    if(!used && worldId==='office' && Math.hypot(player.x-COFFEE.x, player.y-COFFEE.y) < 70){
+      if(flags.coffeeQ===1){
+        const parts = (flags.partDescaler?1:0)+(flags.partElement?1:0)+(flags.partChad?1:0);
+        if(parts >= 3){
+          flags.coffeeQ = 2; flags.coffeeUp = true; gainXP(50);
+          SFX.promote();
+          announce('REBUILT. The machine roars to life with unsettling enthusiasm. Output: WEAPONIZED ESPRESSO. (+60 energy, faster brew)', false, 5);
+        } else if(flags.coffeeBrief){
+          const need = [];
+          if(!flags.partDescaler) need.push('descaling solution (annex)');
+          if(!flags.partElement) need.push('heating element (garage P3)');
+          if(!flags.partChad) need.push('portafilter (Chad)');
+          announce(`Still dead. Parts: ${parts}/3. Missing: ${need.join(', ')}.`, false, 3.5);
+        } else announce('The machine is cold and silent. Benny (IT) might know what to do.', false, 3);
+      } else if(flags.coffeeQ===0 && questIdx>=2){
+        flags.coffeeQ = 1;
+        SFX.buzz();
+        announce('The machine emits one final, heartbreaking gurgle and DIES. The productivity of four hundred lawyers dies with it. Benny (IT) fixes things... percussively.', false, 5);
+      } else if(player.coffeeCd<=0){
+        const heal = flags.coffeeUp ? 60 : 40;
+        player.hp = Math.min(player.maxhp, player.hp + heal);
+        player.coffeeCd = flags.coffeeUp ? 6 : 12;
+        floaters.push({ x:player.x, y:player.y-22, text:`+${heal} CAFFEINE`, t:1, color:'#9be05e' });
+        SFX.coffee();
+        announce(flags.coffeeUp ? 'The rebuilt machine produces something between espresso and a legal threat. (+60 Billable Energy)'
+                                : 'You drink the firm coffee. It tastes like deadlines and regret. (+40 Billable Energy)', false, 3);
+      } else announce('The coffee machine is "descaling." Classic.', false, 2.5);
+    }
+  }
+
+  // quest completion check
+  if(questPhase==='active' && questGoalMet()){
+    questPhase='turnin';
+    announce('Objective complete! Report to Managing Partner Hargrove. Try to look busy on the way.', false, 4);
+  }
+
+  // mail-cart escort
+  if(cart && worldId==='office'){
+    const wp = CART_WP[cart.wp];
+    if(wp){
+      const txp = wp[0]*TILE+20, typ = wp[1]*TILE+20;
+      const d = Math.hypot(txp-cart.x, typ-cart.y);
+      if(d < 5) cart.wp++;
+      else { cart.x += (txp-cart.x)/d*55*dt; cart.y += (typ-cart.y)/d*55*dt; }
+    } else {
+      flags.mailQ = 2; cart = null; gainXP(40);
+      SFX.quest();
+      announce('SPECIAL DELIVERY COMPLETE. Hargrove accepts forty years of mail without blinking. Report to Rosa.', false, 5);
+    }
+    if(cart){
+      cartSpawnT -= dt;
+      if(cartSpawnT <= 0){
+        cartSpawnT = 8;
+        if(enemies.length < 10){
+          for(let i=0;i<2;i++){ const p = findOpen(cart.x, cart.y, 240); spawnEnemy('wraith', p.x, p.y); }
+          announce('Unbilled hours converge on the cart!', false, 2.5);
+        }
+      }
+      if(cart.hp <= 0){
+        for(let i=0;i<20;i++) particles.push({ x:cart.x, y:cart.y, vx:(Math.random()*2-1)*180, vy:(Math.random()*2-1)*180, t:0.5+Math.random()*0.4, spr:'paper' });
+        cart = null; flags.mailQ = 0; flags.mailFailed = true;
+        SFX.crash();
+        announce('The mail cart is DOWN. Envelopes everywhere. Rosa felt that from the mailroom.', false, 4.5);
+      }
+    }
+  }
+
+  // the trial (Q9): waves of witnesses fill the jury box, then Bane takes the bench
+  if(worldId==='courtroom' && questIdx===8 && questPhase==='active'){
+    if(!flags.baneSpawned && enemies.length===0){
+      if(flags.trialWave < 3){
+        flags.trialWave++;
+        flags.jury = (flags.trialWave-1)*4;
+        const waves = [
+          [['bailiff',2],['assoc',2]],
+          [['bailiff',3],['assoc',2],['gremlin',2]],
+          [['bailiff',3],['assoc',3],['counsel',2]],
+        ];
+        for(const [t,n] of waves[flags.trialWave-1]) for(let i=0;i<n;i++){
+          let p;
+          do { p = findOpen(15*TILE, 9*TILE, 300); }
+          while(Math.hypot(p.x-player.x, p.y-player.y) < 180);
+          spawnEnemy(t, p.x, p.y);
+        }
+        SFX.quest();
+        announce(`THE COURT CALLS ITS ${['FIRST','SECOND','THIRD'][flags.trialWave-1]} WAVE OF WITNESSES`, true, 3);
+      } else {
+        flags.baneSpawned = true; flags.jury = 12;
+        spawnEnemy('bane', 15*TILE, 5*TILE);
+        const b = enemies[enemies.length-1];
+        let mult = 1, edge = '';
+        if(flags.baneWeak){ mult *= 0.65; edge += ' You cite 12 Yale L.J. 404 (1959). He flinches, structurally.'; }
+        if(flags.lore >= 7){ mult *= 0.75; edge += ' Seven files of evidence burn in your briefcase.'; }
+        b.hp = b.maxhp * mult;
+        SFX.boom(); shake = Math.max(shake, 12);
+        announce('BANE TAKES THE BENCH. "Forty years on this docket, counselor. Overruled — ALL of it."' + edge, false, 6);
+      }
+    }
+    // ORDER IN THE COURT — fire during it and be sanctioned
+    orderT -= dt;
+    if(orderActive){
+      if(orderT <= 0){ orderActive = false; orderFired = false; orderT = 11 + Math.random()*5; }
+    } else if(orderT <= 0 && enemies.length > 0){
+      orderActive = true; orderT = 2.4;
+      SFX.gate();
+      announce('ORDER IN THE COURT — HOLD YOUR FIRE', true, 2.4);
+    }
+  } else orderActive = false;
+
+  // shots
+  for(const s of shots){
+    if(s.homing){
+      let best=null, bd=240;
+      for(const e of enemies){ const d=Math.hypot(e.x-s.x,e.y-s.y); if(d<bd){bd=d;best=e;} }
+      if(best){
+        const a=Math.atan2(best.y-s.y,best.x-s.x), cur=Math.atan2(s.vy,s.vx);
+        let da=a-cur; while(da>Math.PI)da-=Math.PI*2; while(da<-Math.PI)da+=Math.PI*2;
+        const na=cur+Math.max(-4*dt,Math.min(4*dt,da)), sp=Math.hypot(s.vx,s.vy);
+        s.vx=Math.cos(na)*sp; s.vy=Math.sin(na)*sp;
+      }
+    }
+    s.x += s.vx*dt; s.y += s.vy*dt; s.life -= dt;
+    if(blockedShot(s.x,s.y)) s.life = 0;
+  }
+  shots = shots.filter(s=>s.life>0);
+
+  // enemy shots
+  for(const s of enemyShots){
+    s.x += s.vx*dt; s.y += s.vy*dt; s.life -= dt;
+    if(blockedShot(s.x,s.y)) s.life=0;
+    if(s.life>0 && Math.hypot(s.x-player.x,s.y-player.y) < player.r+s.r){
+      hurtPlayer(s.dmg); s.life=0;
+    }
+  }
+  enemyShots = enemyShots.filter(s=>s.life>0);
+
+  // enemies
+  for(const e of enemies){
+    e.wob += dt*6;
+    if(e.hurtT>0) e.hurtT -= dt;
+    // target the mail cart instead of the player when it's closer
+    let tgt = player;
+    let d = Math.hypot(player.x-e.x, player.y-e.y);
+    if(cart && worldId==='office'){
+      const dc = Math.hypot(cart.x-e.x, cart.y-e.y);
+      if(dc < d){ tgt = cart; d = dc; }
+    }
+    const ang = Math.atan2(tgt.y-e.y, tgt.x-e.x);
+    // chase (shooters keep distance)
+    let want = 1;
+    if(e.shoots && d < 220) want = -0.6;
+    if(d > 30) moveEntity(e, Math.cos(ang)*e.spd*want, Math.sin(ang)*e.spd*want, dt);
+    // contact damage — range matches the drawn sprites (34px, bosses 64px), not the
+    // smaller hitbox radii, so an enemy visibly touching the target always damages it.
+    // Must also exceed the 30px approach standoff above, where melee enemies park.
+    const touch = (e.boss ? 30 : 17) + 17;
+    if(d < touch){
+      if(tgt === player){
+        hurtPlayer(e.dmg*dt*2.2, true);
+        if(e.type==='gremlin' && player.coffeeCd < 8){
+          player.coffeeCd = 8;
+          floaters.push({ x:player.x, y:player.y-30, text:'CAFFEINE STOLEN!', t:0.9, color:'#9be05e' });
+        }
+      }
+      else cart.hp -= e.dmg*dt*2.2;
+    }
+    // Bane's gavel: periodic radial shockwave
+    if(e.type==='bane'){
+      e.novaT = (e.novaT===undefined ? 3.5 : e.novaT) - dt;
+      if(e.novaT <= 0){
+        e.novaT = 5;
+        for(let i=0;i<12;i++){
+          const a = i/12*Math.PI*2;
+          enemyShots.push({ x:e.x, y:e.y, vx:Math.cos(a)*210, vy:Math.sin(a)*210, dmg:e.dmg, r:7, life:2.2 });
+        }
+        floaters.push({ x:e.x, y:e.y-44, text:'GAVEL.', t:0.9, color:'#ff9bb0' });
+        shake = Math.max(shake, 8); SFX.boom();
+      }
+    }
+    // shooting (always aims at the player; carts don't bleed)
+    if(e.shoots){
+      e.shotT -= dt;
+      const dp = Math.hypot(player.x-e.x, player.y-e.y);
+      if(e.shotT<=0 && dp<480){
+        e.shotT = e.shotCd;
+        const ap = Math.atan2(player.y-e.y, player.x-e.x);
+        const n = e.boss ? 3 : 1;
+        for(let i=0;i<n;i++){
+          const a = ap + (i-(n-1)/2)*0.22;
+          enemyShots.push({ x:e.x, y:e.y, vx:Math.cos(a)*260, vy:Math.sin(a)*260, dmg:e.dmg, r:6, life:2.5 });
+        }
+      }
+    }
+    // player shots hitting enemy
+    for(const s of shots){
+      if(s.life<=0 || s.hit.has(e)) continue;
+      if(Math.hypot(s.x-e.x, s.y-e.y) < e.r + s.r){
+        e.hp -= s.dmg; e.hurtT = 0.12;
+        floaters.push({ x:e.x, y:e.y-e.r-6, text:Math.round(s.dmg), t:0.6, color:'#fff' });
+        if(s.pierce) s.hit.add(e); else s.life = 0;
+      }
+    }
+  }
+  // deaths
+  for(const e of enemies){
+    if(e.hp<=0){
+      const q = QUESTS[questIdx];
+      if(questPhase==='active' && e.type===q.goal.enemy) killCount++;
+      gainXP(e.xp);
+      if(e.proBono) flags.lennyKills++;
+      if(e.boss) SFX.boom(); else SFX.die();
+      if(e.type==='grandfather'){
+        flags.grandfatherDown = true;
+        announce('Worthington II dissipates into cigar smoke and unvested equity. The garage feels... settled.', false, 5);
+      }
+      shake = Math.max(shake, e.boss?14:5);
+      for(let i=0;i<(e.boss?40:12);i++)
+        particles.push({ x:e.x, y:e.y, vx:(Math.random()*2-1)*180, vy:(Math.random()*2-1)*180, t:0.5+Math.random()*0.4, spr: Math.random()<0.5?'paper':'spark' });
+      if(Math.random()<0.35 || e.boss)
+        floaters.push({ x:e.x, y:e.y-20, text:KILL_QUIPS[Math.floor(Math.random()*KILL_QUIPS.length)], t:1, color:'#f0c75e' });
+      if(Math.random()<0.18 && !e.boss)
+        pickups.push({ x:e.x, y:e.y, spr:'coffee', t:0, heal:18 });
+    }
+  }
+  enemies = enemies.filter(e=>e.hp>0);
+
+  // allies (billing immunity: invulnerable, highly motivated)
+  for(const al of allies){
+    const pd = Math.hypot(player.x-al.x, player.y-al.y);
+    if(pd > 90){ const a = Math.atan2(player.y-al.y, player.x-al.x); moveEntity(al, Math.cos(a)*200, Math.sin(a)*200, dt); }
+    al.cd -= dt;
+    let best=null, bd=420;
+    for(const e of enemies){ const d2=Math.hypot(e.x-al.x, e.y-al.y); if(d2<bd){ bd=d2; best=e; } }
+    if(best && al.cd <= 0){
+      al.cd = 0.5;
+      const a = Math.atan2(best.y-al.y, best.x-al.x);
+      shots.push({ x:al.x, y:al.y, vx:Math.cos(a)*480, vy:Math.sin(a)*480, dmg:9, r:4, color:'#e8d06a', pierce:false, homing:false, life:1.4, hit:new Set() });
+      if(Math.random() < 0.1) floaters.push({ x:al.x, y:al.y-24, text:'BILLED!', t:0.7, color:'#e8d06a' });
+    }
+  }
+
+  // pickups
+  for(const p of pickups){
+    p.t += dt;
+    if(Math.hypot(p.x-player.x, p.y-player.y) < player.r + 16){
+      SFX.pick();
+      if(p.heal){
+        player.hp = Math.min(player.maxhp, player.hp + p.heal);
+        floaters.push({ x:player.x, y:player.y-22, text:`+${p.heal} CAFFEINE`, t:0.8, color:'#9be05e' });
+      } else if(p.kind === 'lore'){
+        flags.lore++; gainXP(10);
+        startDialog([N('dusty', LORE[p.idx])], () => {
+          if(flags.lore === 3) announce('You understand Clause 9 now. Something new will be possible at midnight.', false, 5);
+          if(flags.lore === 7) announce('Seven files. The whole sordid ledger, 1959 to now. Bane will not enjoy how much you know.', false, 5);
+        });
+      } else if(p.kind === 'stamper'){
+        flags.hasStamper = true;
+        announce('The Emotional Support Bates Stamper. The counter reads 999999. It hums faintly with administrative power.', false, 4);
+      } else if(p.kind === 'key'){
+        flags.hasKey = true;
+        announce('A heavy brass key, label long faded. It wants to be turned.', false, 4);
+      } else if(p.kind === 'descaler'){
+        flags.partDescaler = true;
+        announce('A jug of artisanal descaling solution, vintage 1987. The label says DO NOT DRINK in eleven languages.', false, 4);
+      } else if(p.kind === 'element'){
+        flags.partElement = true;
+        announce('An industrial heating element, pried from a partner\'s abandoned espresso rig. Still warm. Somehow.', false, 4);
+      } else if(p.kind === 'chest'){
+        gainXP(60);
+        announce('A forgotten retainer chest! Sixty XP of pre-paid, never-billed 1986 legal fees.', false, 4);
+      } else if(p.kind === 'file'){
+        collectCount++;
+        floaters.push({ x:player.x, y:player.y-22, text:p.label||'PRIVILEGED FILE SECURED', t:1, color:'#5ec8f0' });
+      }
+      p.dead = true;
+    }
+  }
+  pickups = pickups.filter(p=>!p.dead);
+
+  // floaters & particles
+  for(const f of floaters){ f.t -= dt; f.y -= 26*dt; }
+  floaters = floaters.filter(f=>f.t>0);
+  for(const p of particles){ p.t-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=0.94; p.vy*=0.94; }
+  particles = particles.filter(p=>p.t>0);
+
+  if(player.hp<=0){ state='gameover'; SFX.jingleLose(); }
+}
+
+function hurtPlayer(d, contact=false){
+  if(player.hurtT>0 && contact) { player.hp -= d; return; } // contact ticks don't spam quips
+  player.hp -= d;
+  if(!contact || Math.random()<0.05){
+    player.hurtT = 0.5; shake = Math.max(shake,6);
+    SFX.hurt();
+    if(Math.random()<0.4)
+      floaters.push({ x:player.x, y:player.y-26, text:HURT_QUIPS[Math.floor(Math.random()*HURT_QUIPS.length)], t:1, color:'#ff6b6b' });
+  }
+}
+
