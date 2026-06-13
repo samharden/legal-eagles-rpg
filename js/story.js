@@ -184,6 +184,18 @@ function endAct3(){
   if(flags.ending === 'sign') SFX.jingleLose(); else SFX.jingleWin();
   clearSave();
 }
+function talkLocke(){
+  const done = qstate.p_locke && qstate.p_locke.status === 'done';
+  if(done){
+    startDialog([ N('locke', "Use it well. The edge remembers what it was for. When the Agreement stands, do not let it read your hesitation — it bills for that too.") ]);
+    return;
+  }
+  startDialog([
+    N('locke', "Another one, fighting instead of signing. Good. I was the last. 1976 to 1981. I read Clause 9 the whole way through — nobody else ever had the stomach — and I found the seam in its own language."),
+    N('locke', "It cannot amend what it cannot name. So I struck my own name out. With this." ),
+    N('locke', "(She offers a letter opener that is somehow colder than the Vault.) I scratched myself out of the record and into this frame. Half-free. Better than amended. Take it — its edge bites deepest into things that were never supposed to exist. You'll know what I mean when the Agreement stands."),
+  ], () => questEvent('talk', { npc:'locke' }));
+}
 function chadBeat1(){
   startDialog([
     N('chad', "(A blond associate materializes, smelling of squash courts.) Well, well. The new associate everyone's billing about. Chad Worthington IV — Hargrove's REAL favorite. My grandfather's name is on the parking garage.", [

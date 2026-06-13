@@ -16,8 +16,8 @@ const ITEMS = {
   },
   letter_opener: {
     nm:'Letter Opener of P. Locke', spr:'key', kind:'accessory',
-    ds:'Prudence Locke vanished at 11:59 p.m., technically compliant. Her letter opener remembers the cut. Briefcase strikes bite far deeper.',
-    mods:{ meleeMul:1.8 },
+    ds:'Prudence Locke vanished at 11:59 p.m., technically compliant. Her opener remembers the cut. Briefcase strikes bite deeper — and savage anything that shouldn\'t exist (bosses).',
+    mods:{ meleeMul:1.3, bossMul:2.2 },
   },
   bates_stamper: {
     nm:'Emotional Support Bates Stamper', spr:'stamper', kind:'accessory',

@@ -43,6 +43,16 @@ const QLINE = [
     ],
     onComplete:()=> act3Finale(),
   },
+  {
+    id:'p_locke',
+    name:'The Vanishing of P. Locke',
+    blurb:'A ghost haunts the Vault — the one partner who escaped being amended. She wants a word.',
+    prereq:()=> flags.act3,
+    auto:true,
+    stages:[ { type:'talk', npc:'locke', hint:'Find Prudence Locke\'s ghost in the Vault (Sublevel C) and hear her out.' } ],
+    reward:{ items:['letter_opener'], xp:80, ethics:1,
+             msg:'The Letter Opener of P. Locke — an accessory whose edge bites deepest into bosses. Equip it from your bag [I].' },
+  },
 ];
 
 let qstate = {};   // id -> { status:'locked'|'available'|'active'|'done', stage, prog }

@@ -11,6 +11,7 @@ const WHO = {
   memo:    { nm:'FIRM MEMO', spr:'file' },
   dusty:   { nm:'DUSTY CASE FILE', spr:'dossier' },
   lenny:   { nm:'Lenny (Pro Bono, est. 2019)', spr:'lenny' },
+  locke:   { nm:'Prudence Locke (1976–1981)', spr:'dolores' },
 };
 const N = (who, text, choices) => ({ nm:WHO[who].nm, spr:WHO[who].spr, text, choices });
 

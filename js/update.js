@@ -95,6 +95,10 @@ function update(dt){
         used = true;
       }
     }
+    if(!used && worldId==='vault'){
+      const lk = worlds.vault.locke;
+      if(Math.hypot(player.x-(lk.tx*TILE+20), player.y-(lk.ty*TILE+20)) < 64){ talkLocke(); used = true; }
+    }
     if(!used && worldId==='garage' && !worlds.garage.gates.g1.open
        && Math.hypot(player.x-(26*TILE+20), player.y-12*TILE) < 80){
       if(flags.hasValetKey){

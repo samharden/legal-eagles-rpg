@@ -69,6 +69,10 @@ function draw(){
     drawSprite(i < (flags.jury||0) ? SPR.juror : SPR.seat, jx*TILE+20-cam.x, jy*TILE+20-cam.y, 32);
   }
   if(worldId==='floor24') nearLbl(31*TILE+20, 22*TILE+20, '[E] coffee (?)');
+  if(worldId==='vault' && wd.locke){
+    drawSprite(SPR.dolores, wd.locke.tx*TILE+20-cam.x, wd.locke.ty*TILE+20-cam.y, 34, false, 0.4 + Math.sin(gameTime*2)*0.1);
+    nearLbl(wd.locke.tx*TILE+20, wd.locke.ty*TILE+20, '[E] the ghost');
+  }
 
   // pickups
   for(const p of pickups){
