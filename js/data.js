@@ -46,6 +46,7 @@ const ENEMY_TYPES = {
   bailiff:   { nm:'Bailiff',                hp:90,  spd:70,  dmg:16, xp:20, r:16, shoots:false },
   gremlin:   { nm:'Decaf Gremlin',          hp:20,  spd:150, dmg:6,  xp:8,  r:11, shoots:false },
   bane:      { nm:'The Hon. Mortimer Bane', hp:800, spd:65,  dmg:20, xp:400,r:28, shoots:true,  shotCd:0.9, boss:true },
+  instrument:{ nm:'The Founding Agreement', hp:1100,spd:48,  dmg:24, xp:600,r:30, shoots:true,  shotCd:0.7, boss:true },
 };
 
 const QUESTS = [
@@ -59,6 +60,8 @@ const QUESTS = [
   { id:6, name:'Notice of Appeal',          goal:{type:'kill', enemy:'assoc', n:6}, xp:200, spawn:[['assoc',6],['counsel',2]], world:'floor24' },
   { id:7, name:'Discovery, Again',          goal:{type:'killcollect', enemy:'golem', n:6, items:4}, xp:240, spawn:[['golem',8],['wraith',5]], world:'annex', relock:true, itemSpr:'dossier', itemLabel:'TRUST INSTRUMENT SECURED' },
   { id:8, name:"Bane's Court",              goal:{type:'kill', enemy:'bane', n:1}, xp:400, spawn:[], world:'courtroom' },
+  // ---- ACT III: IN RE: THE BUILDING ---- (display sentinel; the spine runs on the quest graph)
+  { id:9, name:'In Re: The Building',       goal:{type:'none'}, xp:0, spawn:[], act3:true },
 ];
 
 const KILL_QUIPS = ['Sustained!','Sanctioned!','Case dismissed!','Stricken from the record!','Per curiam!','Res judicata, baby!','Moot!','SO ORDERED.'];

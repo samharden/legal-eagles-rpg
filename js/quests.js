@@ -47,6 +47,7 @@ function questGoalMet(){
 }
 function questProgressText(){
   const q = QUESTS[questIdx];
+  if(q.act3 || questPhase==='done') return 'See your MATTERS [I] — special business below the annex';
   if(questPhase==='get') return 'See Managing Partner Hargrove (press E)';
   if(questPhase==='turnin') return 'Report back to Managing Partner Hargrove';
   const e = ENEMY_TYPES[q.goal.enemy];

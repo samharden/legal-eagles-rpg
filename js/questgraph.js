@@ -25,6 +25,24 @@ const QLINE = [
     reward:{ items:['good_pens'], xp:120, ethics:1,
              msg:'THE GOOD PENS are yours — a weapon that writes through anything. Equip them from your bag [I].' },
   },
+  {
+    id:'in_re_building',
+    name:'In Re: The Building',
+    blurb:'The founding agreement is real — and the building is a party to it. Descend to Sublevel C and end it.',
+    prereq:()=> flags.act3,
+    auto:true,
+    stages:[
+      { type:'reach', world:'vault', hint:'Descend the sealed stair in the Records Annex to Sublevel C.' },
+      { type:'kill', enemy:'instrument', n:1, hint:'Confront the Founding Agreement and make your choice.',
+        onStart:()=>{
+          const v = worlds.vault.instrument;
+          spawnEnemy('instrument', v.tx*TILE+20, v.ty*TILE+20);
+          SFX.boom(); shake = Math.max(shake, 14);
+          announce('The instrument case splits. Forty years of harvested hours pour upward into a shape. THE FOUNDING AGREEMENT stands.', true, 5.5);
+        } },
+    ],
+    onComplete:()=> act3Finale(),
+  },
 ];
 
 let qstate = {};   // id -> { status:'locked'|'available'|'active'|'done', stage, prog }
@@ -34,6 +52,12 @@ function qInit(){
 }
 const qDef = id => QLINE.find(q=>q.id===id);
 
+// fire the current stage's onStart hook (boss spawns, scripted setup)
+function enterStage(q){
+  const st = qstate[q.id]; const stage = q.stages[st.stage];
+  if(stage && stage.onStart) try{ stage.onStart(); }catch(e){}
+}
+
 // promote locked quests to available/active when their prereq passes
 function qTick(){
   if(!player) return;
@@ -42,13 +66,14 @@ function qTick(){
     let ok; try{ ok = !q.prereq || q.prereq(); }catch(e){ ok = false; }
     if(!ok) continue;
     st.status = q.auto ? 'active' : 'available';
-    if(q.auto){ SFX.quest(); announce('NEW MATTER: '+q.name+' — '+q.blurb, true, 5); }
+    if(q.auto){ SFX.quest(); announce('NEW MATTER: '+q.name+' — '+q.blurb, true, 5); enterStage(q); }
   }
 }
 function qStartQuest(id){ // giver NPC accepts an offered quest
   const st = qstate[id]; if(!st || st.status!=='available') return;
   st.status = 'active'; SFX.quest();
   announce('MATTER ACCEPTED: '+qDef(id).name, true, 3.5);
+  enterStage(qDef(id));
 }
 
 function stageMatch(stage, type, data){
@@ -57,6 +82,7 @@ function stageMatch(stage, type, data){
   if(type==='collect') return stage.item===data.item;
   if(type==='talk')    return stage.npc===data.npc;
   if(type==='reach')   return stage.world===data.world;
+  if(type==='use')     return stage.item===data.item;
   return false;
 }
 // the single entry point the rest of the game calls to drive graph quests
@@ -70,7 +96,7 @@ function questEvent(type, data){
     if(st.prog >= (stage.n||1)){
       st.prog = 0; st.stage++;
       if(st.stage >= q.stages.length) qComplete(q);
-      else SFX.quest();
+      else { SFX.quest(); enterStage(q); }
     }
   }
 }
@@ -82,6 +108,8 @@ function qComplete(q){
   if(r.xp) gainXP(r.xp);
   if(r.ethics)   flags.ethics   += r.ethics;
   if(r.ambition) flags.ambition += r.ambition;
+  // a quest with its own onComplete presents its own conclusion (scenes, endings)
+  if(q.onComplete){ saveGame(); try{ q.onComplete(); }catch(e){} return; }
   SFX.promote();
   announce('MATTER CLOSED: '+q.name+(r.msg ? ' — '+r.msg : ''), true, 5.5);
   saveGame();

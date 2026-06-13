@@ -134,13 +134,55 @@ function questOutroScene(){
   const i = questIdx;
   startDialog(QD[i].outro.map(t => N('hargrove', t)), () => {
     gainXP(QUESTS[i].xp);
-    if(i === 8){ flags.ending = flags.ethics >= flags.ambition ? 'reform' : 'power'; state = 'victory'; SFX.jingleWin(); clearSave(); return; }
+    if(i === 8){ act3Begin(); return; }   // Bane is beaten — the verdict unseals the founding agreement
     questIdx++; questPhase = 'get';
     saveGame();
     if(i === 2) chadBeat1();
     if(i === 4) chadBeat2();
     if(i === 5){ announce('ACT II — THE APPEAL', true, 4.5); SFX.promote(); }
   });
+}
+// ---- ACT III: IN RE: THE BUILDING ----
+function act3Begin(){
+  startDialog([
+    N('hargrove', "You won. The appeal is dismissed. You should feel triumphant. Instead you feel... tired. We all do. We always have. Sit down. No — don't. There's no time, and time is exactly the problem."),
+    N('hargrove', "The 1959 founding partnership agreement. Clause 9. It isn't a clause about the partners. It's a clause WITH a party you've never met. This building is a signatory. It has been harvesting our hours into the MIDNIGHT trust for sixty-seven years. That's why we're tired. That's why Graves never aged. That's why—"),
+    N('hargrove', "—why my placard's first initial is scratched out. I wasn't always 'O. Hargrove.' I don't remember who I was. The building amended me. It does that. It keeps the originals filed downstairs, on a level that isn't on any plan. Sublevel C."),
+    N('hargrove', "You're the first associate who ever fought it instead of signing. So I'm going to do the one brave thing left in me: I'm giving you the seal. The annex stair to Sublevel C will open for you. Go down. End it, or become it. I can't tell you which. I'm not sure I'm allowed to want either."),
+  ], () => {
+    flags.act3 = true;
+    questIdx = 9; questPhase = 'done';   // main matter line concluded; Act III runs on the graph
+    SFX.promote();
+    announce('ACT III — IN RE: THE BUILDING. Descend to Sublevel C, below the Records Annex.', true, 5.5);
+    saveGame();
+  });
+}
+function act3Finale(){
+  // The avatar has fallen; the open agreement awaits a signature, a match, or a redline.
+  // Each choice sets flags.ending and lets its `say` play; endAct3() fires on dialog close.
+  const ch = [
+    { t:"BURN the agreement.",
+      say:"You hold your lighter to 1959. The contract screams in a font you can't read. The building shudders, releases sixty-seven years of breath, and is, at last, just a building.",
+      fx:()=>{ flags.ending = 'burn'; } },
+    { t:"SIGN as the new named partner. (Ambition)",
+      say:"The red ink is warm and it knows your hand. You sign. The tiredness lifts — not gone, just MOVED. It's everyone else's now. The corner office was always yours. It always will be. Forever is a long retainer.",
+      fx:()=>{ flags.ending = 'sign'; } },
+  ];
+  if(flags.lore >= 7){
+    ch.push({ t:"RENEGOTIATE Clause 9. (All seven 1987 files in hand)",
+      say:"You spread all seven dossiers across the instrument and start redlining. Sixty-seven years of one-sided terms, struck and rewritten: hours paid, not harvested; tenure mortal; the amended restored. The building reads your markup — and, slowly, grudgingly, the way it does everything, it initials.",
+      fx:()=>{ flags.ending = 'free'; } });
+  }
+  startDialog([
+    N('dusty', "The Founding Agreement lies open on the cracked case, sixty-seven years of clauses breathing on the vellum. Every harvested hour the firm ever lost hangs in the air, waiting to learn where it goes next."),
+    N('dusty', "The eleven filed partners watch from their shelves. Prudence Locke's empty frame watches hardest. The decision is yours, counselor. It was always going to be yours.", ch),
+  ], () => endAct3());
+}
+function endAct3(){
+  if(!flags.ending) return;   // safety: only end once a choice was actually made
+  dlg = null; state = 'victory';
+  if(flags.ending === 'sign') SFX.jingleLose(); else SFX.jingleWin();
+  clearSave();
 }
 function chadBeat1(){
   startDialog([
@@ -449,7 +491,7 @@ function startGame(genderId, classId){
             hasValetKey:false, grandfatherDown:false, chadGpa:false,
             portraits:0, eleven:false, baneWeak:false,
             trialWave:0, jury:0, baneSpawned:false,
-            lennyQ:0, lennyKills:0 };
+            lennyQ:0, lennyKills:0, act3:false };
   cart = null; cartSpawnT = 0;
   pendingSpawn = null; orderT = 6; orderActive = false; orderFired = false;
   NPCS.forEach(n => n.hidden = false);

@@ -15,6 +15,7 @@ const WORLD_GREET = {
   office: 'Back upstairs. The fluorescent hum has never sounded so friendly.',
   floor24:'THE 24TH FLOOR — GRABBIT & RUNN LLP. The thermostat is set to "deposition."',
   courtroom:'THE COURTHOUSE — DEPT. 13, HON. MORTIMER BANE PRESIDING. The gavel is already warm.',
+  vault:  'SUBLEVEL C — THE VAULT. Colder than the annex. The air tastes of old ink and older promises. Something here is listening, and has been since 1959.',
 };
 const WORLD_NAME = {
   office: 'DEWEY, CHEATHAM & HOWE — MAIN FLOOR',
@@ -22,6 +23,7 @@ const WORLD_NAME = {
   garage: 'THE PARKING GARAGE — SUBLEVEL P3',
   floor24:'GRABBIT & RUNN LLP — 24TH FLOOR',
   courtroom:'COURTHOUSE — DEPARTMENT 13',
+  vault:  'SUBLEVEL C — THE VAULT',
 };
 let killCount, collectCount;
 let msg = { text:'', t:0, big:false };

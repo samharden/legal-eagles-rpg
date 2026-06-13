@@ -92,6 +92,7 @@ function buildAnnex(){
   g[14][24]=0; g[14][25]=0;         // vault door (g3)
   c(20,15,29,23);                   // the vault
   g[3][3]=7;                        // stairs up
+  g[12][15]=7;                      // ACT III: the descent to Sublevel C (sealed until then)
   for(const x of [3,8,13,18,27]) g[10][x]=6;
   for(const x of [21,25,29]) g[23][x]=6;
   worlds.annex = {
@@ -113,7 +114,11 @@ function buildAnnex(){
     leverOrder:['B','A','C'], leverProgress:0, leverGate:'g2', leverFail:[24,5],
     signs:[ {tx:28,ty:5,text:"RE-FILING PROTOCOL (REV. 1987): The BOTTOM DRAWER (B) first. Then the ARCHIVE (A). The CATALOG (C) last. Improper filing wakes the hours."} ],
     recall:{tx:9,ty:7},
-    stairs:[ { tx:3, ty:3, to:'office', dx:39*TILE+20, dy:28*TILE+20, label:'[E] back upstairs' } ],
+    stairs:[
+      { tx:3, ty:3, to:'office', dx:39*TILE+20, dy:28*TILE+20, label:'[E] back upstairs' },
+      { tx:15, ty:12, to:'vault', dx:13*TILE+20, dy:15*TILE+20, label:'[E] descend — Sublevel C',
+        locked:()=>!flags.act3, lockMsg:'A stairwell you never noticed, sealed with a wax seal older than the firm. It will not open. Not yet.' },
+    ],
   };
   const mk=(t,x,y)=>{ const e=ENEMY_TYPES[t]; worlds.annex.enemies.push({ type:t, ...e, x:x*TILE+20, y:y*TILE+20, hp:e.hp, maxhp:e.hp, shotT:1, hurtT:0, wob:Math.random()*7 }); };
   mk('golem',10,12); mk('golem',16,12); mk('wraith',26,12); mk('wraith',20,11);
@@ -224,7 +229,28 @@ function buildCourtroom(){
   };
 }
 
-function buildWorlds(){ worlds = {}; buildOffice(); buildAnnex(); buildGarage(); buildFloor24(); buildCourtroom(); }
+function buildVault(){
+  // ACT III — Sublevel C: where the building files what it amends.
+  const g = mkGrid(28,20,1);
+  const c=(x0,y0,x1,y1)=>rectF(g,x0,y0,x1,y1,0);
+  c(2,2,25,17);                                   // the great archival chamber
+  for(const y of [4,8,12]) for(const x of [4,8,12,16,20,23]) g[y][x]=6; // shelves: the filed partners
+  rectF(g,10,5,17,11,3);                          // central dais
+  for(const x of [10,17]) for(const y of [5,8,11]) g[y][x]=0; // keep the dais approachable
+  g[16][13]=7;                                    // stairs up to the annex
+  worlds.vault = {
+    grid:g, w:28, h:20,
+    colors:{ floor:'#141120', carpet:'#241c33', wall:'#33294a', wallIn:'#221a30' },
+    enemies:[], pickups:[],
+    crates:[], plates:[], gates:{}, levers:[],
+    signs:[ {tx:13, ty:14, text:"FILED UNDER: PERMANENT. The eleven who would not be amended. The building keeps what it overwrites."} ],
+    recall:null,
+    instrument:{ tx:13, ty:7 },                   // the founding agreement stands here; the avatar manifests here
+    locke:{ tx:5, ty:15 },                        // P. Locke's ghost (Act III-b)
+    stairs:[ { tx:13, ty:16, to:'annex', dx:15*TILE+20, dy:13*TILE+20, label:'[E] back up to the annex' } ],
+  };
+}
+function buildWorlds(){ worlds = {}; buildOffice(); buildAnnex(); buildGarage(); buildFloor24(); buildCourtroom(); buildVault(); }
 function loadWorld(id){
   worldId = id; const w = worlds[id];
   map = w.grid; MAPW = w.w; MAPH = w.h;

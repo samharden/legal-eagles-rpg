@@ -1133,3 +1133,22 @@ SPR.lenny = makeSprite([
 "................",
 ], { a:'#5d6470', f:SKIN, k:K, r:'#7a3a2e', g:'#3e4d3e' });
 
+
+SPR.instrument = makeSprite([
+"................",
+"..kkkkkkkkkkkk..",
+"..kddddddddddk..",
+"..kdppppppppdk..",
+"..kdpggggggpdk..",
+"..kdpgssssgpdk..",
+"..kdpgssssgpdk..",
+"..kdpgssssgpdk..",
+"..kdpggggggpdk..",
+"..kdppppppppdk..",
+"..kdggggggggdk..",
+"..kddddddddddk..",
+"..kkkkkkkkkkkk..",
+"..kddddddddddk..",
+".dddddddddddddd.",
+"................",
+], { k:'#15121c', d:'#2a2440', p:'#d8cfc4', g:'#caa84a', s:'#c0392b' });

@@ -318,6 +318,44 @@ function drawEnd(){
         '',
         `Ethics ${flags.ethics} · Ambition ${flags.ambition} · 1987 Files ${flags.lore}/7 · XP billed: ${player.xp}`,
       ];
+    } else if(flags.ending === 'burn'){
+      title = 'IN RE: THE BUILDING — DISSOLVED'; glow = '#ff9b4d';
+      lines = [
+        'The founding agreement burns in a font no living lawyer can read. The building exhales',
+        'sixty-seven years of held breath and becomes, at last, just a building. Drafty. Ordinary.',
+        'The MIDNIGHT trust has no counterparty left to pay. Forty years of hours come home all at once.',
+        'Four hundred lawyers stand up at 5pm, look at the dark windows, and simply... leave.',
+        'Dewey, Cheatham & Howe dissolves within the year. Nobody mourns it. Everybody sleeps.',
+        '',
+        chadEp,
+        '',
+        `Ethics ${flags.ethics} · Ambition ${flags.ambition} · 1987 Files ${flags.lore}/7 · XP billed: ${player.xp}`,
+      ];
+    } else if(flags.ending === 'sign'){
+      title = 'IN RE: THE BUILDING — YOU ARE THE BUILDING NOW'; glow = '#ff5577';
+      lines = [
+        'You sign in ink that was warm before you touched it. The tiredness lifts off you—',
+        "and settles, evenly, onto everyone else. It's their hours now. You administer the harvest.",
+        'Your placard goes up in the corner office. Decades pass. You do not age. You do not leave.',
+        "One night a new associate fights their way down to Sublevel C, and you offer them a pen.",
+        'You have, after all, not tasted a fresh associate since this very evening.',
+        '',
+        `Ethics ${flags.ethics} · Ambition ${flags.ambition} — the math was a formality, wasn't it?`,
+        `Total XP harvested: ${player.xp}`,
+      ];
+    } else if(flags.ending === 'free'){
+      title = 'IN RE: THE BUILDING — CLAUSE 9, AS AMENDED'; glow = '#caa84a';
+      lines = [
+        'Seven dossiers. Sixty-seven years of one-sided terms, struck through and rewritten by hand.',
+        'Hours paid, not harvested. Tenure mortal. The amended restored to their own names.',
+        'The building reads your redline twice — then initials. The eleven step down off their shelves.',
+        'Prudence Locke fills her own frame again, sets down her letter opener, and finally goes home.',
+        'The firm keeps its name and keeps its people. It just keeps better hours now.',
+        '',
+        chadEp,
+        '',
+        `THE TRUE SETTLEMENT · Ethics ${flags.ethics} · Ambition ${flags.ambition} · Files 7/7 · XP ${player.xp}`,
+      ];
     } else {
       title = 'APPEAL DISMISSED — YOU MADE PARTNER'; glow = '#f0c75e';
       lines = [
