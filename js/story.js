@@ -366,6 +366,7 @@ function talkTo(n){
   else if(n.id === 'dolores') talkDolores();
   else if(n.id === 'chad') talkChad();
   else if(n.id === 'lenny') talkLenny();
+  questEvent('talk', { npc:n.id });
 }
 function npcMarker(n){
   switch(n.id){
@@ -437,6 +438,7 @@ function startGame(genderId, classId){
     inventory: [], equip: { weapon:null, accessory:null },
   };
   invOpen = false; invSel = null;
+  qInit();
   shots=[]; enemyShots=[]; floaters=[]; particles=[];
   allies=[]; servers=[]; dlg=null;
   loadWorld('office');

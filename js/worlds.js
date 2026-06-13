@@ -183,7 +183,6 @@ function buildFloor24(){
     pickups:[
       { x:31*TILE+20, y:12*TILE+20, spr:'dossier', kind:'lore', idx:5, t:0 },
       { x:33*TILE+20, y:14*TILE+20, spr:'chest', kind:'chest', t:0.5 },
-      { x:6*TILE+20,  y:14*TILE+20, spr:'key',   kind:'item', item:'good_pens', t:0.3 },
     ],
     crates:[], plates:[],
     levers:[ {tx:29,ty:18,id:'A',on:false}, {tx:31,ty:18,id:'B',on:false}, {tx:33,ty:18,id:'C',on:false} ],
@@ -234,6 +233,7 @@ function loadWorld(id){
 function setWorld(id, px, py){
   worlds[worldId].enemies = enemies; worlds[worldId].pickups = pickups;
   loadWorld(id);
+  questEvent('reach', { world:id });
   player.x = px; player.y = py;
   shots = []; enemyShots = [];
   for(const al of allies){ al.x = player.x+34; al.y = player.y; }

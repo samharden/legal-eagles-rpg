@@ -8,6 +8,7 @@ function moveEntity(e, vx, vy, dt){
 
 function update(dt){
   gameTime += dt;
+  qTick();
   if(msg.t>0) msg.t -= dt;
   if(levelFlash>0) levelFlash -= dt;
   if(shake>0) shake -= dt*40;
@@ -329,6 +330,7 @@ function update(dt){
     if(e.hp<=0){
       const q = QUESTS[questIdx];
       if(questPhase==='active' && e.type===q.goal.enemy) killCount++;
+      questEvent('kill', { enemy:e.type });
       gainXP(e.xp);
       if(e.proBono) flags.lennyKills++;
       if(e.boss) SFX.boom(); else SFX.die();

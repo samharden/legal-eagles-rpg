@@ -29,7 +29,7 @@ function saveGame(){
       v: 2,
       genderId: player.spr.slice(2), classId: player.cls.id,
       player: { x:player.x, y:player.y, hp:player.hp, maxhp:player.maxhp, xp:player.xp },
-      inventory: player.inventory, equip: player.equip,
+      inventory: player.inventory, equip: player.equip, qstate,
       worldId, questIdx, questPhase, killCount, collectCount, gameTime,
       flags, npcHidden: NPCS.map(n=>!!n.hidden),
       servers, cart, cartSpawnT, orderT, orderActive, orderFired,
@@ -71,6 +71,7 @@ function loadGame(){
       if(flags.coffeeUp)    player.inventory.push('espresso_rig');
     }
     recalcMaxHP();
+    qRestore(d.qstate);                 // graph-quest progress (defaults if absent)
     questIdx = d.questIdx; questPhase = d.questPhase;
     killCount = d.killCount|0; collectCount = d.collectCount|0;
     gameTime = d.gameTime || 0;
