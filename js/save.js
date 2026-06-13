@@ -26,9 +26,10 @@ function saveGame(){
   if(!player || (state!=='play' && state!=='dialog')) return;
   try{
     localStorage.setItem(SAVE_KEY, JSON.stringify({
-      v: 1,
+      v: 2,
       genderId: player.spr.slice(2), classId: player.cls.id,
       player: { x:player.x, y:player.y, hp:player.hp, maxhp:player.maxhp, xp:player.xp },
+      inventory: player.inventory, equip: player.equip,
       worldId, questIdx, questPhase, killCount, collectCount, gameTime,
       flags, npcHidden: NPCS.map(n=>!!n.hidden),
       servers, cart, cartSpawnT, orderT, orderActive, orderFired,
@@ -43,7 +44,7 @@ function clearSave(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
 function readSave(){
   try{
     const d = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if(d && d.v===1 && d.worlds && d.worlds[d.worldId]
+    if(d && (d.v===1 || d.v===2) && d.worlds && d.worlds[d.worldId]
        && GENDERS.some(g=>g.id===d.genderId) && CLASSES.some(c=>c.id===d.classId)
        && QUESTS[d.questIdx]) return d;
   }catch(e){}
@@ -59,6 +60,17 @@ function loadGame(){
     Object.assign(player, d.player);
     player.rank = rankFor(player.xp);
     Object.assign(flags, d.flags);      // merge so flags added in future versions keep their defaults
+    // inventory + equipment (v2); migrate from v1 flags otherwise
+    if(d.v>=2 && d.inventory){
+      player.inventory = d.inventory.filter(id=>ITEMS[id]);
+      player.equip = { weapon:null, accessory:null, ...(d.equip||{}) };
+    } else {
+      if(flags.hasStamper)  player.inventory.push('bates_stamper');
+      if(flags.hasKey)      player.inventory.push('brass_key');
+      if(flags.hasValetKey) player.inventory.push('valet_key');
+      if(flags.coffeeUp)    player.inventory.push('espresso_rig');
+    }
+    recalcMaxHP();
     questIdx = d.questIdx; questPhase = d.questPhase;
     killCount = d.killCount|0; collectCount = d.collectCount|0;
     gameTime = d.gameTime || 0;

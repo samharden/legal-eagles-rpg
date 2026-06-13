@@ -62,13 +62,13 @@ function gainXP(n){
   const nr = rankFor(player.xp);
   if(nr.lvl > player.rank.lvl){
     player.rank = nr;
-    player.maxhp = nr.hp;
-    player.hp = nr.hp;
+    player.maxhp = nr.hp + accMod('maxhpAdd', 0);
+    player.hp = player.maxhp;
     levelFlash = 2.5;
     SFX.promote();
     announce(`PROMOTED: ${nr.title.toUpperCase()} — ${nr.quip}`, true, 4);
     // promotion bonus: +10% damage per level via lvl multiplier (applied at shot time)
   }
 }
-const dmgMult = () => 1 + (player.rank.lvl-1)*0.18;
+const dmgMult = () => (1 + (player.rank.lvl-1)*0.18) * accMod('dmgMul', 1);
 

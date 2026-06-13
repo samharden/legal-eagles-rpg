@@ -6,7 +6,7 @@ function spawnEnemy(type, x, y){
 }
 
 function fire(){
-  const c = player.cls;
+  const c = weaponStats();
   if(player.cd > 0) return;
   player.cd = c.cd;
   if(orderActive && worldId==='courtroom' && !orderFired){
@@ -39,11 +39,13 @@ function melee(){
   player.meleeCd = 0.38; player.swingT = 0.18;
   const fx = player.face.x, fy = player.face.y;
   const cx = player.x + fx*34, cy = player.y + fy*34;
-  const dmg = 16 * dmgMult();
+  const dmg = 16 * dmgMult() * accMod('meleeMul', 1);
+  const slow = accMod('slow', false);
   let hit = false;
   for(const e of enemies){
     if(Math.hypot(e.x-cx, e.y-cy) < e.r + 28){
       e.hp -= dmg; e.hurtT = 0.12; hit = true;
+      if(slow){ e.slowT = 1.4; floaters.push({ x:e.x, y:e.y-e.r-18, text:'STAMPED', t:0.6, color:'#5ec8f0' }); }
       moveEntity(e, fx*260, fy*260, 0.06); // knockback, wall-aware
       floaters.push({ x:e.x, y:e.y-e.r-6, text:Math.round(dmg), t:0.6, color:'#fff' });
     }

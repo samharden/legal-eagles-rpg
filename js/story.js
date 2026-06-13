@@ -315,8 +315,8 @@ function talkChad(){
   } else if(flags.coffeeBrief && !flags.partChad){
     startDialog([
       N('chad', "The portafilter? It's ITALIAN. It appreciates four percent annually. Why would I— wait. You NEED something from me. The portafilter AND grandfather's valet key. Oh, this is delicious. Name your humiliation.", [
-        { t:"It's for the partners' lounge. (Lie.)", say:"The PARTNERS' lounge? Why didn't you say so. Take it. The key too. Tell them a Worthington provided.", fx:()=>{ flags.partChad=true; flags.hasValetKey=true; flags.ethics--; } },
-        { t:"I need your help, Chad. You, specifically.", say:"...Say it again. Slower. (You do.) HA! Take the portafilter. And the key — grandfather would have liked you. He liked nobody. This memory will sustain me through winter.", fx:()=>{ flags.partChad=true; flags.hasValetKey=true; flags.ambition--; flags.chad++; } },
+        { t:"It's for the partners' lounge. (Lie.)", say:"The PARTNERS' lounge? Why didn't you say so. Take it. The key too. Tell them a Worthington provided.", fx:()=>{ flags.partChad=true; flags.hasValetKey=true; giveItem('valet_key',true); flags.ethics--; } },
+        { t:"I need your help, Chad. You, specifically.", say:"...Say it again. Slower. (You do.) HA! Take the portafilter. And the key — grandfather would have liked you. He liked nobody. This memory will sustain me through winter.", fx:()=>{ flags.partChad=true; flags.hasValetKey=true; giveItem('valet_key',true); flags.ambition--; flags.chad++; } },
         { t:"Forget it.", say:"Door's always open. The humiliation menu never closes." },
       ]),
     ]);
@@ -434,7 +434,9 @@ function startGame(genderId, classId){
     hp: 100, maxhp: 100, xp: 0, rank: RANKS[0],
     cd: 0, hurtT: 0, coffeeCd: 0,
     face: {x:0, y:1}, meleeCd: 0, spinCd: 0, swingT: 0, spinT: 0,
+    inventory: [], equip: { weapon:null, accessory:null },
   };
+  invOpen = false; invSel = null;
   shots=[]; enemyShots=[]; floaters=[]; particles=[];
   allies=[]; servers=[]; dlg=null;
   loadWorld('office');

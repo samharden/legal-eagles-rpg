@@ -4,7 +4,7 @@ let last = performance.now();
 function step(now){
   const dt = Math.min(0.05, (now-last)/1000); last = now;
   musicTick();
-  if(state==='play'){ update(dt); draw(); }
+  if(state==='play'){ if(invOpen){ draw(); drawInventory(); } else { update(dt); draw(); } }
   else if(state==='dialog'){ draw(); if(!IS_TOUCH) drawDialog(); }
   else if(state==='gameover'||state==='victory'){ draw(); drawEnd(); }
   updateMobilePanel();
@@ -20,6 +20,8 @@ window.addEventListener('keydown', e=>{
   const k = e.key.toLowerCase();
   if(k===' ') e.preventDefault();
   if(k==='m'){ toggleMute(); return; }
+  if(k==='i' && (state==='play')){ toggleInventory(); return; }
+  if(invOpen){ if(k==='escape') toggleInventory(); return; } // bag is open: swallow gameplay keys
   if(state==='dialog' && dlg){
     const node = dlg.nodes[dlg.i];
     if(node.choices){
@@ -44,4 +46,9 @@ cv.addEventListener('mousemove', e=>{
 });
 cv.addEventListener('mousedown', ()=>mouse.down=true);
 window.addEventListener('mouseup', ()=>mouse.down=false);
+cv.addEventListener('click', e=>{
+  if(!invOpen) return;
+  const r=cv.getBoundingClientRect();
+  inventoryClick((e.clientX-r.left)*(W/r.width), (e.clientY-r.top)*(CH/r.height));
+});
 

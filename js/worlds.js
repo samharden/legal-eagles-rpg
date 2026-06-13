@@ -103,6 +103,7 @@ function buildAnnex(){
       { x:26*TILE+20, y:19*TILE+20, spr:'stamper', kind:'stamper', t:1 },
       { x:4*TILE+20,  y:19*TILE+20, spr:'key',     kind:'key',     t:2 },
       { x:28*TILE+20, y:17*TILE+20, spr:'chest',   kind:'chest',   t:0.5 },
+      { x:6*TILE+20,  y:3*TILE+20,  spr:'coffee',  kind:'item', item:'cold_brew', t:1.3 },
       { x:21*TILE+20, y:12*TILE+20, spr:'jug',     kind:'descaler', t:1.5 },
     ],
     crates:[ {tx:12,ty:5,ox:12,oy:5} ],
@@ -182,6 +183,7 @@ function buildFloor24(){
     pickups:[
       { x:31*TILE+20, y:12*TILE+20, spr:'dossier', kind:'lore', idx:5, t:0 },
       { x:33*TILE+20, y:14*TILE+20, spr:'chest', kind:'chest', t:0.5 },
+      { x:6*TILE+20,  y:14*TILE+20, spr:'key',   kind:'item', item:'good_pens', t:0.3 },
     ],
     crates:[], plates:[],
     levers:[ {tx:29,ty:18,id:'A',on:false}, {tx:31,ty:18,id:'B',on:false}, {tx:33,ty:18,id:'C',on:false} ],

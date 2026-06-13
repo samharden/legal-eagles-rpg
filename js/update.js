@@ -123,8 +123,9 @@ function update(dt){
         const parts = (flags.partDescaler?1:0)+(flags.partElement?1:0)+(flags.partChad?1:0);
         if(parts >= 3){
           flags.coffeeQ = 2; flags.coffeeUp = true; gainXP(50);
+          giveItem('espresso_rig', true);
           SFX.promote();
-          announce('REBUILT. The machine roars to life with unsettling enthusiasm. Output: WEAPONIZED ESPRESSO. (+60 energy, faster brew)', false, 5);
+          announce('REBUILT. The machine roars to life with unsettling enthusiasm. Output: WEAPONIZED ESPRESSO RIG — equip it from your bag [I]. (+60 energy, faster brew)', false, 5.5);
         } else if(flags.coffeeBrief){
           const need = [];
           if(!flags.partDescaler) need.push('descaling solution (annex)');
@@ -258,6 +259,7 @@ function update(dt){
   for(const e of enemies){
     e.wob += dt*6;
     if(e.hurtT>0) e.hurtT -= dt;
+    if(e.slowT>0) e.slowT -= dt;
     // target the mail cart instead of the player when it's closer
     let tgt = player;
     let d = Math.hypot(player.x-e.x, player.y-e.y);
@@ -269,6 +271,7 @@ function update(dt){
     // chase (shooters keep distance)
     let want = 1;
     if(e.shoots && d < 220) want = -0.6;
+    if(e.slowT>0) want *= 0.45; // Bates-stamped: slowed under the weight of process
     if(d > 30) moveEntity(e, Math.cos(ang)*e.spd*want, Math.sin(ang)*e.spd*want, dt);
     // contact damage — range matches the drawn sprites (34px, bosses 64px), not the
     // smaller hitbox radii, so an enemy visibly touching the target always damages it.
@@ -373,11 +376,15 @@ function update(dt){
           if(flags.lore === 3) announce('You understand Clause 9 now. Something new will be possible at midnight.', false, 5);
           if(flags.lore === 7) announce('Seven files. The whole sordid ledger, 1959 to now. Bane will not enjoy how much you know.', false, 5);
         });
+      } else if(p.kind === 'item'){
+        giveItem(p.item);
       } else if(p.kind === 'stamper'){
         flags.hasStamper = true;
-        announce('The Emotional Support Bates Stamper. The counter reads 999999. It hums faintly with administrative power.', false, 4);
+        giveItem('bates_stamper', true);
+        announce('The Emotional Support Bates Stamper. Counter reads 999999, hums with administrative power. Equip it from your bag [I].', false, 4.5);
       } else if(p.kind === 'key'){
         flags.hasKey = true;
+        giveItem('brass_key', true);
         announce('A heavy brass key, label long faded. It wants to be turned.', false, 4);
       } else if(p.kind === 'descaler'){
         flags.partDescaler = true;

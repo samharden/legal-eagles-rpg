@@ -41,12 +41,14 @@ if(IS_TOUCH){
   };
   bindBtn('tbJ','j'); bindBtn('tbK','k'); bindBtn('tbL','l'); bindBtn('tbE','e');
   document.getElementById('tbM').addEventListener('touchstart', e=>{ e.preventDefault(); toggleMute(); }, {passive:false});
+  document.getElementById('tbI').addEventListener('touchstart', e=>{ e.preventDefault(); toggleInventory(); }, {passive:false});
 
   // taps on the canvas: advance dialog, pick choices, restart from end screens
   cv.addEventListener('touchstart', e=>{
     e.preventDefault();
     const t = e.changedTouches[0], r = cv.getBoundingClientRect();
     const x = (t.clientX - r.left)*(W/r.width), y = (t.clientY - r.top)*(CH/r.height);
+    if(invOpen){ inventoryClick(x, y); return; }
     if(state==='dialog' && dlg){
       const node = dlg.nodes[dlg.i];
       if(node.choices){
