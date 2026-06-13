@@ -24,12 +24,16 @@ const CLASSES = [
 ];
 
 const RANKS = [
-  { lvl:1, title:'Junior Associate', xp:0,    hp:100, quip:'You know where the printer is. Barely.' },
-  { lvl:2, title:'Associate',        xp:60,   hp:120, quip:'You can now decline meetings. You won\'t, but you can.' },
-  { lvl:3, title:'Senior Associate', xp:160,  hp:145, quip:'Younger lawyers fear your redlines.' },
-  { lvl:4, title:'Of Counsel',       xp:300,  hp:170, quip:'Nobody knows what you do. Including you.' },
-  { lvl:5, title:'Junior Partner',   xp:480,  hp:200, quip:'You have equity. It is mostly emotional.' },
-  { lvl:6, title:'PARTNER',          xp:700,  hp:240, quip:'The corner office is yours. So is the malpractice exposure.' },
+  { lvl:1,  title:'Junior Associate', xp:0,    hp:100, quip:'You know where the printer is. Barely.' },
+  { lvl:2,  title:'Associate',        xp:50,   hp:115, quip:'You can now decline meetings. You won\'t, but you can.' },
+  { lvl:3,  title:'Senior Associate', xp:130,  hp:130, quip:'Younger lawyers fear your redlines.' },
+  { lvl:4,  title:'Of Counsel',       xp:240,  hp:145, quip:'Nobody knows what you do. Including you.' },
+  { lvl:5,  title:'Junior Partner',   xp:390,  hp:160, quip:'You have equity. It is mostly emotional.' },
+  { lvl:6,  title:'Partner',          xp:580,  hp:180, quip:'The corner office is yours. So is the malpractice exposure.' },
+  { lvl:7,  title:'Senior Partner',   xp:820,  hp:200, quip:'You bill in your sleep. Literally. Legal is looking into it.' },
+  { lvl:8,  title:'Managing Partner', xp:1120, hp:225, quip:'You manage partners now. It is exactly like herding cats, if the cats sued.' },
+  { lvl:9,  title:'Equity Partner',   xp:1480, hp:250, quip:'Your name is on the capital call. Your soul is on the line item below it.' },
+  { lvl:10, title:'NAME PARTNER',     xp:1950, hp:280, quip:'They carved your name in the lobby granite. You checked: it is load-bearing.' },
 ];
 
 const ENEMY_TYPES = {

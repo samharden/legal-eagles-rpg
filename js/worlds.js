@@ -50,6 +50,7 @@ function buildOffice(){
       { x:6*TILE+20, y:3*TILE+20, spr:'dossier', kind:'lore', idx:0, t:0 },
       { x:9*TILE+20, y:13*TILE+20, spr:'dossier', kind:'lore', idx:1, t:1 },
       { x:8*TILE+20, y:29*TILE+20, spr:'dossier', kind:'lore', idx:4, t:2 },
+      { x:40*TILE+20, y:23*TILE+20, spr:'key', kind:'item', item:'red_pen', t:0.4 }, // break-room: an early weapon
     ],
     crates:[ {tx:13,ty:22,ox:13,oy:22}, {tx:28,ty:12,ox:28,oy:12} ],
     plates:[], gates:{}, levers:[], signs:[], recall:null,
@@ -106,6 +107,7 @@ function buildAnnex(){
       { x:28*TILE+20, y:17*TILE+20, spr:'chest',   kind:'chest',   t:0.5 },
       { x:6*TILE+20,  y:3*TILE+20,  spr:'coffee',  kind:'item', item:'cold_brew', t:1.3 },
       { x:21*TILE+20, y:12*TILE+20, spr:'jug',     kind:'descaler', t:1.5 },
+      { x:15*TILE+20, y:11*TILE+20, spr:'dossier', kind:'item', item:'precedent_binder', t:0.7 },
     ],
     crates:[ {tx:12,ty:5,ox:12,oy:5} ],
     plates:[ {tx:12,ty:3,gate:'g1',done:false} ],
@@ -147,6 +149,7 @@ function buildGarage(){
       { x:30*TILE+20, y:5*TILE+20,  spr:'dossier', kind:'lore', idx:3, t:1 },
       { x:33*TILE+20, y:12*TILE+20, spr:'gear',    kind:'element', t:2 },
       { x:29*TILE+20, y:18*TILE+20, spr:'chest',   kind:'chest', t:0.5 },
+      { x:9*TILE+20,  y:20*TILE+20, spr:'briefcase', kind:'item', item:'bespoke_suit', t:0.6 },
     ],
     crates:[], plates:[], levers:[],
     signs:[
@@ -188,6 +191,7 @@ function buildFloor24(){
     pickups:[
       { x:31*TILE+20, y:12*TILE+20, spr:'dossier', kind:'lore', idx:5, t:0 },
       { x:33*TILE+20, y:14*TILE+20, spr:'chest', kind:'chest', t:0.5 },
+      { x:6*TILE+20,  y:14*TILE+20, spr:'briefcase', kind:'item', item:'kevlar_suit', t:0.5 },
     ],
     crates:[], plates:[],
     levers:[ {tx:29,ty:18,id:'A',on:false}, {tx:31,ty:18,id:'B',on:false}, {tx:33,ty:18,id:'C',on:false} ],

@@ -42,6 +42,33 @@ const ITEMS = {
     ds:'Nitro, unlabeled, found in the back of the break-room fridge behind a 2014 yogurt. Restores 45 Billable Energy.',
     heal:45,
   },
+  // ---- suits (armor: the 'suit' slot; defense soaks a % of every hit) ----
+  pinstripe_suit: {
+    nm:'Off-the-Rack Pinstripes', spr:'briefcase', kind:'suit',
+    ds:'A starter suit from the firm supply closet. Smells faintly of toner and ambition. Soaks 12% of incoming damage.',
+    mods:{ defense:0.12 },
+  },
+  bespoke_suit: {
+    nm:'Bespoke Three-Piece', spr:'briefcase', kind:'suit',
+    ds:'Tailored on the firm\'s dime during a "client development" lunch. Soaks 25% of damage and steadies your nerves (+20 max Billable Energy).',
+    mods:{ defense:0.25, maxhpAdd:20 },
+  },
+  kevlar_suit: {
+    nm:'Litigation-Grade Kevlar Pinstripes', spr:'briefcase', kind:'suit',
+    ds:'Trial lawyers run hot. This suit is rated for hostile depositions and the occasional thrown gavel. Soaks 40% of damage, +35 max Billable Energy.',
+    mods:{ defense:0.40, maxhpAdd:35 },
+  },
+  // ---- early weapons (so the bag matters from Act I) ----
+  red_pen: {
+    nm:'The Red Pen of Doom', spr:'key', kind:'weapon',
+    ds:'Every associate fears it. Your practice-area attack hits 25% harder and fires noticeably faster.',
+    mods:{ dmgMul:1.25, cdMul:0.8 },
+  },
+  precedent_binder: {
+    nm:'Three-Ring Precedent Binder', spr:'dossier', kind:'weapon',
+    ds:'Heavy with citations. Adds an extra projectile to every attack, though each lands a little softer.',
+    mods:{ countAdd:1, dmgMul:0.82 },
+  },
 };
 
 // ---- inventory state ----
@@ -61,8 +88,9 @@ function giveItem(id, quiet){
 function hasItem(id){ return player && player.inventory && player.inventory.includes(id); }
 function countItem(id){ return player.inventory.filter(x=>x===id).length; }
 
+const EQUIP_KINDS = ['weapon','accessory','suit'];
 function equipItem(id){
-  const it = ITEMS[id]; if(!it || (it.kind!=='weapon' && it.kind!=='accessory')) return;
+  const it = ITEMS[id]; if(!it || !EQUIP_KINDS.includes(it.kind)) return;
   const slot = it.kind;
   player.equip[slot] = (player.equip[slot]===id) ? null : id; // click again to unequip
   recalcMaxHP();
@@ -96,14 +124,17 @@ function weaponStats(){
   }
   return s;
 }
-// accessory passive lookup
-function accMod(key, fallback){
-  const a = player.equip && ITEMS[player.equip.accessory];
-  return (a && a.mods && a.mods[key]!=null) ? a.mods[key] : fallback;
-}
+// passive-gear lookups across the accessory + suit slots (weapon mods are
+// applied separately in weaponStats so dmgMul etc. aren't double-counted)
+const GEAR_SLOTS = ['accessory','suit'];
+function gearSum(key){ let v=0; for(const s of GEAR_SLOTS){ const it=player.equip&&ITEMS[player.equip[s]]; if(it&&it.mods&&it.mods[key]) v+=it.mods[key]; } return v; }
+function gearMul(key){ let m=1; for(const s of GEAR_SLOTS){ const it=player.equip&&ITEMS[player.equip[s]]; if(it&&it.mods&&it.mods[key]) m*=it.mods[key]; } return m; }
+function gearHas(key){ for(const s of GEAR_SLOTS){ const it=player.equip&&ITEMS[player.equip[s]]; if(it&&it.mods&&it.mods[key]) return true; } return false; }
+// fraction of incoming damage blocked by equipped suit/accessory armor (capped)
+function equipDefense(){ return Math.min(0.70, gearSum('defense')); }
 function recalcMaxHP(){
   if(!player) return;
-  player.maxhp = player.rank.hp + accMod('maxhpAdd',0);
+  player.maxhp = player.rank.hp + gearSum('maxhpAdd');
   if(player.hp > player.maxhp) player.hp = player.maxhp;
 }
 
@@ -122,7 +153,7 @@ function inventoryClick(x, y){
       if(!r.id) return;
       const it = ITEMS[r.id];
       if(it.kind==='consumable') useConsumable(r.id);
-      else if(it.kind==='weapon'||it.kind==='accessory') equipItem(r.id);
+      else if(EQUIP_KINDS.includes(it.kind)) equipItem(r.id);
       invSel = r.id;
       return;
     }
@@ -162,32 +193,40 @@ function drawInventory(){
   ctx.font='11px monospace'; ctx.fillStyle='#9b8fb5';
   ctx.fillText('click an item to equip / unequip / use', PX+24, PY+54);
 
-  // equip slots
-  const slotY=PY+78;
+  // equip slots (three across: weapon / accessory / suit)
+  const slotY=PY+78, slotW=Math.floor((PW-48-32)/3);
   const drawSlot=(label, slot, sx)=>{
     ctx.fillStyle='#9b8fb5'; ctx.font='10px monospace';
     ctx.fillText(label, sx, slotY-6);
-    ctx.fillStyle='#120e1c'; ctx.fillRect(sx, slotY, 250, 56);
-    ctx.strokeStyle='#4a3f63'; ctx.lineWidth=1; ctx.strokeRect(sx, slotY, 250, 56);
+    ctx.fillStyle='#120e1c'; ctx.fillRect(sx, slotY, slotW, 56);
+    ctx.strokeStyle='#4a3f63'; ctx.lineWidth=1; ctx.strokeRect(sx, slotY, slotW, 56);
     const id=player.equip[slot];
-    if(id){ drawSprite(SPR[ITEMS[id].spr], sx+30, slotY+28, 40);
-      ctx.fillStyle='#e8e0f0'; ctx.font='12px monospace'; ctx.fillText(ITEMS[id].nm, sx+58, slotY+32); }
-    else { ctx.fillStyle='#5a4f73'; ctx.font='italic 12px monospace'; ctx.fillText('— empty —', sx+20, slotY+32); }
+    if(id){ drawSprite(SPR[ITEMS[id].spr], sx+26, slotY+28, 36);
+      ctx.fillStyle='#e8e0f0'; ctx.font='11px monospace';
+      wrap(ITEMS[id].nm, 18).slice(0,2).forEach((l,i)=>ctx.fillText(l, sx+48, slotY+24+i*14)); }
+    else { ctx.fillStyle='#5a4f73'; ctx.font='italic 11px monospace'; ctx.fillText('— empty —', sx+16, slotY+32); }
   };
   drawSlot('WEAPON MOD', 'weapon', PX+24);
-  drawSlot('ACCESSORY', 'accessory', PX+300);
+  drawSlot('ACCESSORY', 'accessory', PX+24+slotW+16);
+  drawSlot('SUIT (ARMOR)', 'suit', PX+24+(slotW+16)*2);
+
+  // effective-stats summary line
+  const ws=weaponStats();
+  const dmgX=(ws.dmg/player.cls.dmg)*dmgMult(), rateX=player.cls.cd/ws.cd, arm=Math.round(equipDefense()*100);
+  ctx.font='11px monospace'; ctx.fillStyle='#caa84a';
+  ctx.fillText(`FIRE x${dmgX.toFixed(2)} dmg · x${rateX.toFixed(2)} rate · ${ws.count} shot${ws.count>1?'s':''}${ws.pierce?' · pierce':''}  |  ARMOR ${arm}%  ·  MAX HP ${player.maxhp}`, PX+24, slotY+78);
 
   // carried-item list (deduped with counts)
   const counts={}; for(const id of player.inventory) counts[id]=(counts[id]||0)+1;
   const ids=Object.keys(counts);
-  let ly=slotY+96;
+  let ly=slotY+98;
   ctx.font='bold 12px monospace'; ctx.fillStyle='#caa84a';
   ctx.fillText('CARRYING', PX+24, ly); ly+=14;
   if(!ids.length){ ctx.fillStyle='#5a4f73'; ctx.font='italic 12px monospace';
     ctx.fillText('Your bag is empty. The firm has taken everything else.', PX+24, ly+8); }
   for(const id of ids){
     const it=ITEMS[id], rh=40, rx=PX+24, rw=PW-48;
-    const equipped=(player.equip.weapon===id||player.equip.accessory===id);
+    const equipped=Object.values(player.equip).includes(id);
     ctx.fillStyle = equipped ? '#2a2340' : '#161122';
     ctx.fillRect(rx,ly,rw,rh);
     if(equipped){ ctx.strokeStyle='#9be05e'; ctx.lineWidth=1; ctx.strokeRect(rx,ly,rw,rh); }
@@ -195,8 +234,8 @@ function drawInventory(){
     ctx.fillStyle='#e8e0f0'; ctx.font='bold 12px monospace';
     ctx.fillText(it.nm + (counts[id]>1?`  x${counts[id]}`:'') , rx+48, ly+16);
     ctx.fillStyle='#9b8fb5'; ctx.font='10px monospace';
-    const tag = it.kind==='weapon'?'WEAPON':it.kind==='accessory'?'ACCESSORY':it.kind==='consumable'?'CONSUMABLE':it.kind.toUpperCase();
-    const action = equipped?'[ EQUIPPED — click to remove ]':it.kind==='consumable'?'[ click to USE ]':(it.kind==='weapon'||it.kind==='accessory')?'[ click to EQUIP ]':'';
+    const tag = it.kind==='suit'?'SUIT':it.kind.toUpperCase();
+    const action = equipped?'[ EQUIPPED — click to remove ]':it.kind==='consumable'?'[ click to USE ]':EQUIP_KINDS.includes(it.kind)?'[ click to EQUIP ]':'';
     ctx.fillText(tag+'   '+action, rx+48, ly+31);
     invRects.push({x:rx,y:ly,w:rw,h:rh,id});
     ly+=rh+6;
@@ -224,14 +263,16 @@ function drawQuestLog(PX,PY,PW,PH){
   }
   const tagColor = { ACTIVE:'#9be05e', AVAILABLE:'#f0c75e', DONE:'#5a4f73' };
   for(const q of lines){
-    ctx.fillStyle='#161122'; ctx.fillRect(PX+24, ly, PW-48, 50);
+    const wl = wrap(q.line, 86).slice(0,3);
+    const rh = 26 + wl.length*13;
+    ctx.fillStyle='#161122'; ctx.fillRect(PX+24, ly, PW-48, rh);
     ctx.fillStyle = q.tag==='DONE' ? '#5a4f73' : '#e8e0f0';
     ctx.font='bold 13px monospace';
-    ctx.fillText(q.name, PX+36, ly+20);
+    ctx.fillText(q.name, PX+36, ly+19);
     ctx.fillStyle = tagColor[q.tag]||'#9b8fb5'; ctx.font='9px monospace';
-    ctx.fillText(q.tag, PX+PW-90, ly+20);
+    ctx.fillText(q.tag, PX+PW-90, ly+19);
     ctx.fillStyle = q.tag==='DONE' ? '#4a4060' : '#9b8fb5'; ctx.font='10px monospace';
-    wrap(q.line, 88).slice(0,2).forEach((l,i)=>ctx.fillText(l, PX+36, ly+36+i*12));
-    ly += 58;
+    wl.forEach((l,i)=>ctx.fillText(l, PX+36, ly+34+i*13));
+    ly += rh + 8;
   }
 }

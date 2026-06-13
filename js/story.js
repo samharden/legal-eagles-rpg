@@ -13,27 +13,27 @@ const QD = [
     outro:[
       "Excellent work. HR sends its thanks, plus a forty-page incident report for you to summarize.",
       "(He hands you the report without making eye contact. You are dismissed.)"] },
-  { intro:[
-      "Grabbit & Runn produced four million documents in the Pemberton matter. At two a.m., the filing cabinets... fused.",
-      "Destroy eight Paperwork Golems and recover the three Privileged Files before somebody sneezes on one and waives privilege."],
-    prompt:"Anything you want to ask first?",
+  { giver:'dolores', intro:[
+      "(Dolores does not look up from a typewriter with no paper in it.) You. Good. The Pemberton cabinets fused at two a.m. Four million documents; one new organism.",
+      "Eight Paperwork Golems are loose on this floor, and three Privileged Files are somewhere inside them. Recover the files before someone sneezes and waives privilege. I filed those once. I will not file them twice."],
+    prompt:"(She finally looks up.)",
     opts:[
-      { t:"Shouldn't we report a privilege breach to the court?", say:"Adorable. Find the files first. Ask the court questions never.", e:1 },
-      { t:"Is there a bonus for the files?", say:"The reward is files.", a:1 }],
+      { t:"Shouldn't we report a privilege breach to the court?", say:"In 1974 a young man asked me that exact question. I still have his desk. Find the files, dear.", e:1 },
+      { t:"Is there a bonus for the files?", say:"The bonus is that I stop saying your name with that particular disappointment.", a:1 }],
     outro:[
-      "Privilege preserved. I'll be taking credit at the partner meeting — that's called 'delegation'.",
-      "Odd thing, though. One file is dated 1987. Just a timesheet. Thaddeus Graves III: twenty-five billable hours. In one day.",
-      "...Don't read old timesheets, associate. They read back."] },
-  { intro:[
-      "Finance says you're forty hours behind on time entries. The unentered hours have... manifested. They roam the halls whispering '0.1 — reviewed email re: lunch.'",
-      "Banish all ten. And going forward, enter your time daily — or join them."],
-    prompt:"You hesitate, then ask:",
+      "Privilege preserved. I took the liberty of re-alphabetizing your soul. You're welcome.",
+      "One file is dated 1987. A timesheet. Thaddeus Graves III: twenty-five billable hours, one day. ...I typed that timesheet, you know.",
+      "Don't read old timesheets, dear. They read back."] },
+  { giver:'benny', intro:[
+      "Okay, don't freak out — the timekeeping system gained a poltergeist. Your forty unentered hours? They MANIFESTED. They're roaming the halls whispering '0.1, reviewed email re: lunch.'",
+      "I tried turning it off and on again. It turned ME off and on again. Banish all ten, and please, PLEASE enter your time daily or you'll join the chorus."],
+    prompt:"(Benny clutches a keyboard like a riot shield.)",
     opts:[
-      { t:"This firm runs on something unnatural, doesn't it?", say:"It runs on coffee and leverage. Mostly leverage. Stop asking perceptive questions.", e:1 },
-      { t:"Can I bill the time I spend fighting my own time?", say:"...Yes. God help us all, yes you can.", a:1 }],
+      { t:"This firm runs on something unnatural, doesn't it?", say:"It runs on coffee and a server I'm contractually forbidden to describe. Stop asking smart questions.", e:1 },
+      { t:"Can I bill the time I spend fighting my own time?", say:"...Ticket filed. Ticket APPROVED. God help us, the system said yes.", a:1 }],
     outro:[
-      "Time entered. Finance has approved your continued existence for another fiscal quarter.",
-      "A word of advice: stay away from the corner office after dark. The Emeritus keeps... long hours."] },
+      "Time entered, ghosts debugged. Finance approved your continued existence for one more fiscal quarter.",
+      "IT advisory: stay out of the corner office after dark. The logs show the Emeritus pinging the network at 25:00. That's not a real time. I checked twice."] },
   { intro:[
       "Grabbit & Runn are here 'to meet and confer'. They brought sanctions motions and finger guns.",
       "Their client? No name. Just a numbered trust, active since 1987. Curious, no?",
@@ -80,17 +80,16 @@ const QD = [
     outro:[
       "They've stopped deposing. Their managing partner sent a fruit basket labeled 'WITHOUT PREJUDICE'. I ate it WITH prejudice.",
       "But the appeal reopened discovery — the trust documents got remanded to OUR Records Annex overnight. And the annex has... reorganized itself. It does that when it's nervous."] },
-  { intro:[
-      "The annex re-filed itself overnight. Gates down. Levers reset. The crates look SMUG. Somewhere inside are four trust instruments naming the beneficiary only as 'MIDNIGHT'.",
-      "Recover all four. And mind the golems — they've unionized."],
-    prompt:"Before you descend:",
+  { giver:'dolores', intro:[
+      "(Dolores is already holding your coat.) The annex re-filed itself overnight. Gates down, levers reset, the crates look smug. It does that when it's nervous. It has been nervous since 1987.",
+      "Four trust instruments are down there, beneficiary listed only as 'MIDNIGHT.' Bring me all four. Mind the golems — they unionized, and their demands are reasonable, which is worse."],
+    prompt:"(She presses a brass key into your palm, then thinks better of it and takes it back.)",
     opts:[
-      { t:"Who is MIDNIGHT, Hargrove?", say:"(He checks his watch like it owes him money.) Bring me the instruments and we'll both find out.", e:1 },
-      { t:"Is there a finder's fee?", say:"Your fee is precedent.", a:1 }],
+      { t:"Who is MIDNIGHT, Dolores?", say:"I knew once. I filed it under a name I made myself forget. Bring the instruments; we'll remember together.", e:1 },
+      { t:"Is there a finder's fee?", say:"Precedent. And my regard, which compounds quarterly.", a:1 }],
     outro:[
-      "Four instruments, one beneficiary: 'MIDNIGHT, c/o The Honorable Mortimer Bane.' A sitting judge. Of course it's a sitting judge.",
-      "Bane and Graves — law school roommates. Class of 1959. He's been hearing this firm's cases for forty years, and now he's hearing OURS.",
-      "Final hearing tomorrow. His courtroom. Department 13. Take the firm car. And partner — bring everything you know."] },
+      "Four instruments, one beneficiary: 'MIDNIGHT, c/o The Honorable Mortimer Bane.' A sitting judge. I typed that name in 1987, and my hands have been cold ever since.",
+      "Bane and Graves — law school roommates, Class of 1959. Final hearing tomorrow, Department 13. Take the firm car. And dear — bring everything you know."] },
   { intro:[
       "This is it. In re the Estate of Graves, before the Honorable Mortimer Bane. At stake: every hour this firm has ever billed.",
       "Win the jury. All twelve. Bane will throw bailiffs, sanctions, and — historically — his gavel.",
@@ -124,15 +123,17 @@ const CHAD_BANTER = [
   "You hear the thing in the walls at night too, right? ...Right?",
   "Billables aren't everything. They're the ONLY thing. Grandfather's words. He's in the parking garage now. The NICE part."];
 
+// which NPC assigns / debriefs the current main matter (defaults to Hargrove)
+function questGiver(){ const qd = QD[questIdx]; return (qd && qd.giver) || 'hargrove'; }
 function questIntroScene(){
-  const i = questIdx, qd = QD[i];
-  const nodes = qd.intro.map(t => N('hargrove', t));
-  nodes.push(N('hargrove', qd.prompt, qd.opts.map(o => ({ t:o.t, say:o.say, fx:rep_(o.e||0, o.a||0) }))));
+  const i = questIdx, qd = QD[i], g = qd.giver || 'hargrove';
+  const nodes = qd.intro.map(t => N(g, t));
+  nodes.push(N(g, qd.prompt, qd.opts.map(o => ({ t:o.t, say:o.say, fx:rep_(o.e||0, o.a||0) }))));
   startDialog(nodes, () => { acceptQuest(); if(questIdx === 5) gravesConfrontation(); });
 }
 function questOutroScene(){
-  const i = questIdx;
-  startDialog(QD[i].outro.map(t => N('hargrove', t)), () => {
+  const i = questIdx, g = QD[i].giver || 'hargrove';
+  startDialog(QD[i].outro.map(t => N(g, t)), () => {
     gainXP(QUESTS[i].xp);
     if(i === 8){ act3Begin(); return; }   // Bane is beaten — the verdict unseals the founding agreement
     questIdx++; questPhase = 'get';
@@ -410,10 +411,14 @@ function talkLenny(){
   }
 }
 function talkTo(n){
+  // the active matter's giver takes priority while a matter is to be assigned or reported
+  if(n.id === questGiver() && (questPhase === 'get' || questPhase === 'turnin')){
+    if(questPhase === 'get') questIntroScene(); else questOutroScene();
+    questEvent('talk', { npc:n.id });
+    return;
+  }
   if(n.id === 'hargrove'){
-    if(questPhase === 'get') questIntroScene();
-    else if(questPhase === 'turnin') questOutroScene();
-    else startDialog([N('hargrove', HARGROVE_NAGS[Math.floor(Math.random()*HARGROVE_NAGS.length)])]);
+    startDialog([N('hargrove', HARGROVE_NAGS[Math.floor(Math.random()*HARGROVE_NAGS.length)])]);
   }
   else if(n.id === 'rosa') talkRosa();
   else if(n.id === 'benny') talkBenny();
@@ -423,8 +428,13 @@ function talkTo(n){
   questEvent('talk', { npc:n.id });
 }
 function npcMarker(n){
+  // the current matter's giver shows the matter marker (over any side-quest marker)
+  if(n.id === questGiver()){
+    if(questPhase==='get') return '!';
+    if(questPhase==='turnin') return '?';
+  }
   switch(n.id){
-    case 'hargrove': return questPhase==='get' ? '!' : questPhase==='turnin' ? '?' : null;
+    case 'hargrove': return null; // Hargrove has no side quests; matter markers handled above
     case 'rosa':     return flags.rosaQ===0 ? '!'
                           : (flags.rosaQ===1 && flags.hasStamper) || flags.mailQ===2 ? '?'
                           : (flags.rosaQ===2 && flags.mailQ===0) ? '!' : null;
@@ -489,7 +499,7 @@ function startGame(genderId, classId){
     hp: 100, maxhp: 100, xp: 0, rank: RANKS[0],
     cd: 0, hurtT: 0, coffeeCd: 0,
     face: {x:0, y:1}, meleeCd: 0, spinCd: 0, swingT: 0, spinT: 0,
-    inventory: [], equip: { weapon:null, accessory:null },
+    inventory: [], equip: { weapon:null, accessory:null, suit:null },
   };
   invOpen = false; invSel = null;
   qInit();
@@ -509,6 +519,7 @@ function startGame(genderId, classId){
   NPCS.forEach(n => n.hidden = false);
   questIdx = 0; questPhase = 'get'; killCount=0; collectCount=0;
   gameTime = 0;
+  giveItem('pinstripe_suit', true); equipItem('pinstripe_suit'); // starter armor — teaches the bag from minute one
   state = 'play';
   startDialog([
     N('memo', "Welcome to Dewey, Cheatham & Howe LLP. Your badge is enclosed. Your desk is the one that is on fire."),

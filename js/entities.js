@@ -39,9 +39,9 @@ function melee(){
   player.meleeCd = 0.38; player.swingT = 0.18;
   const fx = player.face.x, fy = player.face.y;
   const cx = player.x + fx*34, cy = player.y + fy*34;
-  const base = 16 * dmgMult() * accMod('meleeMul', 1);
-  const bossMul = accMod('bossMul', 1);   // Letter Opener: bites deepest into things that shouldn't exist
-  const slow = accMod('slow', false);
+  const base = 16 * dmgMult() * gearMul('meleeMul');
+  const bossMul = gearMul('bossMul');   // Letter Opener: bites deepest into things that shouldn't exist
+  const slow = gearHas('slow');
   let hit = false;
   for(const e of enemies){
     if(Math.hypot(e.x-cx, e.y-cy) < e.r + 28){

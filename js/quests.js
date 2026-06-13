@@ -48,8 +48,9 @@ function questGoalMet(){
 function questProgressText(){
   const q = QUESTS[questIdx];
   if(q.act3 || questPhase==='done') return 'See your MATTERS [I] — special business below the annex';
-  if(questPhase==='get') return 'See Managing Partner Hargrove (press E)';
-  if(questPhase==='turnin') return 'Report back to Managing Partner Hargrove';
+  const giverNm = (WHO[questGiver()] || WHO.hargrove).nm;
+  if(questPhase==='get') return `See ${giverNm} (press E)`;
+  if(questPhase==='turnin') return `Report back to ${giverNm}`;
   const e = ENEMY_TYPES[q.goal.enemy];
   let s = `${e.nm}: ${Math.min(killCount,q.goal.n)}/${q.goal.n}`;
   if(q.goal.items) s += `  •  Files: ${collectCount}/${q.goal.items}`;
@@ -63,7 +64,7 @@ function gainXP(n){
   const nr = rankFor(player.xp);
   if(nr.lvl > player.rank.lvl){
     player.rank = nr;
-    player.maxhp = nr.hp + accMod('maxhpAdd', 0);
+    player.maxhp = nr.hp + gearSum('maxhpAdd');
     player.hp = player.maxhp;
     levelFlash = 2.5;
     SFX.promote();
@@ -71,5 +72,5 @@ function gainXP(n){
     // promotion bonus: +10% damage per level via lvl multiplier (applied at shot time)
   }
 }
-const dmgMult = () => (1 + (player.rank.lvl-1)*0.18) * accMod('dmgMul', 1);
+const dmgMult = () => (1 + (player.rank.lvl-1)*0.10) * gearMul('dmgMul');
 

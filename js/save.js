@@ -63,7 +63,7 @@ function loadGame(){
     // inventory + equipment (v2); migrate from v1 flags otherwise
     if(d.v>=2 && d.inventory){
       player.inventory = d.inventory.filter(id=>ITEMS[id]);
-      player.equip = { weapon:null, accessory:null, ...(d.equip||{}) };
+      player.equip = { weapon:null, accessory:null, suit:null, ...(d.equip||{}) };
     } else {
       if(flags.hasStamper)  player.inventory.push('bates_stamper');
       if(flags.hasKey)      player.inventory.push('brass_key');

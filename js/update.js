@@ -420,6 +420,7 @@ function update(dt){
 }
 
 function hurtPlayer(d, contact=false){
+  d *= (1 - equipDefense());   // suit / accessory armor soaks a fraction of every hit
   if(player.hurtT>0 && contact) { player.hp -= d; return; } // contact ticks don't spam quips
   player.hp -= d;
   if(!contact || Math.random()<0.05){

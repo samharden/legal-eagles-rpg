@@ -192,9 +192,14 @@ function draw(){
     const a = Math.min(1, msg.t);
     ctx.globalAlpha=a;
     if(msg.big){
-      ctx.font = `bold ${msg.text.length > 36 ? 18 : 30}px monospace`; ctx.fillStyle='#f0c75e';
+      const big = msg.text.length > 36;
+      const fontPx = big ? 18 : 30;
+      ctx.font = `bold ${fontPx}px monospace`; ctx.fillStyle='#f0c75e';
       ctx.strokeStyle='#000'; ctx.lineWidth=5;
-      ctx.strokeText(msg.text, W/2, 150); ctx.fillText(msg.text, W/2, 150);
+      // wrap so long banners (NEW MATTER: ...) never run off the canvas
+      const blines = wrap(msg.text, big ? 50 : 30);
+      const y0b = 150 - (blines.length-1)*(fontPx+6)/2;
+      blines.forEach((l,i)=>{ const y=y0b+i*(fontPx+6); ctx.strokeText(l, W/2, y); ctx.fillText(l, W/2, y); });
     } else {
       ctx.font='14px monospace';
       const lines = wrap(msg.text, 78);
@@ -241,9 +246,9 @@ function drawHUD(){
   ctx.fillStyle='#fff'; ctx.fillText(`${Math.max(0,Math.ceil(player.hp))}/${player.maxhp}`, 220, y0+52);
   const cur = player.rank, next = RANKS[Math.min(RANKS.length-1, cur.lvl)];
   ctx.fillStyle='#9b8fb5';
-  ctx.fillText(cur.lvl<6 ? `XP TO ${next.title.toUpperCase()}` : 'MAXIMUM PRESTIGE', 14, y0+68);
+  ctx.fillText(cur.lvl<RANKS.length ? `XP TO ${next.title.toUpperCase()}` : 'MAXIMUM PRESTIGE', 14, y0+68);
   ctx.fillStyle='#3a2440'; ctx.fillRect(14, y0+72, 200, 10);
-  if(cur.lvl<6){
+  if(cur.lvl<RANKS.length){
     const frac=(player.xp-cur.xp)/(next.xp-cur.xp);
     ctx.fillStyle='#f0c75e'; ctx.fillRect(14, y0+72, 200*Math.min(1,frac), 10);
     ctx.fillStyle='#fff'; ctx.fillText(`${player.xp}/${next.xp}`, 220, y0+81);
