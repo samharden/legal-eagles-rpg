@@ -31,19 +31,19 @@
     position:absolute; left:50%; top:50%; width:54px; height:54px; margin:-27px 0 0 -27px;
     border-radius:50%; background:rgba(240,199,94,.4); border:2px solid #f0c75e;
   }
-  #btns { position:absolute; right:14px; bottom:16px; display:grid; grid-template-columns:repeat(2,62px); gap:10px; }
+  /* right-hand cluster: combat (SPIN/STRIKE/FIRE) in the right column where the
+     thumb rests, utility (mute/talk/bag) in the left column */
+  #btns { position:absolute; right:18px; bottom:22px; display:grid; grid-template-columns:repeat(2,84px); gap:16px; }
   .tb {
-    pointer-events:auto; width:62px; height:62px; border-radius:50%; touch-action:none;
-    background:rgba(36,29,54,.8); border:2px solid #4a3f63; color:#e8e0f0;
-    font-family:inherit; font-size:10px; font-weight:bold; line-height:1.2;
+    pointer-events:auto; width:84px; height:84px; border-radius:50%; touch-action:none;
+    background:rgba(46,38,68,.92); border:2px solid #6a5d86; color:#f1ecf8;
+    font-family:inherit; font-size:13px; font-weight:bold; line-height:1.15;
+    box-shadow:0 3px 10px rgba(0,0,0,.45);
   }
-  .tb:active { border-color:#f0c75e; background:rgba(58,47,85,.9); }
-  #tbM {
-    pointer-events:auto; position:absolute; left:50%; transform:translateX(-50%); bottom:24px;
-    width:40px; height:40px;
-    border-radius:50%; background:rgba(36,29,54,.8); border:2px solid #4a3f63; color:#e8e0f0;
-    font-family:inherit; font-size:15px;
-  }
+  .tb.util { background:rgba(30,25,44,.9); border-color:#4a3f63; color:#bcb0d4; font-size:12px; }
+  .tb:active { border-color:#f0c75e; background:rgba(70,57,102,.98); transform:scale(.93); }
+  #tbK { border-color:#caa84a; color:#f0c75e; background:rgba(70,55,30,.6); }  /* FIRE — primary */
+  #tbM { font-size:22px; }
   /* ---- body.touch: applied by JS on coarse-pointer devices ---- */
   body.touch { padding:6px; }
   body.touch h1 { font-size:16px; letter-spacing:1px; margin:2px 0; }
@@ -168,13 +168,13 @@
   <div id="touch">
     <div id="joy"><div id="stick"></div></div>
     <div id="btns">
-      <button class="tb" id="tbE">TALK<br>USE</button>
-      <button class="tb" id="tbJ">STRIKE</button>
+      <button class="tb util" id="tbM">♪</button>
       <button class="tb" id="tbL">SPIN</button>
+      <button class="tb util" id="tbE">TALK<br>USE</button>
+      <button class="tb" id="tbJ">STRIKE</button>
+      <button class="tb util" id="tbI">BAG</button>
       <button class="tb" id="tbK">FIRE</button>
-      <button class="tb" id="tbI">BAG</button>
     </div>
-    <button id="tbM">♪</button>
   </div>
 </div>
 <div id="mpanel">
@@ -198,24 +198,24 @@
   <span>Coffee machine restores Billable Energy</span>
 </div>
 
-<script src="js/config.js?v=10"></script>
-<script src="js/sprites.js?v=10"></script>
-<script src="js/audio.js?v=10"></script>
-<script src="js/data.js?v=10"></script>
-<script src="js/items.js?v=10"></script>
-<script src="js/worlds.js?v=10"></script>
-<script src="js/state.js?v=10"></script>
-<script src="js/dialogue.js?v=10"></script>
-<script src="js/story.js?v=10"></script>
-<script src="js/save.js?v=10"></script>
-<script src="js/quests.js?v=10"></script>
-<script src="js/questgraph.js?v=10"></script>
-<script src="js/entities.js?v=10"></script>
-<script src="js/update.js?v=10"></script>
-<script src="js/render.js?v=10"></script>
-<script src="js/mobile.js?v=10"></script>
-<script src="js/loop.js?v=10"></script>
-<script src="js/touch.js?v=10"></script>
-<script src="js/menu.js?v=10"></script>
+<script src="js/config.js?v=11"></script>
+<script src="js/sprites.js?v=11"></script>
+<script src="js/audio.js?v=11"></script>
+<script src="js/data.js?v=11"></script>
+<script src="js/items.js?v=11"></script>
+<script src="js/worlds.js?v=11"></script>
+<script src="js/state.js?v=11"></script>
+<script src="js/dialogue.js?v=11"></script>
+<script src="js/story.js?v=11"></script>
+<script src="js/save.js?v=11"></script>
+<script src="js/quests.js?v=11"></script>
+<script src="js/questgraph.js?v=11"></script>
+<script src="js/entities.js?v=11"></script>
+<script src="js/update.js?v=11"></script>
+<script src="js/render.js?v=11"></script>
+<script src="js/mobile.js?v=11"></script>
+<script src="js/loop.js?v=11"></script>
+<script src="js/touch.js?v=11"></script>
+<script src="js/menu.js?v=11"></script>
 </body>
 </html>
