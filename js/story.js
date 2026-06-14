@@ -208,10 +208,10 @@ function chadBeat1(){
 }
 function chadBeat2(){
   startDialog([
-    N('chad', "Psst. Worthington intel, free of charge: Hargrove has been in the file room all night pulling everything from 1987. Whatever is happening at this firm — it happens at YOUR partnership review.", [
-      { t:"Come with me, Chad. I could use backup.", say:"I— really? I mean. Obviously. The Worthingtons LEAD. We'll discuss billing for this later.", fx:()=>{ flags.chad++; } },
-      { t:"Stay out of my way at the review.", say:"Fine. FINE. I hope the corner office EATS you.", fx:()=>{ flags.chad--; } },
-    ]),
+    N('chad', "Psst. Worthington intel, free of charge: Hargrove has been in the file room all night pulling everything from 1987. Whatever is happening at this firm — it happens at YOUR partnership review."),
+    N('chad', flags.chadWillJoin
+      ? "And I meant it, after the card: I'll be at your review. Worthingtons pay their debts, even the weird emotional ones. ...Don't make it weird."
+      : "One more thing — go see Dolores before your review. She's been guarding something with my name on it for weeks, and I... can't be the one to pick it up. Do that for me. Then we'll talk about your review."),
   ]);
 }
 function gravesConfrontation(){
@@ -238,10 +238,10 @@ function beginFinalBattle(mult){
   const g = enemies.find(e => e.type === 'emeritus');
   if(g && mult < 1) g.hp = g.maxhp * mult;
   const chadNPC = NPCS.find(n => n.id === 'chad');
-  if(flags.chad >= 2){
+  if(flags.chadWillJoin){   // recruited by delivering Dolores's birthday card
     flags.chadAlly = true; chadNPC.hidden = true;
     allies.push({ x:player.x+46, y:player.y+10, r:14, spr:'chad', cd:1 });
-    announce('Chad bursts in: "OBJECTION! The Worthingtons bill for THIS."', false, 5);
+    announce('Chad bursts in: "OBJECTION! The Worthingtons bill for THIS — and I owe you a birthday card."', false, 5);
   } else if(flags.chad <= -1){
     chadNPC.hidden = true;
     const p = findOpen(player.x, player.y, 300);
@@ -358,8 +358,8 @@ function talkChad(){
   if(flags.doloresQ === 1){
     startDialog([
       N('chad', "Is that— is that from DOLORES? Give it— wait. Wait. Did you open it?", [
-        { t:"Sealed, as entrusted.", say:"(He reads it. His lip trembles.) It's a birthday card. She's the only one who remembers. Take my cufflinks — Worthington monogram, solid as a subpoena. Tell anyone about the card and I will sue you into the sun.", fx:()=>{ flags.doloresQ = 2; flags.chad++; flags.ethics++; gainXP(40); giveItem('monogrammed_cufflinks'); } },
-        { t:"(Hand it over. Slightly steamed.)", say:"You READ it?! ...Then you saw the warning too. 'Graves remembers you, Chaddy. Stay away from midnight reviews.' ...Fine. Keep the cufflinks, consider it hush money. I'm coming to your review anyway. Out of spite.", fx:()=>{ flags.doloresQ = 2; flags.ambition++; gainXP(40); giveItem('monogrammed_cufflinks'); } },
+        { t:"Sealed, as entrusted.", say:"(He reads it. His lip trembles.) It's a birthday card. She's the only one who remembers. ...You carried it sealed. Nobody does that for me. Listen — my review's the same night as yours, in the same office. I'll be there. You watch your back, I'll watch it too. (He presses his cufflinks into your hand.) Worthington monogram. Don't make it a thing.", fx:()=>{ flags.doloresQ = 2; flags.chad++; flags.ethics++; flags.chadWillJoin = true; gainXP(40); giveItem('monogrammed_cufflinks'); } },
+        { t:"(Hand it over. Slightly steamed.)", say:"You READ it?! ...Then you saw the warning. 'Graves remembers you, Chaddy. Stay away from midnight reviews.' ...Whatever. Keep the cufflinks, call it hush money. And I'm coming to your review. Not for YOU — to spite a dead man who scared me as a kid. But I'll be swinging on your side of the room.", fx:()=>{ flags.doloresQ = 2; flags.ambition++; flags.chadWillJoin = true; gainXP(40); giveItem('monogrammed_cufflinks'); } },
       ]),
     ]);
   } else if(flags.grandfatherDown && !flags.chadGpa){
@@ -513,7 +513,7 @@ function startGame(genderId, classId){
             hasStamper:false, hasKey:false, serversFixed:0, lore:0, chadAlly:false, ending:null,
             mailQ:0, mailFailed:false, coffeeQ:0, coffeeBrief:false, coffeeUp:false,
             partDescaler:false, partElement:false, partChad:false,
-            hasValetKey:false, grandfatherDown:false, chadGpa:false,
+            hasValetKey:false, grandfatherDown:false, chadGpa:false, chadWillJoin:false,
             portraits:0, eleven:false, baneWeak:false,
             trialWave:0, jury:0, baneSpawned:false,
             lennyQ:0, lennyKills:0, act3:false };
