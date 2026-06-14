@@ -69,6 +69,16 @@ function draw(){
     drawSprite(i < (flags.jury||0) ? SPR.juror : SPR.seat, jx*TILE+20-cam.x, jy*TILE+20-cam.y, 32);
   }
   if(worldId==='floor24') nearLbl(31*TILE+20, 22*TILE+20, '[E] coffee (?)');
+  if(worldId==='office' && wd.printer){
+    const pr=wd.printer, px=pr.tx*TILE+20-cam.x, py=pr.ty*TILE+20-cam.y;
+    drawSprite(SPR.computer, px, py-2, TILE-4);
+    const st=qstate.printer_jam;
+    if(st && st.status==='available'){ // beacon: the jammed printer wants you
+      ctx.font='bold 16px monospace'; ctx.fillStyle='#f0c75e'; ctx.textAlign='center';
+      ctx.fillText('!', px, py-TILE*0.7 + Math.sin(gameTime*4)*2);
+    }
+    nearLbl(pr.tx*TILE+20, pr.ty*TILE+20, st && st.status==='available' ? '[E] the jammed printer' : '[E] printer');
+  }
   if(worldId==='vault' && wd.locke){
     drawSprite(SPR.dolores, wd.locke.tx*TILE+20-cam.x, wd.locke.ty*TILE+20-cam.y, 34, false, 0.4 + Math.sin(gameTime*2)*0.1);
     nearLbl(wd.locke.tx*TILE+20, wd.locke.ty*TILE+20, '[E] the ghost');
@@ -146,6 +156,8 @@ function draw(){
 
   // allies
   for(const al of allies) drawSprite(SPR[al.spr], al.x-cam.x, al.y-cam.y, 36, player.x < al.x);
+  // printer companion (floats, bobbing)
+  if(companion) drawSprite(SPR[companion.spr], companion.x-cam.x, companion.y-cam.y + Math.sin(gameTime*4)*2, 30, player.x < companion.x);
 
   // particles
   for(const p of particles) drawSprite(SPR[p.spr], p.x-cam.x, p.y-cam.y, 12, false, Math.min(1,p.t*2));

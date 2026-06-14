@@ -507,7 +507,7 @@ function startGame(genderId, classId){
   invOpen = false; invSel = null;
   qInit();
   shots=[]; enemyShots=[]; floaters=[]; particles=[];
-  allies=[]; servers=[]; dlg=null;
+  allies=[]; servers=[]; dlg=null; companion=null;
   loadWorld('office');
   flags = { ethics:0, ambition:0, chad:0, rosaQ:0, bennyQ:0, doloresQ:0,
             hasStamper:false, hasKey:false, serversFixed:0, lore:0, chadAlly:false, ending:null,

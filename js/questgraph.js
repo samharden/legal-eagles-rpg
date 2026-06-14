@@ -53,6 +53,23 @@ const QLINE = [
     reward:{ items:['letter_opener'], xp:80, ethics:1,
              msg:'The Letter Opener of P. Locke — an accessory whose edge bites deepest into bosses. Equip it from your bag [I].' },
   },
+  {
+    id:'printer_jam',
+    name:'The One Working Printer',
+    blurb:"The firm's last working printer is jammed and besieged in the break room. Reboot it (press E at the printer) and hold the line.",
+    prereq:()=> questIdx>=2,
+    auto:false,                       // started by interacting with the printer itself
+    stages:[
+      { type:'kill', enemy:'intern', n:6, hint:'Defend the printer while it reboots — clear 6 paper jams (interns).',
+        onStart:()=>{
+          for(let i=0;i<6;i++){ const p=findOpen(player.x, player.y, 300); spawnEnemy('intern', p.x, p.y); }
+          SFX.buzz(); shake = Math.max(shake, 8);
+          announce('The printer roars to life and IMMEDIATELY jams. Over-caffeinated interns swarm it. Defend it!', true, 4.5);
+        } },
+    ],
+    reward:{ items:['printer_companion'], xp:90, ethics:1,
+             msg:'THE ONE WORKING PRINTER is yours. Equip it [I] and it floats at your side, auto-firing paper jams.' },
+  },
 ];
 
 let qstate = {};   // id -> { status:'locked'|'available'|'active'|'done', stage, prog }

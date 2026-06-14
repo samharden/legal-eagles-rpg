@@ -95,6 +95,11 @@ const ITEMS = {
     ds:"Reflective, dented, smells of toner and survival. Rosa insists you keep it. Soaks 12% of incoming damage.",
     mods:{ defense:0.12 },
   },
+  printer_companion: {
+    nm:'The One Working Printer', spr:'computer', kind:'accessory',
+    ds:"The firm's last functioning printer, now loyal to you. It floats at your side and auto-fires paper-jam projectiles at the nearest enemy. PC LOAD LETTER.",
+    mods:{ companion:true },
+  },
 };
 
 // ---- inventory state ----

@@ -123,6 +123,17 @@ function update(dt){
         used = true; break;
       }
     }
+    if(!used && worldId==='office' && worlds.office.printer){
+      const pr = worlds.office.printer;
+      if(Math.hypot(player.x-(pr.tx*TILE+20), player.y-(pr.ty*TILE+20)) < 64){
+        const st = qstate.printer_jam;
+        if(st && st.status==='available') qStartQuest('printer_jam');
+        else if(st && st.status==='active') announce('The printer is mid-reboot — hold the line! Clear the jams.', false, 3);
+        else if(st && st.status==='done') announce('The printer purrs. It prints only for you now. PC LOAD LETTER, affectionately.', false, 3);
+        else announce('A dormant printer, toner light blinking. It might matter more once you have a few matters under your belt.', false, 3.5);
+        used = true;
+      }
+    }
     if(!used && worldId==='office' && Math.hypot(player.x-COFFEE.x, player.y-COFFEE.y) < 70){
       if(flags.coffeeQ===1){
         const parts = (flags.partDescaler?1:0)+(flags.partElement?1:0)+(flags.partChad?1:0);
@@ -367,6 +378,22 @@ function update(dt){
       if(Math.random() < 0.1) floaters.push({ x:al.x, y:al.y-24, text:'BILLED!', t:0.7, color:'#e8d06a' });
     }
   }
+
+  // printer companion — synced from the equipped accessory, follows + auto-fires paper jams
+  if(gearHas('companion')){
+    if(!companion) companion = { x:player.x-34, y:player.y, r:12, spr:'computer', cd:1 };
+    const pd = Math.hypot(player.x-companion.x, player.y-companion.y);
+    if(pd > 64){ const a = Math.atan2(player.y-companion.y, player.x-companion.x); moveEntity(companion, Math.cos(a)*230, Math.sin(a)*230, dt); }
+    companion.cd -= dt;
+    let best=null, bd=360;
+    for(const e of enemies){ const d=Math.hypot(e.x-companion.x, e.y-companion.y); if(d<bd){ bd=d; best=e; } }
+    if(best && companion.cd <= 0){
+      companion.cd = 1.3;
+      const a = Math.atan2(best.y-companion.y, best.x-companion.x);
+      shots.push({ x:companion.x, y:companion.y, vx:Math.cos(a)*430, vy:Math.sin(a)*430, dmg:7*dmgMult(), r:5, color:'#cfd6e0', pierce:false, homing:false, life:1.5, hit:new Set() });
+      if(Math.random() < 0.18) floaters.push({ x:companion.x, y:companion.y-22, text:'PC LOAD LETTER', t:0.7, color:'#cfd6e0' });
+    }
+  } else companion = null;
 
   // pickups
   for(const p of pickups){
