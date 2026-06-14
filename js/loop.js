@@ -21,7 +21,12 @@ window.addEventListener('keydown', e=>{
   if(k===' ') e.preventDefault();
   if(k==='m'){ toggleMute(); return; }
   if(k==='i' && (state==='play')){ toggleInventory(); return; }
-  if(invOpen){ if(k==='escape') toggleInventory(); return; } // bag is open: swallow gameplay keys
+  if(invOpen){ // bag is open: swallow gameplay keys; allow scroll + close
+    if(k==='escape' || k==='i') toggleInventory();
+    else if(k==='arrowdown' || k==='s') invScroll += 48;
+    else if(k==='arrowup'   || k==='w') invScroll -= 48;
+    return;
+  }
   if(state==='dialog' && dlg){
     const node = dlg.nodes[dlg.i];
     if(node.choices){
@@ -51,4 +56,9 @@ cv.addEventListener('click', e=>{
   const r=cv.getBoundingClientRect();
   inventoryClick((e.clientX-r.left)*(W/r.width), (e.clientY-r.top)*(CH/r.height));
 });
+cv.addEventListener('wheel', e=>{
+  if(!invOpen) return;
+  e.preventDefault();
+  invScroll += e.deltaY;   // clamped against content height inside drawInventory
+}, { passive:false });
 

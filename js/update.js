@@ -168,7 +168,8 @@ function update(dt){
   // quest completion check
   if(questPhase==='active' && questGoalMet()){
     questPhase='turnin';
-    announce('Objective complete! Report to Managing Partner Hargrove. Try to look busy on the way.', false, 4);
+    const giverNm = (WHO[questGiver()] || WHO.hargrove).nm;
+    announce(`Objective complete! Report back to ${giverNm}. Try to look busy on the way.`, false, 4);
   }
 
   // mail-cart escort

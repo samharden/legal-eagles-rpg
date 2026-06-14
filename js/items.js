@@ -103,7 +103,7 @@ const ITEMS = {
 };
 
 // ---- inventory state ----
-let invOpen = false, invSel = null, invRects = [], invTab = 'items';
+let invOpen = false, invSel = null, invRects = [], invTab = 'items', invScroll = 0;
 
 function giveItem(id, quiet){
   if(!ITEMS[id]) return false;
@@ -173,14 +173,14 @@ function recalcMaxHP(){
 function toggleInventory(){
   if(state!=='play') return;
   invOpen = !invOpen;
-  if(invOpen){ for(const k in keys) keys[k]=false; } // drop held movement so you don't drift while paused
+  if(invOpen){ for(const k in keys) keys[k]=false; invScroll = 0; } // drop held movement; start at top
   SFX.blip();
 }
 function inventoryClick(x, y){
   for(const r of invRects){
     if(x>=r.x && x<=r.x+r.w && y>=r.y && y<=r.y+r.h){
       if(r.act==='close'){ toggleInventory(); return; }
-      if(r.act==='tab'){ invTab = r.tab; SFX.blip(); return; }
+      if(r.act==='tab'){ invTab = r.tab; invScroll = 0; SFX.blip(); return; }
       if(!r.id) return;
       const it = ITEMS[r.id];
       if(it.kind==='consumable') useConsumable(r.id);
@@ -247,37 +247,50 @@ function drawInventory(){
   ctx.font='11px monospace'; ctx.fillStyle='#caa84a';
   ctx.fillText(`FIRE x${dmgX.toFixed(2)} dmg · x${rateX.toFixed(2)} rate · ${ws.count} shot${ws.count>1?'s':''}${ws.pierce?' · pierce':''}  |  ARMOR ${arm}%  ·  MAX HP ${player.maxhp}`, PX+24, slotY+78);
 
-  // carried-item list (deduped with counts)
+  // carried-item list (deduped with counts) — clipped, scrollable viewport
   const counts={}; for(const id of player.inventory) counts[id]=(counts[id]||0)+1;
   const ids=Object.keys(counts);
-  let ly=slotY+98;
   ctx.font='bold 12px monospace'; ctx.fillStyle='#caa84a';
-  ctx.fillText('CARRYING', PX+24, ly); ly+=14;
+  ctx.fillText('CARRYING', PX+24, slotY+98);
   if(!ids.length){ ctx.fillStyle='#5a4f73'; ctx.font='italic 12px monospace';
-    ctx.fillText('Your bag is empty. The firm has taken everything else.', PX+24, ly+8); }
-  for(const id of ids){
-    const it=ITEMS[id], rh=40, rx=PX+24, rw=PW-48;
+    ctx.fillText('Your bag is empty. The firm has taken everything else.', PX+24, slotY+118); }
+  const rx=PX+24, rw=PW-48, rh=40, rowH=rh+6;
+  const showFooter = invSel && ITEMS[invSel];
+  const vy0 = slotY+108, vy1 = PY+PH - (showFooter ? 56 : 14), vh = vy1-vy0;
+  const contentH = ids.length*rowH;
+  invScroll = Math.max(0, Math.min(invScroll, contentH - vh)); // clamp each frame
+  ctx.save();
+  ctx.beginPath(); ctx.rect(rx, vy0, rw, vh); ctx.clip();
+  for(let i=0;i<ids.length;i++){
+    const id=ids[i], it=ITEMS[id], ry=vy0 + i*rowH - invScroll;
+    if(ry+rh < vy0 || ry > vy1) continue;           // skip rows scrolled out of view
     const equipped=Object.values(player.equip).includes(id);
     ctx.fillStyle = equipped ? '#2a2340' : '#161122';
-    ctx.fillRect(rx,ly,rw,rh);
-    if(equipped){ ctx.strokeStyle='#9be05e'; ctx.lineWidth=1; ctx.strokeRect(rx,ly,rw,rh); }
-    drawSprite(SPR[it.spr], rx+24, ly+rh/2, 28);
+    ctx.fillRect(rx,ry,rw,rh);
+    if(equipped){ ctx.strokeStyle='#9be05e'; ctx.lineWidth=1; ctx.strokeRect(rx,ry,rw,rh); }
+    drawSprite(SPR[it.spr], rx+24, ry+rh/2, 28);
     ctx.fillStyle='#e8e0f0'; ctx.font='bold 12px monospace';
-    ctx.fillText(it.nm + (counts[id]>1?`  x${counts[id]}`:'') , rx+48, ly+16);
+    ctx.fillText(it.nm + (counts[id]>1?`  x${counts[id]}`:'') , rx+48, ry+16);
     ctx.fillStyle='#9b8fb5'; ctx.font='10px monospace';
     const tag = it.kind==='suit'?'SUIT':it.kind.toUpperCase();
     const action = equipped?'[ EQUIPPED — click to remove ]':it.kind==='consumable'?'[ click to USE ]':EQUIP_KINDS.includes(it.kind)?'[ click to EQUIP ]':'';
-    ctx.fillText(tag+'   '+action, rx+48, ly+31);
-    invRects.push({x:rx,y:ly,w:rw,h:rh,id});
-    ly+=rh+6;
+    ctx.fillText(tag+'   '+action, rx+48, ry+31);
+    invRects.push({x:rx,y:ry,w:rw,h:rh,id});
+  }
+  ctx.restore();
+  // scrollbar
+  if(contentH > vh){
+    const trackH=vh, thumbH=Math.max(24, trackH*vh/contentH), thumbY=vy0 + (invScroll/(contentH-vh))*(trackH-thumbH);
+    ctx.fillStyle='#2a2340'; ctx.fillRect(rx+rw-5, vy0, 4, trackH);
+    ctx.fillStyle='#caa84a'; ctx.fillRect(rx+rw-5, thumbY, 4, thumbH);
   }
 
   // selected-item description footer
-  if(invSel && ITEMS[invSel]){
-    const dy=PY+PH-58, dlines=wrap(ITEMS[invSel].ds, 92);
-    ctx.fillStyle='#120e1c'; ctx.fillRect(PX+24, dy, PW-48, 44);
+  if(showFooter){
+    const dy=PY+PH-50, dlines=wrap(ITEMS[invSel].ds, 92);
+    ctx.fillStyle='#120e1c'; ctx.fillRect(PX+24, dy, PW-48, 42);
     ctx.fillStyle='#caa84a'; ctx.font='11px monospace';
-    dlines.slice(0,2).forEach((l,i)=>ctx.fillText(l, PX+34, dy+18+i*16));
+    dlines.slice(0,2).forEach((l,i)=>ctx.fillText(l, PX+34, dy+17+i*16));
   }
 }
 
