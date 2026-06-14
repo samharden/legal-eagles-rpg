@@ -255,7 +255,7 @@ function talkRosa(){
   if(flags.rosaQ === 0 && flags.hasStamper){
     startDialog([
       N('rosa', "Is that— you ALREADY have it? You went into the vault... voluntarily? Uncanny. Dolores will weep. Internally, where it counts."),
-    ], () => { flags.rosaQ = 2; flags.ethics++; gainXP(40); });
+    ], () => { flags.rosaQ = 2; flags.ethics++; gainXP(40); giveItem('cold_brew'); giveItem('cold_brew', true); });
   }
   else if(flags.rosaQ === 0){
     startDialog([
@@ -271,7 +271,7 @@ function talkRosa(){
     startDialog([
       N('rosa', "THE stamper! Dolores will weep — internally, where it counts. Here, mailroom wisdom, free of charge:"),
       N('rosa', "Never sign anything in red ink. And never, EVER schedule anything at midnight."),
-    ], () => { flags.rosaQ = 2; flags.ethics++; gainXP(40); });
+    ], () => { flags.rosaQ = 2; flags.ethics++; gainXP(40); giveItem('cold_brew'); giveItem('cold_brew', true); });
   } else if(flags.mailQ === 0){
     const opener = flags.mailFailed
       ? "The cart survived 1987. It did not survive YOU. ...It's rebuilt. Banged out the dents myself. Ready when you are."
@@ -291,7 +291,8 @@ function talkRosa(){
       N('rosa', "March 1987. Graves had just gone Emeritus. For one week, the mail delivered itself. Floated right out of the cart, every envelope to every desk. We called it efficiency. We didn't ask questions."),
       N('rosa', "Then we noticed the building was reading everything first — routing copies of every memo, every settlement, down to the corner office. It wasn't helping. It was FEEDING him."),
       N('rosa', "Dolores ended it. Drove her Bates stamper straight into the sorting machine and stamped the building's mail privileges CONFIDENTIAL — ATTORNEYS' EYES ONLY. That stamper was never 'emotional support', dear. It was a cork."),
-    ], () => { flags.mailQ = 3; flags.ethics++; gainXP(90); });
+      N('rosa', "Here — take the hazard vest off the hook. Reflective, dented, mailroom-blessed. You're one of us now, dear."),
+    ], () => { flags.mailQ = 3; flags.ethics++; gainXP(90); giveItem('mail_vest'); });
   } else {
     startDialog([N('rosa', "The mail flows, the cork holds, and the building sulks. A good week, by mailroom standards.")]);
   }
@@ -324,8 +325,8 @@ function talkBenny(){
     startDialog([N('benny', `Servers still down: ${3-flags.serversFixed}. The partners are saving documents to 'My Computer'. MY computer. Specifically mine.`)]);
   } else if(flags.bennyQ === 1){
     startDialog([
-      N('benny', "All green! You beautiful litigious wrecking ball. I rerouted the fourth-floor printer queue through your billing code. That's sixty XP of pure gratitude."),
-    ], () => { flags.bennyQ = 2; flags.ambition++; gainXP(60); });
+      N('benny', "All green! You beautiful litigious wrecking ball. I rerouted the fourth-floor printer queue through your billing code — and pulled a capacitor out of the server I'm not allowed to describe. Solder it onto your attack. You'll fire WAY faster."),
+    ], () => { flags.bennyQ = 2; flags.ambition++; gainXP(60); giveItem('server_capacitor'); });
   } else {
     startDialog([N('benny', "Uptime: one hundred percent. Intern velocity: concerning.")]);
   }
@@ -336,7 +337,8 @@ function talkDolores(){
       N('dolores', "You've met all eleven, then. I typed for every one of them. I typed Ezekiel's eulogy, Prudence's resignation, and the thing we do not call a confession."),
       N('dolores', "I also typed Mortimer Bane's clerkship rejection. 1959. This firm turned him down in eleven words. He has never forgiven us — or footnote four."),
       N('dolores', "His law review note, dear. 12 Yale L.J. 404. He cited HIMSELF. Incorrectly. Recite it back to him on the bench and he will simply... come apart. (She types the citation. You memorize it.)"),
-    ], () => { flags.baneWeak = true; gainXP(40); });
+      N('dolores', "One more thing. Pry the signet off the eleventh portrait — the empty frame. It remembers every partner the building overwrote. It will help your hand find the things that should not exist."),
+    ], () => { flags.baneWeak = true; gainXP(40); giveItem('founders_signet'); });
   }
   else if(flags.doloresQ === 0){
     startDialog([
@@ -356,8 +358,8 @@ function talkChad(){
   if(flags.doloresQ === 1){
     startDialog([
       N('chad', "Is that— is that from DOLORES? Give it— wait. Wait. Did you open it?", [
-        { t:"Sealed, as entrusted.", say:"(He reads it. His lip trembles.) It's a birthday card. She's the only one who remembers. Tell anyone and I will sue you into the sun.", fx:()=>{ flags.doloresQ = 2; flags.chad++; flags.ethics++; gainXP(40); } },
-        { t:"(Hand it over. Slightly steamed.)", say:"You READ it?! ...Then you saw the warning too. 'Graves remembers you, Chaddy. Stay away from midnight reviews.' ...I'm coming to yours anyway. Out of spite.", fx:()=>{ flags.doloresQ = 2; flags.ambition++; gainXP(40); } },
+        { t:"Sealed, as entrusted.", say:"(He reads it. His lip trembles.) It's a birthday card. She's the only one who remembers. Take my cufflinks — Worthington monogram, solid as a subpoena. Tell anyone about the card and I will sue you into the sun.", fx:()=>{ flags.doloresQ = 2; flags.chad++; flags.ethics++; gainXP(40); giveItem('monogrammed_cufflinks'); } },
+        { t:"(Hand it over. Slightly steamed.)", say:"You READ it?! ...Then you saw the warning too. 'Graves remembers you, Chaddy. Stay away from midnight reviews.' ...Fine. Keep the cufflinks, consider it hush money. I'm coming to your review anyway. Out of spite.", fx:()=>{ flags.doloresQ = 2; flags.ambition++; gainXP(40); giveItem('monogrammed_cufflinks'); } },
       ]),
     ]);
   } else if(flags.grandfatherDown && !flags.chadGpa){
@@ -403,8 +405,9 @@ function talkLenny(){
       N('lenny', "(He shakes your hand for a very long time. Somewhere, an ethics professor feels a disturbance and smiles.)"),
     ], () => {
       flags.lennyQ = 2; flags.ethics += 2;
+      giveItem('pro_bono_plaque', true);
       floaters.push({ x:player.x, y:player.y-22, text:'+0 XP (PRO BONO) · +2 ETHICS', t:1.6, color:'#9be05e' });
-      announce('Case closed. Fee: nothing. It was simply the right thing to do.', false, 4);
+      announce('Case closed. Fee: nothing — but Lenny had a Pro Bono plaque engraved for you. Equip it from your bag [I]. It was simply the right thing to do.', false, 5);
     });
   } else {
     startDialog([N('lenny', "I won! Well — YOU won. The deposit comes back in six to eight business eons. I'm staying in the lobby though. It's load-bearing now. I'm load-bearing.")]);

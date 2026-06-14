@@ -69,6 +69,32 @@ const ITEMS = {
     ds:'Heavy with citations. Adds an extra projectile to every attack, though each lands a little softer.',
     mods:{ countAdd:1, dmgMul:0.82 },
   },
+  // ---- side-quest reward gear ----
+  server_capacitor: {
+    nm:'IT Surplus Capacitor', spr:'gear', kind:'weapon',
+    ds:"Salvaged from the server Benny is legally forbidden to describe. Your attack fires 30% faster and hits a touch harder.",
+    mods:{ speedMul:1.2, cdMul:0.78, dmgMul:1.05 },
+  },
+  monogrammed_cufflinks: {
+    nm:'Worthington Monogrammed Cufflinks', spr:'key', kind:'accessory',
+    ds:"Solid, heavy, faintly judgmental. A Worthington heirloom. Soaks 10% of damage and steels the nerves (+15 max energy).",
+    mods:{ defense:0.10, maxhpAdd:15 },
+  },
+  pro_bono_plaque: {
+    nm:'Pro Bono Service Plaque', spr:'sign', kind:'accessory',
+    ds:"Lenny had it engraved with his last twelve dollars. The goodwill is, somehow, load-bearing. +30 max Billable Energy.",
+    mods:{ maxhpAdd:30 },
+  },
+  founders_signet: {
+    nm:"Founders' Signet Ring", spr:'key', kind:'accessory',
+    ds:"Pried from the eleventh portrait's painted hand. It remembers every partner the building overwrote. Briefcase strikes hit bosses 60% harder.",
+    mods:{ bossMul:1.6 },
+  },
+  mail_vest: {
+    nm:'Mailroom Hazard Vest', spr:'briefcase', kind:'accessory',
+    ds:"Reflective, dented, smells of toner and survival. Rosa insists you keep it. Soaks 12% of incoming damage.",
+    mods:{ defense:0.12 },
+  },
 };
 
 // ---- inventory state ----
@@ -250,29 +276,48 @@ function drawInventory(){
   }
 }
 
-// MATTERS tab: special (graph) quests, separate from the main Hargrove matter line
+// MATTERS tab: the live main matter + bespoke side quests + special (graph) quests
+function questLogRows(){
+  const rows = [];
+  // 1) current main matter (skip the Act III display sentinel; that surfaces as a graph quest)
+  const mq = QUESTS[questIdx];
+  if(mq && !mq.act3 && questPhase!=='done'){
+    rows.push({ name:`MATTER ${questIdx+1}: ${mq.name}`, line:questProgressText(), tag:'MAIN' });
+  }
+  // 2) bespoke side quests (same source the HUD uses), parsed into name/detail
+  for(let s of sideQuestLines()){
+    s = s.replace(/^\*\s*/,'');
+    const ci = s.indexOf(':');
+    rows.push({ name: ci>0 ? s.slice(0,ci) : 'Side matter',
+                line: ci>0 ? s.slice(ci+1).trim() : s, tag:'SIDE' });
+  }
+  // 3) special / graph quests (Good Pens, Act III, P. Locke...)
+  for(const q of qLogLines()) rows.push(q);
+  return rows;
+}
 function drawQuestLog(PX,PY,PW,PH){
   ctx.font='11px monospace'; ctx.fillStyle='#9b8fb5';
-  ctx.fillText('Special matters — side work beyond Hargrove\'s assignments.', PX+24, PY+54);
-  const lines = qLogLines();
-  let ly = PY+86;
-  if(!lines.length){
+  ctx.fillText('Open matters — your assignments, side work, and special business.', PX+24, PY+54);
+  const rows = questLogRows();
+  let ly = PY+82;
+  if(!rows.length){
     ctx.fillStyle='#5a4f73'; ctx.font='italic 12px monospace';
-    ctx.fillText('No special matters yet. Word travels. Something will surface.', PX+24, ly);
+    ctx.fillText('No open matters. Enjoy it while it lasts.', PX+24, ly);
     return;
   }
-  const tagColor = { ACTIVE:'#9be05e', AVAILABLE:'#f0c75e', DONE:'#5a4f73' };
-  for(const q of lines){
-    const wl = wrap(q.line, 86).slice(0,3);
-    const rh = 26 + wl.length*13;
+  const tagColor = { MAIN:'#5ec8f0', SIDE:'#9be05e', ACTIVE:'#9be05e', AVAILABLE:'#f0c75e', DONE:'#5a4f73' };
+  for(const q of rows){
+    if(ly > PY+PH-30) break;   // don't overflow the panel
+    const wl = wrap(q.line, 84).slice(0,2);
+    const rh = 24 + wl.length*13;
     ctx.fillStyle='#161122'; ctx.fillRect(PX+24, ly, PW-48, rh);
     ctx.fillStyle = q.tag==='DONE' ? '#5a4f73' : '#e8e0f0';
-    ctx.font='bold 13px monospace';
-    ctx.fillText(q.name, PX+36, ly+19);
+    ctx.font='bold 12px monospace';
+    ctx.fillText(q.name, PX+36, ly+18);
     ctx.fillStyle = tagColor[q.tag]||'#9b8fb5'; ctx.font='9px monospace';
-    ctx.fillText(q.tag, PX+PW-90, ly+19);
+    ctx.fillText(q.tag, PX+PW-92, ly+18);
     ctx.fillStyle = q.tag==='DONE' ? '#4a4060' : '#9b8fb5'; ctx.font='10px monospace';
-    wl.forEach((l,i)=>ctx.fillText(l, PX+36, ly+34+i*13));
-    ly += rh + 8;
+    wl.forEach((l,i)=>ctx.fillText(l, PX+36, ly+32+i*12));
+    ly += rh + 6;
   }
 }
