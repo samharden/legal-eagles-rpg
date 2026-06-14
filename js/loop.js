@@ -4,7 +4,7 @@ let last = performance.now();
 function step(now){
   const dt = Math.min(0.05, (now-last)/1000); last = now;
   musicTick();
-  if(state==='play'){ if(invOpen){ draw(); drawInventory(); } else { update(dt); draw(); } }
+  if(state==='play'){ if(invOpen){ draw(); if(!IS_TOUCH) drawInventory(); } else { update(dt); draw(); } }
   else if(state==='dialog'){ draw(); if(!IS_TOUCH) drawDialog(); }
   else if(state==='gameover'||state==='victory'){ draw(); drawEnd(); }
   updateMobilePanel();

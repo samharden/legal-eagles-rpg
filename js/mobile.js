@@ -5,6 +5,7 @@
 let mdlgKey = null, mhudKey = '';
 function updateMobilePanel(){
   if(!IS_TOUCH) return;
+  updateMobileBag();
   // the panel only exists during gameplay — the menu is full-screen on mobile
   const panel = document.getElementById('mpanel');
   const wanted = state !== 'menu' ? 'block' : 'none';
@@ -49,9 +50,9 @@ function updateMobilePanel(){
   document.getElementById('mhplabel').textContent = `ENERGY ${Math.max(0,Math.ceil(player.hp))} / ${player.maxhp}`;
   const cur = player.rank, next = RANKS[Math.min(RANKS.length-1, cur.lvl)];
   document.getElementById('mxpfill').style.width =
-    (cur.lvl < 6 ? Math.min(100, (player.xp-cur.xp)/(next.xp-cur.xp)*100) : 100) + '%';
+    (cur.lvl < RANKS.length ? Math.min(100, (player.xp-cur.xp)/(next.xp-cur.xp)*100) : 100) + '%';
   document.getElementById('mxplabel').textContent =
-    cur.lvl < 6 ? `XP ${player.xp} / ${next.xp} → ${next.title.toUpperCase()}` : 'MAXIMUM PRESTIGE';
+    cur.lvl < RANKS.length ? `XP ${player.xp} / ${next.xp} → ${next.title.toUpperCase()}` : 'MAXIMUM PRESTIGE';
   const q = QUESTS[questIdx];
   const side = sideQuestLines().join('   ');
   const hudKey = [player.rank.title, worldId, q.name, questProgressText(), side, msg.t>0 ? msg.text : ''].join('|');
@@ -62,5 +63,89 @@ function updateMobilePanel(){
   document.getElementById('mquest').textContent = `MATTER ${questIdx+1}/${QUESTS.length}: ${q.name} — ${questProgressText()}`;
   document.getElementById('mside').textContent = side;
   document.getElementById('mmsg').textContent = msg.t > 0 ? msg.text : '';
+}
+
+// ---- mobile bag: a full-screen DOM inventory (the canvas one is too small scaled to a phone) ----
+const bagEl  = (tag, cls, text) => { const e=document.createElement(tag); if(cls) e.className=cls; if(text!=null) e.textContent=text; return e; };
+const bagBtn = (cls, text, onclick) => { const b=document.createElement('button'); b.className=cls; b.textContent=text; b.onclick=onclick; return b; };
+let mbagKey = null;
+function updateMobileBag(){
+  const bag = document.getElementById('mbag');
+  if(!(invOpen && player && state==='play')){
+    if(bag.classList.contains('open')){ bag.classList.remove('open'); bag.innerHTML=''; mbagKey=null; }
+    return;
+  }
+  bag.classList.add('open');
+  const key = invTab+'|'+JSON.stringify(player.equip)+'|'+player.inventory.join(',')+'|'+invSel
+            +'|'+questIdx+'|'+questPhase+'|'+JSON.stringify(qstate);
+  if(key === mbagKey) return;            // only rebuild when something actually changed
+  const prevScroll = (bag.querySelector('.blist')||{}).scrollTop || 0;
+  mbagKey = key;
+  bag.innerHTML = '';
+
+  const head = bagEl('div','bhead');
+  head.appendChild(bagEl('h3', null, 'CASE FILE'));
+  head.appendChild(bagBtn('btab'+(invTab==='items'?' on':''),  'EFFECTS', ()=>{ invTab='items';  mbagKey=null; }));
+  head.appendChild(bagBtn('btab'+(invTab==='quests'?' on':''), 'MATTERS', ()=>{ invTab='quests'; mbagKey=null; }));
+  head.appendChild(bagBtn('bclose', 'CLOSE', ()=> toggleInventory()));
+  bag.appendChild(head);
+
+  if(invTab==='quests'){ bagBuildQuests(bag); return; }
+
+  const ws=weaponStats();
+  const dmgX=(ws.dmg/player.cls.dmg)*dmgMult(), rateX=player.cls.cd/ws.cd, arm=Math.round(equipDefense()*100);
+  bag.appendChild(bagEl('div','bstats',
+    `FIRE ×${dmgX.toFixed(2)} dmg · ×${rateX.toFixed(2)} rate · ${ws.count} shot${ws.count>1?'s':''}${ws.pierce?' · pierce':''}\nARMOR ${arm}%   ·   MAX HP ${player.maxhp}`));
+
+  const slots = bagEl('div','bslots');
+  [['WEAPON','weapon'],['ACCESSORY','accessory'],['SUIT','suit']].forEach(([lbl,slot])=>{
+    const s=bagEl('div','bslot'); s.appendChild(bagEl('div','lbl',lbl));
+    const id=player.equip[slot];
+    s.appendChild(bagEl('div','val'+(id?'':' empty'), id?ITEMS[id].nm:'— empty —'));
+    slots.appendChild(s);
+  });
+  bag.appendChild(slots);
+
+  const list = bagEl('div','blist');
+  const counts={}; for(const id of player.inventory) counts[id]=(counts[id]||0)+1;
+  const ids=Object.keys(counts);
+  if(!ids.length) list.appendChild(bagEl('div','bempty','Your bag is empty. The firm has taken everything else.'));
+  for(const id of ids){
+    const it=ITEMS[id], equipped=Object.values(player.equip).includes(id);
+    const b=bagEl('button','bitem'+(equipped?' eq':''));
+    const img=document.createElement('img'); img.src=SPR[it.spr].toDataURL(); b.appendChild(img);
+    const col=bagEl('div');
+    col.appendChild(bagEl('div','nm', it.nm+(counts[id]>1?`  ×${counts[id]}`:'')));
+    const tag = it.kind==='suit'?'SUIT':it.kind.toUpperCase();
+    const action = equipped?'EQUIPPED — tap to remove':it.kind==='consumable'?'tap to USE':EQUIP_KINDS.includes(it.kind)?'tap to EQUIP':'';
+    col.appendChild(bagEl('div','meta', tag+'   '+action));
+    col.appendChild(bagEl('div','desc', it.ds));
+    b.appendChild(col);
+    b.onclick = ()=>{
+      if(it.kind==='consumable') useConsumable(id);
+      else if(EQUIP_KINDS.includes(it.kind)) equipItem(id);
+      invSel=id; mbagKey=null;
+    };
+    list.appendChild(b);
+  }
+  bag.appendChild(list);
+  list.scrollTop = prevScroll;
+}
+function bagBuildQuests(bag){
+  const list = bagEl('div','blist');
+  const rows = questLogRows();
+  if(!rows.length) list.appendChild(bagEl('div','bempty','No open matters. Enjoy it while it lasts.'));
+  const tagColor = { MAIN:'#5ec8f0', SIDE:'#9be05e', ACTIVE:'#9be05e', AVAILABLE:'#f0c75e', DONE:'#5a4f73' };
+  for(const q of rows){
+    const row=bagEl('div','bitem');
+    const col=bagEl('div');
+    col.appendChild(bagEl('div','nm', q.name));
+    col.appendChild(bagEl('div','desc', q.line));
+    row.appendChild(col);
+    const tag=bagEl('div','qtag', q.tag); tag.style.color = tagColor[q.tag]||'#9b8fb5';
+    row.appendChild(tag);
+    list.appendChild(row);
+  }
+  bag.appendChild(list);
 }
 
