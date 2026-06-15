@@ -346,6 +346,9 @@ function questLogRows(){
   }
   // 3) special / graph quests (Good Pens, Act III, P. Locke...)
   for(const q of qLogLines()) rows.push(q);
+  // 4) active assignment-board matter
+  if(boardActive) rows.push({ name:'Board: '+matterName(boardActive),
+    line:`${boardActive.prog}/${boardActive.n} handled · pays ${boardActive.bh} hrs`, tag:'BOARD' });
   return rows;
 }
 function drawQuestLog(PX,PY,PW,PH){
@@ -358,7 +361,7 @@ function drawQuestLog(PX,PY,PW,PH){
     ctx.fillText('No open matters. Enjoy it while it lasts.', PX+24, ly);
     return;
   }
-  const tagColor = { MAIN:'#5ec8f0', SIDE:'#9be05e', ACTIVE:'#9be05e', AVAILABLE:'#f0c75e', DONE:'#5a4f73' };
+  const tagColor = { MAIN:'#5ec8f0', SIDE:'#9be05e', BOARD:'#caa84a', ACTIVE:'#9be05e', AVAILABLE:'#f0c75e', DONE:'#5a4f73' };
   for(const q of rows){
     if(ly > PY+PH-30) break;   // don't overflow the panel
     const wl = wrap(q.line, 84).slice(0,2);

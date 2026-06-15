@@ -30,6 +30,7 @@ function saveGame(){
       genderId: player.spr.slice(2), classId: player.cls.id,
       player: { x:player.x, y:player.y, hp:player.hp, maxhp:player.maxhp, xp:player.xp, billables:player.billables },
       inventory: player.inventory, equip: player.equip, qstate,
+      boardActive, boardOffers, boardSeq,
       worldId, questIdx, questPhase, killCount, collectCount, gameTime,
       flags, npcHidden: NPCS.map(n=>!!n.hidden),
       servers, cart, cartSpawnT, orderT, orderActive, orderFired,
@@ -72,6 +73,8 @@ function loadGame(){
     }
     recalcMaxHP();
     qRestore(d.qstate);                 // graph-quest progress (defaults if absent)
+    boardActive = d.boardActive || null; boardSeq = d.boardSeq || 0;   // assignment board
+    boardOffers = (d.boardOffers && d.boardOffers.length) ? d.boardOffers : (refreshBoard(), boardOffers);
     questIdx = d.questIdx; questPhase = d.questPhase;
     killCount = d.killCount|0; collectCount = d.collectCount|0;
     gameTime = d.gameTime || 0;

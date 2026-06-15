@@ -168,3 +168,47 @@ function qLogLines(){
   }
   return out;
 }
+
+// ============================== ASSIGNMENT BOARD ==============================
+// Repeatable "matters" — the billables faucet. Self-contained plain-data system
+// (not QLINE), so it serializes trivially. Offered via the dialogue UI, so it
+// works on desktop and mobile with no extra panel. One active matter at a time;
+// accepting spawns its targets on the floor, killing them closes it for billables.
+const MATTER_TEMPLATES = [
+  { enemy:'paralegal', verb:'Pacify',   noun:'rogue paralegals',        pay:14 },
+  { enemy:'intern',    verb:'Sober up', noun:'over-caffeinated interns', pay:12 },
+  { enemy:'wraith',    verb:'Banish',   noun:'billable-hour wraiths',    pay:16 },
+  { enemy:'golem',     verb:'Shred',    noun:'paperwork golems',         pay:20 },
+  { enemy:'counsel',   verb:'Out-file', noun:'opposing counsel',         pay:26, minQ:3 },
+  { enemy:'assoc',     verb:'Outbill',  noun:'Associates of the Month',  pay:24, minQ:6 },
+];
+let boardOffers = [], boardActive = null, boardSeq = 0;
+const matterName = m => `${m.verb} ${m.n} ${m.noun}`;
+function genOffer(){
+  const pool = MATTER_TEMPLATES.filter(t => !t.minQ || questIdx >= t.minQ);
+  const t = pool[Math.floor(Math.random()*pool.length)];
+  const n = 3 + Math.floor(Math.random()*5);              // 3..7
+  return { id:'m'+(boardSeq++), enemy:t.enemy, verb:t.verb, noun:t.noun, n, bh:n*t.pay, xp:Math.round(n*t.pay*0.4) };
+}
+function refreshBoard(){ boardOffers = [genOffer(), genOffer(), genOffer()]; }
+function acceptMatter(i){
+  const m = boardOffers[i];
+  if(!m || boardActive) return;
+  boardActive = { ...m, prog:0 };
+  for(let k=0;k<m.n;k++){ const p = findOpen(player.x, player.y, 320); spawnEnemy(m.enemy, p.x, p.y); }
+  SFX.quest(); shake = Math.max(shake, 6);
+  announce(`MATTER ACCEPTED: ${matterName(m)}. The work has been dispatched to the floor — defend your billables.`, true, 4.5);
+  boardOffers[i] = genOffer();   // the slot refreshes immediately
+  saveGame();
+}
+function boardKill(type){
+  if(!boardActive || boardActive.enemy !== type) return;
+  boardActive.prog++;
+  if(boardActive.prog >= boardActive.n){
+    gainBillables(boardActive.bh); gainXP(boardActive.xp);
+    SFX.promote();
+    announce(`MATTER CLOSED: ${matterName(boardActive)}. +${boardActive.bh} billable hours, billed and collected.`, true, 5);
+    boardActive = null;
+    saveGame();
+  }
+}

@@ -414,6 +414,17 @@ function talkLenny(){
     startDialog([N('lenny', "I won! Well — YOU won. The deposit comes back in six to eight business eons. I'm staying in the lobby though. It's load-bearing now. I'm load-bearing.")]);
   }
 }
+function talkBoard(){
+  if(boardActive){
+    startDialog([N('memo', `OPEN MATTER: ${matterName(boardActive)} — ${boardActive.prog}/${boardActive.n} handled. The board takes one matter at a time. Close this one first.`)]);
+    return;
+  }
+  const ch = boardOffers.map((m,i) => ({ t:`${matterName(m)}  ·  ${m.bh} hrs`, fx:()=>acceptMatter(i) }));
+  ch.push({ t:"Not right now.", say:"The board waits. It is, after all, cork. It has nothing but time — and so, technically, do you." });
+  startDialog([
+    N('memo', "ASSIGNMENT BOARD — standing matters, billable on completion. The work is eternal; so is the firm. Take one:", ch),
+  ]);
+}
 function talkTo(n){
   // the active matter's giver takes priority while a matter is to be assigned or reported
   if(n.id === questGiver() && (questPhase === 'get' || questPhase === 'turnin')){
@@ -524,6 +535,7 @@ function startGame(genderId, classId){
   NPCS.forEach(n => n.hidden = false);
   questIdx = 0; questPhase = 'get'; killCount=0; collectCount=0;
   gameTime = 0;
+  boardActive = null; boardSeq = 0; refreshBoard();   // assignment-board matters
   giveItem('pinstripe_suit', true); equipItem('pinstripe_suit'); // starter armor — teaches the bag from minute one
   state = 'play';
   startDialog([

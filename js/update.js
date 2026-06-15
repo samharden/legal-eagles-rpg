@@ -127,6 +127,10 @@ function update(dt){
       const v = worlds.office.vendor;
       if(Math.hypot(player.x-(v.tx*TILE+20), player.y-(v.ty*TILE+20)) < 64){ toggleShop(); used = true; }
     }
+    if(!used && worldId==='office' && worlds.office.board){
+      const b = worlds.office.board;
+      if(Math.hypot(player.x-(b.tx*TILE+20), player.y-(b.ty*TILE+20)) < 64){ talkBoard(); used = true; }
+    }
     if(!used && worldId==='office' && worlds.office.printer){
       const pr = worlds.office.printer;
       if(Math.hypot(player.x-(pr.tx*TILE+20), player.y-(pr.ty*TILE+20)) < 64){
@@ -351,6 +355,7 @@ function update(dt){
       const q = QUESTS[questIdx];
       if(questPhase==='active' && e.type===q.goal.enemy) killCount++;
       questEvent('kill', { enemy:e.type });
+      boardKill(e.type);                                       // assignment-board matter progress
       gainXP(e.xp);
       gainBillables(Math.max(1, Math.round(e.xp*0.5)), true); // auto-credit billables on kill
       if(e.proBono) flags.lennyKills++;

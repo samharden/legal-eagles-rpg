@@ -83,6 +83,10 @@ function draw(){
     drawSprite(SPR.server, wd.vendor.tx*TILE+20-cam.x, wd.vendor.ty*TILE+20-cam.y, TILE-2);
     nearLbl(wd.vendor.tx*TILE+20, wd.vendor.ty*TILE+20, '[E] Supply Closet — DCH Provisions');
   }
+  if(worldId==='office' && wd.board){
+    drawSprite(SPR.sign, wd.board.tx*TILE+20-cam.x, wd.board.ty*TILE+20-cam.y, TILE-2);
+    nearLbl(wd.board.tx*TILE+20, wd.board.ty*TILE+20, boardActive ? '[E] Assignment Board (matter open)' : '[E] Assignment Board');
+  }
   if(worldId==='vault' && wd.locke){
     drawSprite(SPR.dolores, wd.locke.tx*TILE+20-cam.x, wd.locke.ty*TILE+20-cam.y, 34, false, 0.4 + Math.sin(gameTime*2)*0.1);
     nearLbl(wd.locke.tx*TILE+20, wd.locke.ty*TILE+20, '[E] the ghost');

@@ -137,7 +137,7 @@ function bagBuildQuests(bag){
   const list = bagEl('div','blist');
   const rows = questLogRows();
   if(!rows.length) list.appendChild(bagEl('div','bempty','No open matters. Enjoy it while it lasts.'));
-  const tagColor = { MAIN:'#5ec8f0', SIDE:'#9be05e', ACTIVE:'#9be05e', AVAILABLE:'#f0c75e', DONE:'#5a4f73' };
+  const tagColor = { MAIN:'#5ec8f0', SIDE:'#9be05e', BOARD:'#caa84a', ACTIVE:'#9be05e', AVAILABLE:'#f0c75e', DONE:'#5a4f73' };
   for(const q of rows){
     const row=bagEl('div','bitem');
     const col=bagEl('div');
