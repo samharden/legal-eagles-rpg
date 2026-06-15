@@ -6,6 +6,7 @@ let mdlgKey = null, mhudKey = '';
 function updateMobilePanel(){
   if(!IS_TOUCH) return;
   updateMobileBag();
+  updateMobileShop();
   // the panel only exists during gameplay — the menu is full-screen on mobile
   const panel = document.getElementById('mpanel');
   const wanted = state !== 'menu' ? 'block' : 'none';
@@ -150,3 +151,45 @@ function bagBuildQuests(bag){
   bag.appendChild(list);
 }
 
+
+// ---- mobile Supply Closet shop (full-screen DOM overlay, shares .movl styling) ----
+let mshopKey = null;
+function updateMobileShop(){
+  const sh = document.getElementById('mshop');
+  if(!(shopOpen && player && state==='play')){
+    if(sh.classList.contains('open')){ sh.classList.remove('open'); sh.innerHTML=''; mshopKey=null; }
+    return;
+  }
+  sh.classList.add('open');
+  const stock = shopStock();
+  const key = stock.join(',')+'|'+player.billables+'|'+player.inventory.join(',');
+  if(key === mshopKey) return;
+  const prev = (sh.querySelector('.blist')||{}).scrollTop || 0;
+  mshopKey = key;
+  sh.innerHTML = '';
+  const head = bagEl('div','bhead');
+  head.appendChild(bagEl('h3', null, 'SUPPLY CLOSET'));
+  const bal = bagEl('div', null, `${fmtBH(player.billables)} hrs`);
+  bal.style.color = '#caa84a'; bal.style.fontWeight = 'bold'; bal.style.fontSize = '15px';
+  head.appendChild(bal);
+  head.appendChild(bagBtn('bclose', 'CLOSE', ()=> toggleShop()));
+  sh.appendChild(head);
+  const list = bagEl('div','blist');
+  for(const id of stock){
+    const it=ITEMS[id], price=ITEM_PRICE[id];
+    const owned=EQUIP_KINDS.includes(it.kind)&&hasItem(id), afford=player.billables>=price;
+    const b=bagEl('button','bitem'); b.style.borderColor=TIER_COLOR[tierOf(id)];
+    const img=document.createElement('img'); img.src=SPR[it.spr].toDataURL(); b.appendChild(img);
+    const col=bagEl('div');
+    col.appendChild(bagEl('div','nm', it.nm));
+    const m=bagEl('div','meta', `${TIER_NAME[tierOf(id)]}   ${owned?'OWNED':afford?'BUY · '+price+' hrs':'NEED '+price+' hrs'}`);
+    m.style.color = owned?'#5a4f73':afford?'#9be05e':'#c98a8a';
+    col.appendChild(m);
+    col.appendChild(bagEl('div','desc', it.ds));
+    b.appendChild(col);
+    if(!owned) b.onclick = ()=>{ buyItem(id); mshopKey=null; };
+    list.appendChild(b);
+  }
+  sh.appendChild(list);
+  list.scrollTop = prev;
+}

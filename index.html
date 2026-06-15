@@ -91,37 +91,37 @@
   }
   #mdlgChoices button:active { border-color:#f0c75e; background:#3a2f55; }
   /* ---- mobile bag overlay: full-screen DOM inventory (native sizing) ---- */
-  #mbag { display:none; }
-  body.touch #mbag.open {
+  .movl { display:none; }
+  body.touch .movl.open {
     display:flex; flex-direction:column; position:fixed; inset:0; z-index:60;
     background:#15111f; color:#e8e0f0; padding:12px; gap:10px; overflow:hidden;
   }
-  #mbag .bhead { display:flex; align-items:center; gap:8px; flex-shrink:0; }
-  #mbag .bhead h3 { color:#f0c75e; font-size:18px; letter-spacing:1px; margin-right:auto; }
-  #mbag .btab, #mbag .bclose {
+  .movl .bhead { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+  .movl .bhead h3 { color:#f0c75e; font-size:18px; letter-spacing:1px; margin-right:auto; }
+  .movl .btab, .movl .bclose {
     font-family:inherit; font-weight:bold; font-size:14px; padding:9px 14px; border-radius:8px;
     border:2px solid #4a3f63; background:#241d36; color:#9b8fb5;
   }
-  #mbag .btab.on { background:#caa84a; color:#1c1730; border-color:#caa84a; }
-  #mbag .bclose { color:#f0c75e; }
-  #mbag .bstats { font-size:13px; color:#caa84a; flex-shrink:0; line-height:1.5; white-space:pre-line; }
-  #mbag .bslots { display:flex; gap:8px; flex-shrink:0; }
-  #mbag .bslot { flex:1; background:#120e1c; border:1px solid #4a3f63; border-radius:8px; padding:8px; min-height:62px; }
-  #mbag .bslot .lbl { font-size:10px; color:#9b8fb5; }
-  #mbag .bslot .val { font-size:13px; color:#e8e0f0; margin-top:4px; }
-  #mbag .bslot .val.empty { color:#5a4f73; font-style:italic; }
-  #mbag .blist { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; display:flex; flex-direction:column; gap:8px; padding-right:2px; }
-  #mbag .bitem {
+  .movl .btab.on { background:#caa84a; color:#1c1730; border-color:#caa84a; }
+  .movl .bclose { color:#f0c75e; }
+  .movl .bstats { font-size:13px; color:#caa84a; flex-shrink:0; line-height:1.5; white-space:pre-line; }
+  .movl .bslots { display:flex; gap:8px; flex-shrink:0; }
+  .movl .bslot { flex:1; background:#120e1c; border:1px solid #4a3f63; border-radius:8px; padding:8px; min-height:62px; }
+  .movl .bslot .lbl { font-size:10px; color:#9b8fb5; }
+  .movl .bslot .val { font-size:13px; color:#e8e0f0; margin-top:4px; }
+  .movl .bslot .val.empty { color:#5a4f73; font-style:italic; }
+  .movl .blist { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; display:flex; flex-direction:column; gap:8px; padding-right:2px; }
+  .movl .bitem {
     display:flex; align-items:center; gap:12px; text-align:left; width:100%;
     font-family:inherit; background:#161122; border:2px solid #2a2340; border-radius:10px; padding:12px;
   }
-  #mbag .bitem.eq { border-color:#9be05e; background:#22203a; }
-  #mbag .bitem img { width:34px; height:34px; image-rendering:pixelated; flex-shrink:0; }
-  #mbag .bitem .nm { color:#e8e0f0; font-weight:bold; font-size:15px; }
-  #mbag .bitem .meta { color:#9b8fb5; font-size:12px; margin-top:2px; }
-  #mbag .bitem .desc { color:#7d7397; font-size:12px; margin-top:5px; line-height:1.4; }
-  #mbag .bempty { color:#5a4f73; font-style:italic; font-size:14px; padding:10px 4px; }
-  #mbag .qtag { margin-left:auto; font-size:11px; font-weight:bold; align-self:flex-start; }
+  .movl .bitem.eq { border-color:#9be05e; background:#22203a; }
+  .movl .bitem img { width:34px; height:34px; image-rendering:pixelated; flex-shrink:0; }
+  .movl .bitem .nm { color:#e8e0f0; font-weight:bold; font-size:15px; }
+  .movl .bitem .meta { color:#9b8fb5; font-size:12px; margin-top:2px; }
+  .movl .bitem .desc { color:#7d7397; font-size:12px; margin-top:5px; line-height:1.4; }
+  .movl .bempty { color:#5a4f73; font-style:italic; font-size:14px; padding:10px 4px; }
+  .movl .qtag { margin-left:auto; font-size:11px; font-weight:bold; align-self:flex-start; }
   /* ---- character creation overlay ---- */
   #menu {
     position:absolute; inset:0; background:rgba(13,10,20,.96); border-radius:6px; z-index:10;
@@ -197,30 +197,31 @@
     <div id="mdlgChoices"></div>
   </div>
 </div>
-<div id="mbag"></div>
+<div id="mbag" class="movl"></div>
+<div id="mshop" class="movl"></div>
 <div id="ui">
   <span>WASD / Arrows — move &nbsp;•&nbsp; Space/J — strike &nbsp;•&nbsp; K — fire &nbsp;•&nbsp; L — spin &nbsp;•&nbsp; E — talk / use &nbsp;•&nbsp; I — bag &nbsp;•&nbsp; M — mute</span>
   <span>Coffee machine restores Billable Energy</span>
 </div>
 
-<script src="js/config.js?v=14"></script>
-<script src="js/sprites.js?v=14"></script>
-<script src="js/audio.js?v=14"></script>
-<script src="js/data.js?v=14"></script>
-<script src="js/items.js?v=14"></script>
-<script src="js/worlds.js?v=14"></script>
-<script src="js/state.js?v=14"></script>
-<script src="js/dialogue.js?v=14"></script>
-<script src="js/story.js?v=14"></script>
-<script src="js/save.js?v=14"></script>
-<script src="js/quests.js?v=14"></script>
-<script src="js/questgraph.js?v=14"></script>
-<script src="js/entities.js?v=14"></script>
-<script src="js/update.js?v=14"></script>
-<script src="js/render.js?v=14"></script>
-<script src="js/mobile.js?v=14"></script>
-<script src="js/loop.js?v=14"></script>
-<script src="js/touch.js?v=14"></script>
-<script src="js/menu.js?v=14"></script>
+<script src="js/config.js?v=15"></script>
+<script src="js/sprites.js?v=15"></script>
+<script src="js/audio.js?v=15"></script>
+<script src="js/data.js?v=15"></script>
+<script src="js/items.js?v=15"></script>
+<script src="js/worlds.js?v=15"></script>
+<script src="js/state.js?v=15"></script>
+<script src="js/dialogue.js?v=15"></script>
+<script src="js/story.js?v=15"></script>
+<script src="js/save.js?v=15"></script>
+<script src="js/quests.js?v=15"></script>
+<script src="js/questgraph.js?v=15"></script>
+<script src="js/entities.js?v=15"></script>
+<script src="js/update.js?v=15"></script>
+<script src="js/render.js?v=15"></script>
+<script src="js/mobile.js?v=15"></script>
+<script src="js/loop.js?v=15"></script>
+<script src="js/touch.js?v=15"></script>
+<script src="js/menu.js?v=15"></script>
 </body>
 </html>
