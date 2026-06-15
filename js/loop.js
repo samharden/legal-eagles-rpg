@@ -4,7 +4,11 @@ let last = performance.now();
 function step(now){
   const dt = Math.min(0.05, (now-last)/1000); last = now;
   musicTick();
-  if(state==='play'){ if(invOpen){ draw(); if(!IS_TOUCH) drawInventory(); } else { update(dt); draw(); } }
+  if(state==='play'){
+    if(invOpen){ draw(); if(!IS_TOUCH) drawInventory(); }
+    else if(shopOpen){ draw(); if(!IS_TOUCH) drawShop(); }
+    else { update(dt); draw(); }
+  }
   else if(state==='dialog'){ draw(); if(!IS_TOUCH) drawDialog(); }
   else if(state==='gameover'||state==='victory'){ draw(); drawEnd(); }
   updateMobilePanel();
@@ -25,6 +29,12 @@ window.addEventListener('keydown', e=>{
     if(k==='escape' || k==='i') toggleInventory();
     else if(k==='arrowdown' || k==='s') invScroll += 48;
     else if(k==='arrowup'   || k==='w') invScroll -= 48;
+    return;
+  }
+  if(shopOpen){ // vending machine open: swallow gameplay keys; allow scroll + close
+    if(k==='escape' || k==='e') toggleShop();
+    else if(k==='arrowdown' || k==='s') shopScroll += 48;
+    else if(k==='arrowup'   || k==='w') shopScroll -= 48;
     return;
   }
   if(state==='dialog' && dlg){
@@ -52,13 +62,14 @@ cv.addEventListener('mousemove', e=>{
 cv.addEventListener('mousedown', ()=>mouse.down=true);
 window.addEventListener('mouseup', ()=>mouse.down=false);
 cv.addEventListener('click', e=>{
-  if(!invOpen) return;
+  if(!invOpen && !shopOpen) return;
   const r=cv.getBoundingClientRect();
-  inventoryClick((e.clientX-r.left)*(W/r.width), (e.clientY-r.top)*(CH/r.height));
+  const x=(e.clientX-r.left)*(W/r.width), y=(e.clientY-r.top)*(CH/r.height);
+  if(invOpen) inventoryClick(x, y); else shopClick(x, y);
 });
 cv.addEventListener('wheel', e=>{
-  if(!invOpen) return;
+  if(!invOpen && !shopOpen) return;
   e.preventDefault();
-  invScroll += e.deltaY;   // clamped against content height inside drawInventory
+  if(invOpen) invScroll += e.deltaY; else shopScroll += e.deltaY;
 }, { passive:false });
 

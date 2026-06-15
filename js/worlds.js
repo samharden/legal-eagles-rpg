@@ -53,7 +53,7 @@ function buildOffice(){
       { x:40*TILE+20, y:23*TILE+20, spr:'key', kind:'item', item:'red_pen', t:0.4 }, // break-room: an early weapon
     ],
     crates:[ {tx:13,ty:22,ox:13,oy:22}, {tx:28,ty:12,ox:28,oy:12} ],
-    plates:[], gates:{}, levers:[], signs:[], recall:null, printer:{tx:35, ty:12},
+    plates:[], gates:{}, levers:[], signs:[], recall:null, printer:{tx:35, ty:12}, vendor:{tx:38, ty:13},
     portraits:[
       { tx:2,  ty:1, seen:false, text:"EZEKIEL DEWEY (1908–1929). Founded the firm with a handshake. Died of a different handshake." },
       { tx:3,  ty:1, seen:false, text:"MORTIMER CHEATHAM (1929–1941). Pioneered the billable hour. Then billed for pioneering it." },

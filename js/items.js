@@ -102,7 +102,42 @@ const ITEMS = {
   },
 };
 
+// ---- rarity tiers (1 Standard .. 4 Landmark) + shop prices ----
+// Kept as side tables so items don't each need editing. Items with a price are
+// stocked by the Supply Closet vending machine; the marquee uniques stay quest-only.
+const ITEM_TIER = {
+  pinstripe_suit:1, mail_vest:1, brass_key:1, valet_key:1, cold_brew:1,
+  bespoke_suit:2, red_pen:2, precedent_binder:2, espresso_rig:2,
+  bates_stamper:2, monogrammed_cufflinks:2, pro_bono_plaque:2,
+  good_pens:3, letter_opener:3, kevlar_suit:3, server_capacitor:3,
+  founders_signet:4, printer_companion:4,
+};
+const ITEM_PRICE = {
+  cold_brew:40, pinstripe_suit:60, precedent_binder:160, red_pen:180,
+  bespoke_suit:220, espresso_rig:260, kevlar_suit:520,
+};
+const TIER_COLOR = { 1:'#9b8fb5', 2:'#9be05e', 3:'#5ec8f0', 4:'#caa84a' };
+const TIER_NAME  = { 1:'STANDARD', 2:'PREMIUM', 3:'PARTNER-TRACK', 4:'LANDMARK' };
+const tierOf = id => ITEM_TIER[id] || 1;
+// what the vending machine sells right now (tier-3+ stock unlocks in Act II)
+function shopStock(){
+  return Object.keys(ITEM_PRICE).filter(id => tierOf(id) < 3 || questIdx >= 6);
+}
+function canBuy(id){
+  const it=ITEMS[id]; if(!it || !ITEM_PRICE[id]) return false;
+  if(EQUIP_KINDS.includes(it.kind) && hasItem(id)) return false; // already own this equippable
+  return player.billables >= ITEM_PRICE[id];
+}
+function buyItem(id){
+  if(!canBuy(id)) { SFX.buzz(); return; }
+  player.billables -= ITEM_PRICE[id];
+  giveItem(id, true);
+  SFX.coffee();
+  floaters.push({ x:player.x, y:player.y-22, text:'PURCHASED: '+ITEMS[id].nm.toUpperCase(), t:1.5, color:'#caa84a' });
+}
+
 // ---- inventory state ----
+let shopOpen = false, shopRects = [], shopScroll = 0;
 let invOpen = false, invSel = null, invRects = [], invTab = 'items', invScroll = 0;
 
 function giveItem(id, quiet){
@@ -267,7 +302,7 @@ function drawInventory(){
     const equipped=Object.values(player.equip).includes(id);
     ctx.fillStyle = equipped ? '#2a2340' : '#161122';
     ctx.fillRect(rx,ry,rw,rh);
-    if(equipped){ ctx.strokeStyle='#9be05e'; ctx.lineWidth=1; ctx.strokeRect(rx,ry,rw,rh); }
+    ctx.strokeStyle = equipped ? '#9be05e' : TIER_COLOR[tierOf(id)]; ctx.lineWidth=1; ctx.strokeRect(rx,ry,rw,rh);
     drawSprite(SPR[it.spr], rx+24, ry+rh/2, 28);
     ctx.fillStyle='#e8e0f0'; ctx.font='bold 12px monospace';
     ctx.fillText(it.nm + (counts[id]>1?`  x${counts[id]}`:'') , rx+48, ry+16);
@@ -337,5 +372,71 @@ function drawQuestLog(PX,PY,PW,PH){
     ctx.fillStyle = q.tag==='DONE' ? '#4a4060' : '#9b8fb5'; ctx.font='10px monospace';
     wl.forEach((l,i)=>ctx.fillText(l, PX+36, ly+32+i*12));
     ly += rh + 6;
+  }
+}
+
+// ---- Supply Closet shop (vending machine): canvas panel on desktop ----
+function toggleShop(){
+  if(state!=='play') return;
+  shopOpen = !shopOpen;
+  if(shopOpen){ for(const k in keys) keys[k]=false; shopScroll=0; }
+  SFX.blip();
+}
+function shopClick(x, y){
+  for(const r of shopRects){
+    if(x>=r.x && x<=r.x+r.w && y>=r.y && y<=r.y+r.h){
+      if(r.act==='close'){ toggleShop(); return; }
+      if(r.id){ buyItem(r.id); return; }
+    }
+  }
+}
+function drawShop(){
+  shopRects = [];
+  const PX=140, PY=70, PW=W-280, PH=H-140;
+  ctx.fillStyle='rgba(13,10,20,0.92)'; ctx.fillRect(0,0,W,CH);
+  ctx.fillStyle='#1c1730'; ctx.fillRect(PX,PY,PW,PH);
+  ctx.strokeStyle='#caa84a'; ctx.lineWidth=2; ctx.strokeRect(PX,PY,PW,PH);
+  ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  ctx.font='bold 18px monospace'; ctx.fillStyle='#f0c75e';
+  ctx.fillText('SUPPLY CLOSET — DCH PROVISIONS', PX+24, PY+34);
+  ctx.font='12px monospace'; ctx.fillStyle='#9b8fb5';
+  ctx.fillText('Exact billables only. No refunds. Management is the building.', PX+24, PY+52);
+  ctx.font='bold 13px monospace'; ctx.fillStyle='#caa84a'; ctx.textAlign='right';
+  ctx.fillText(`HOURS BILLED: ${fmtBH(player.billables)}`, PX+PW-110, PY+34); ctx.textAlign='left';
+  // close
+  const cb={x:PX+PW-90,y:PY+44,w:70,h:24,act:'close'};
+  ctx.fillStyle='#3a2440'; ctx.fillRect(cb.x,cb.y,cb.w,cb.h);
+  ctx.strokeStyle='#caa84a'; ctx.lineWidth=1; ctx.strokeRect(cb.x,cb.y,cb.w,cb.h);
+  ctx.fillStyle='#f0c75e'; ctx.font='bold 11px monospace'; ctx.textAlign='center';
+  ctx.fillText('CLOSE', cb.x+cb.w/2, cb.y+16); ctx.textAlign='left';
+  shopRects.push(cb);
+  // stock list (clipped + scrollable)
+  const stock=shopStock(), rx=PX+24, rw=PW-48, rh=48, rowH=rh+8;
+  const vy0=PY+78, vy1=PY+PH-14, vh=vy1-vy0, contentH=stock.length*rowH;
+  shopScroll=Math.max(0,Math.min(shopScroll,contentH-vh));
+  ctx.save(); ctx.beginPath(); ctx.rect(rx,vy0,rw,vh); ctx.clip();
+  for(let i=0;i<stock.length;i++){
+    const id=stock[i], it=ITEMS[id], price=ITEM_PRICE[id], ry=vy0+i*rowH-shopScroll;
+    if(ry+rh<vy0 || ry>vy1) continue;
+    const owned=EQUIP_KINDS.includes(it.kind)&&hasItem(id), afford=player.billables>=price;
+    ctx.fillStyle='#161122'; ctx.fillRect(rx,ry,rw,rh);
+    ctx.strokeStyle=TIER_COLOR[tierOf(id)]; ctx.lineWidth=1; ctx.strokeRect(rx,ry,rw,rh);
+    drawSprite(SPR[it.spr], rx+26, ry+rh/2, 30);
+    ctx.fillStyle='#e8e0f0'; ctx.font='bold 13px monospace'; ctx.fillText(it.nm, rx+50, ry+17);
+    ctx.fillStyle=TIER_COLOR[tierOf(id)]; ctx.font='9px monospace'; ctx.fillText(TIER_NAME[tierOf(id)], rx+50, ry+30);
+    ctx.fillStyle='#9b8fb5'; ctx.font='10px monospace'; ctx.fillText(wrap(it.ds,64)[0], rx+50, ry+43);
+    const bw2=126, bx2=rx+rw-bw2-12, by2=ry+rh/2-15;
+    const label=owned?'OWNED':`BUY · ${price} hrs`;
+    ctx.fillStyle=owned?'#241f33':(afford?'#244a24':'#3a2430'); ctx.fillRect(bx2,by2,bw2,30);
+    ctx.strokeStyle=owned?'#5a4f73':(afford?'#9be05e':'#7a5a5a'); ctx.lineWidth=2; ctx.strokeRect(bx2,by2,bw2,30);
+    ctx.fillStyle=owned?'#5a4f73':(afford?'#9be05e':'#c98a8a'); ctx.font='bold 11px monospace'; ctx.textAlign='center';
+    ctx.fillText(label, bx2+bw2/2, by2+19); ctx.textAlign='left';
+    if(!owned) shopRects.push({x:bx2,y:by2,w:bw2,h:30,id});
+  }
+  ctx.restore();
+  if(contentH>vh){
+    const thumbH=Math.max(24,vh*vh/contentH), thumbY=vy0+(shopScroll/(contentH-vh))*(vh-thumbH);
+    ctx.fillStyle='#2a2340'; ctx.fillRect(rx+rw-5,vy0,4,vh);
+    ctx.fillStyle='#caa84a'; ctx.fillRect(rx+rw-5,thumbY,4,thumbH);
   }
 }

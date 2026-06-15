@@ -123,6 +123,10 @@ function update(dt){
         used = true; break;
       }
     }
+    if(!used && worldId==='office' && worlds.office.vendor){
+      const v = worlds.office.vendor;
+      if(Math.hypot(player.x-(v.tx*TILE+20), player.y-(v.ty*TILE+20)) < 64){ toggleShop(); used = true; }
+    }
     if(!used && worldId==='office' && worlds.office.printer){
       const pr = worlds.office.printer;
       if(Math.hypot(player.x-(pr.tx*TILE+20), player.y-(pr.ty*TILE+20)) < 64){
