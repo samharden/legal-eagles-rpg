@@ -52,7 +52,8 @@ function updateMobilePanel(){
   document.getElementById('mxpfill').style.width =
     (cur.lvl < RANKS.length ? Math.min(100, (player.xp-cur.xp)/(next.xp-cur.xp)*100) : 100) + '%';
   document.getElementById('mxplabel').textContent =
-    cur.lvl < RANKS.length ? `XP ${player.xp} / ${next.xp} → ${next.title.toUpperCase()}` : 'MAXIMUM PRESTIGE';
+    (cur.lvl < RANKS.length ? `XP ${player.xp} / ${next.xp} → ${next.title.toUpperCase()}` : 'MAXIMUM PRESTIGE')
+    + `   ·   ${fmtBH(player.billables)} hrs`;
   const q = QUESTS[questIdx];
   const side = sideQuestLines().join('   ');
   const hudKey = [player.rank.title, worldId, q.name, questProgressText(), side, msg.t>0 ? msg.text : ''].join('|');

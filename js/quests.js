@@ -74,3 +74,12 @@ function gainXP(n){
 }
 const dmgMult = () => (1 + (player.rank.lvl-1)*0.10) * gearMul('dmgMul');
 
+// Billable Hours — the firm's currency (distinct from XP/rank). Quiet on kills
+// (the HUD counter updates); a floater on quest/board payouts.
+function gainBillables(n, quiet){
+  if(!player || n<=0) return;
+  player.billables += n;
+  if(!quiet) floaters.push({ x:player.x, y:player.y-12, text:`+${n} hrs billed`, t:1.2, color:'#caa84a' });
+}
+const fmtBH = n => (n||0).toLocaleString('en-US');
+

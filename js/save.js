@@ -28,7 +28,7 @@ function saveGame(){
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       v: 2,
       genderId: player.spr.slice(2), classId: player.cls.id,
-      player: { x:player.x, y:player.y, hp:player.hp, maxhp:player.maxhp, xp:player.xp },
+      player: { x:player.x, y:player.y, hp:player.hp, maxhp:player.maxhp, xp:player.xp, billables:player.billables },
       inventory: player.inventory, equip: player.equip, qstate,
       worldId, questIdx, questPhase, killCount, collectCount, gameTime,
       flags, npcHidden: NPCS.map(n=>!!n.hidden),

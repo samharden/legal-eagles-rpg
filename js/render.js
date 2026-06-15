@@ -275,6 +275,8 @@ function drawHUD(){
   ctx.fillText(`FIRE (${player.cls.atk}) — K`, 300, y0+38);
   ctx.fillStyle = player.spinCd<=0 ? '#9be05e' : '#9b8fb5';
   ctx.fillText(player.spinCd<=0 ? 'SPIN — L  (READY)' : `SPIN — L  (${Math.max(0,player.spinCd).toFixed(1)}s)`, 300, y0+54);
+  ctx.font='bold 12px monospace'; ctx.fillStyle='#caa84a';
+  ctx.fillText(`HOURS BILLED: ${fmtBH(player.billables)}`, 300, y0+78);
 
   // --- right: current matter + side quests ---
   const q = QUESTS[questIdx];

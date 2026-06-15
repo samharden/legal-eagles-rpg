@@ -348,6 +348,7 @@ function update(dt){
       if(questPhase==='active' && e.type===q.goal.enemy) killCount++;
       questEvent('kill', { enemy:e.type });
       gainXP(e.xp);
+      gainBillables(Math.max(1, Math.round(e.xp*0.5)), true); // auto-credit billables on kill
       if(e.proBono) flags.lennyKills++;
       if(e.boss) SFX.boom(); else SFX.die();
       if(e.type==='grandfather'){

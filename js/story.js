@@ -135,6 +135,7 @@ function questOutroScene(){
   const i = questIdx, g = QD[i].giver || 'hargrove';
   startDialog(QD[i].outro.map(t => N(g, t)), () => {
     gainXP(QUESTS[i].xp);
+    gainBillables(QUESTS[i].xp);   // matters pay billables ~ their XP
     if(i === 8){ act3Begin(); return; }   // Bane is beaten — the verdict unseals the founding agreement
     questIdx++; questPhase = 'get';
     saveGame();
@@ -503,6 +504,7 @@ function startGame(genderId, classId){
     cd: 0, hurtT: 0, coffeeCd: 0,
     face: {x:0, y:1}, meleeCd: 0, spinCd: 0, swingT: 0, spinT: 0,
     inventory: [], equip: { weapon:null, accessory:null, suit:null },
+    billables: 0,
   };
   invOpen = false; invSel = null;
   qInit();
