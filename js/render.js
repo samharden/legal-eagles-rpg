@@ -171,6 +171,15 @@ function draw(){
       ctx.strokeStyle='rgba(94,200,240,0.7)'; ctx.lineWidth=2;
       ctx.beginPath(); ctx.arc(ex, ey, e.r+6, 0, 7); ctx.stroke();
     }
+    else if(e.windT>0){ // winding up to fire — dashed aim line + filling arc you can read & dodge
+      const a=e.aimA, prog=1-e.windT/e.windMax;
+      ctx.save();
+      ctx.strokeStyle='rgba(255,85,119,'+(0.22+0.5*prog)+')'; ctx.lineWidth=2; ctx.setLineDash([6,5]);
+      ctx.beginPath(); ctx.moveTo(ex,ey); ctx.lineTo(ex+Math.cos(a)*130, ey+Math.sin(a)*130); ctx.stroke();
+      ctx.setLineDash([]); ctx.strokeStyle='#ff5577'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.arc(ex, ey, e.r+9, a-0.6, a-0.6+prog*1.2); ctx.stroke();
+      ctx.restore();
+    }
   }
 
   // allies

@@ -303,7 +303,24 @@ function update(dt){
     if(e.slowT>0) want *= 0.45; // Bates-stamped: slowed under the weight of process
     let spd = e.spd;
     if(e.rage && !player.moving) spd *= 1.85; // Decaf Gremlin pounces on the stationary
-    if(d > 30 && !stunned) moveEntity(e, Math.cos(ang)*spd*want, Math.sin(ang)*spd*want, dt);
+    const winding = e.windT>0;                 // mid-telegraph: plant and commit to the shot
+    if(winding) spd *= 0.22;                    // rooted while winding up — that's the tell you read
+    // movement vector: strafers orbit at a preferred ring; everyone else beelines (±want)
+    let mvx, mvy;
+    if(e.strafe && !winding){
+      if(e.sdir===undefined) e.sdir = Math.random()<0.5?1:-1;
+      const ring = e.ring||200;
+      const radial = d>ring+25 ? 1 : (d<ring-25 ? -0.9 : 0); // close to / back off from the ring
+      mvx = Math.cos(ang)*radial + Math.cos(ang+Math.PI/2)*e.sdir*0.95; // + tangent = orbit
+      mvy = Math.sin(ang)*radial + Math.sin(ang+Math.PI/2)*e.sdir*0.95;
+    } else {
+      mvx = Math.cos(ang)*want; mvy = Math.sin(ang)*want;
+    }
+    if(d > 30 && !stunned){
+      const bx=e.x, by=e.y;
+      moveEntity(e, mvx*spd, mvy*spd, dt);
+      if(e.strafe && e.x===bx && e.y===by) e.sdir = -e.sdir; // bumped a wall — reverse the orbit
+    }
     // contact damage — range matches the drawn sprites (34px, bosses 64px), not the
     // smaller hitbox radii, so an enemy visibly touching the target always damages it.
     // Must also exceed the 30px approach standoff above, where melee enemies park.
@@ -331,17 +348,26 @@ function update(dt){
         shake = Math.max(shake, 8); hitStop = Math.max(hitStop, 0.05); SFX.boom();
       }
     }
-    // shooting (always aims at the player; carts don't bleed)
+    // shooting — telegraphed: lock aim, wind up (drawn in render), THEN fire along the
+    // committed angle. Sidestep the tell and the shot whiffs. Aim freezes at windup start.
     if(e.shoots && !stunned){
-      e.shotT -= dt;
       const dp = Math.hypot(player.x-e.x, player.y-e.y);
-      if(e.shotT<=0 && dp<480){
-        e.shotT = e.shotCd;
-        const ap = Math.atan2(player.y-e.y, player.x-e.x);
-        const n = e.boss ? 3 : 1;
-        for(let i=0;i<n;i++){
-          const a = ap + (i-(n-1)/2)*0.22;
-          enemyShots.push({ x:e.x, y:e.y, vx:Math.cos(a)*260, vy:Math.sin(a)*260, dmg:e.dmg, r:6, life:2.5 });
+      if(e.windT>0){
+        e.windT -= dt;
+        if(e.windT<=0){
+          const n = e.boss ? 3 : 1;
+          for(let i=0;i<n;i++){
+            const a = e.aimA + (i-(n-1)/2)*0.22;   // along the telegraphed angle, not live aim
+            enemyShots.push({ x:e.x, y:e.y, vx:Math.cos(a)*260, vy:Math.sin(a)*260, dmg:e.dmg, r:6, life:2.5 });
+          }
+          SFX.shoot();
+        }
+      } else {
+        e.shotT -= dt;
+        if(e.shotT<=0 && dp<480){
+          e.shotT = e.shotCd;
+          e.aimA = Math.atan2(player.y-e.y, player.x-e.x);                  // commit aim now…
+          e.windT = e.windMax = (e.windup!==undefined ? e.windup : (e.boss?0.55:0.4)); // …and telegraph it
         }
       }
     }
