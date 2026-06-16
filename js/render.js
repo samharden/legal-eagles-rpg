@@ -1,5 +1,12 @@
 "use strict";
 // ============================== RENDER ==============================
+let helpOpen = false, helpRects = [];
+function toggleHelp(){
+  if(state!=='play') return;
+  helpOpen = !helpOpen;
+  if(helpOpen){ for(const k in keys) keys[k]=false; }
+  SFX.blip();
+}
 function draw(){
   ctx.save();
   if(shake>0) ctx.translate((Math.random()*2-1)*shake*0.6, (Math.random()*2-1)*shake*0.6);
@@ -160,6 +167,10 @@ function draw(){
       ctx.font='11px monospace'; ctx.fillStyle='#ff9bb0';
       ctx.fillText(e.nm, ex, ey-e.r-20);
     }
+    if(e.stunT>0){ // stunned by a spin — cyan ring + drifting marks
+      ctx.strokeStyle='rgba(94,200,240,0.7)'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(ex, ey, e.r+6, 0, 7); ctx.stroke();
+    }
   }
 
   // allies
@@ -187,6 +198,10 @@ function draw(){
   if(player.spinT > 0){
     ctx.strokeStyle = `rgba(240,199,94,${Math.min(1,player.spinT*2.5)})`; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(px, py, 30 + 60*(1-(player.spinT/0.35)), 0, 7); ctx.stroke();
+  }
+  if(player.shieldT > 0){ // Retainer bubble
+    ctx.strokeStyle = `rgba(94,200,240,${0.45+0.3*Math.sin(gameTime*9)})`; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(px, py, 26, 0, 7); ctx.stroke();
   }
 
   // floaters
@@ -238,6 +253,57 @@ function draw(){
   ctx.restore();
 }
 
+// ---- Field Manual: controls + combat tips (desktop overlay, pauses like the bag) ----
+function helpClick(x, y){
+  for(const r of helpRects) if(x>=r.x && x<=r.x+r.w && y>=r.y && y<=r.y+r.h && r.act==='close'){ toggleHelp(); return; }
+}
+function drawHelp(){
+  helpRects = [];
+  const PX=140, PY=50, PW=W-280, PH=H-90;
+  ctx.fillStyle='rgba(13,10,20,0.94)'; ctx.fillRect(0,0,W,CH);
+  ctx.fillStyle='#1c1730'; ctx.fillRect(PX,PY,PW,PH);
+  ctx.strokeStyle='#caa84a'; ctx.lineWidth=2; ctx.strokeRect(PX,PY,PW,PH);
+  ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  ctx.font='bold 18px monospace'; ctx.fillStyle='#f0c75e';
+  ctx.fillText('FIELD MANUAL — DCH NEW-HIRE ORIENTATION', PX+24, PY+32);
+  // close
+  const cb={x:PX+PW-90,y:PY+14,w:70,h:26,act:'close'};
+  ctx.fillStyle='#3a2440'; ctx.fillRect(cb.x,cb.y,cb.w,cb.h);
+  ctx.strokeStyle='#caa84a'; ctx.lineWidth=1; ctx.strokeRect(cb.x,cb.y,cb.w,cb.h);
+  ctx.fillStyle='#f0c75e'; ctx.font='bold 12px monospace'; ctx.textAlign='center';
+  ctx.fillText('CLOSE', cb.x+cb.w/2, cb.y+18); ctx.textAlign='left'; helpRects.push(cb);
+
+  let y = PY+62;
+  const head = (t)=>{ ctx.font='bold 13px monospace'; ctx.fillStyle='#caa84a'; ctx.fillText(t, PX+24, y); y+=20; };
+  const row  = (k,t)=>{ ctx.font='bold 12px monospace'; ctx.fillStyle='#5ec8f0'; ctx.fillText(k, PX+34, y);
+                        ctx.font='12px monospace'; ctx.fillStyle='#e8e0f0'; ctx.fillText(t, PX+170, y); y+=18; };
+  const tip  = (t,c)=>{ ctx.font='12px monospace'; ctx.fillStyle=c||'#9be05e';
+                        wrap(t, 80).forEach((l,i)=>{ ctx.fillText((i?'   ':'• ')+l, PX+34, y); y+=16; }); };
+
+  head('CONTROLS');
+  row('WASD / Arrows','Move');
+  row('Space / J','STRIKE — briefcase melee (no cooldown to speak of)');
+  row('K / Click','FIRE — your practice-area attack');
+  row('L','SPIN — Motion to Strike (clears bullets, STUNS the room)');
+  row('E','Talk / interact / use stations (Supply Closet, Board)');
+  row('I','Bag — equip gear, read your open matters');
+  row('M  ·  H','Mute  ·  this manual');
+  y += 6;
+  head('EMERGENCY FILINGS  (buy at the Supply Closet, use anytime)');
+  row('1','Emergency Cold Brew — restore Billable Energy');
+  row('2','Pre-Filed Continuance — freeze the room for 3s');
+  row('3','Emergency Retainer — 5s of total immunity');
+  y += 6;
+  head('KNOW YOUR OPPOSITION');
+  tip('Paperwork Golems are DENSE — gunfire barely scratches them. STRIKE or SPIN to break them down.', '#9b8fb5');
+  tip('Billable-Hour Wraiths DODGE incoming fire. Pin them with melee or catch them in a SPIN.', '#9b8fb5');
+  tip('Decaf Gremlins POUNCE when you stand still and steal your caffeine. Keep moving.', '#9b8fb5');
+  tip('Surrounded? SPIN stuns every non-boss in reach — buy yourself a beat, then clean up.', '#9be05e');
+  y += 10;
+  ctx.font='italic 11px monospace'; ctx.fillStyle='#9b8fb5';
+  ctx.fillText('Press H or ESC to return to work. The work is eternal; so is the firm.', PX+24, PY+PH-18);
+}
+
 function wrap(text, n){
   const words=text.split(' '), lines=[]; let cur='';
   for(const w of words){
@@ -285,6 +351,12 @@ function drawHUD(){
   ctx.fillText(player.spinCd<=0 ? 'SPIN — L  (READY)' : `SPIN — L  (${Math.max(0,player.spinCd).toFixed(1)}s)`, 300, y0+54);
   ctx.font='bold 12px monospace'; ctx.fillStyle='#caa84a';
   ctx.fillText(`HOURS BILLED: ${fmtBH(player.billables)}`, 300, y0+78);
+  // emergency filings (quick-use 1/2/3) + manual hint
+  const cc = id => countItem(id);
+  ctx.font='10px monospace'; ctx.fillStyle='#9b8fb5';
+  ctx.fillText(`1 BREW x${cc('cold_brew')}  ·  2 WRIT x${cc('objection_writ')}  ·  3 RETAINER x${cc('retainer')}`, 300, y0+94);
+  ctx.fillStyle = player.shieldT>0 ? '#5ec8f0' : '#5a4f73';
+  ctx.fillText(player.shieldT>0 ? `RETAINER: ${player.shieldT.toFixed(1)}s — IMMUNE` : 'H — FIELD MANUAL', 300, y0+108);
 
   // --- right: current matter + side quests ---
   const q = QUESTS[questIdx];
@@ -314,6 +386,33 @@ function sideQuestLines(){
   if(flags.eleven && !flags.baneWeak && questIdx>=6) s.push('* Ask Dolores about the eleven');
   if(questIdx===8 && questPhase==='active' && !flags.baneSpawned) s.push(`* Jury won: ${flags.jury}/12`);
   return s;
+}
+
+// end-of-run scorecard — gives a reason to come back and beat your own numbers
+function drawSummaryCard(){
+  const mm = Math.floor(gameTime/60), ss = Math.floor(gameTime%60);
+  const graphDone = QLINE.filter(q=>qstate[q.id] && qstate[q.id].status==='done').length;
+  const matters = (questIdx||0) + graphDone + (flags.boardClosed||0);
+  const rows = [
+    ['TIME ON THE CLOCK', `${mm}:${ss.toString().padStart(2,'0')}`],
+    ['FINAL RANK',        `${player.rank.title} (Lv ${player.rank.lvl})`],
+    ['HOURS BILLED',      fmtBH(flags.totalBilled||0)],
+    ['MATTERS CLOSED',    `${matters}`],
+    ['ENEMIES SANCTIONED',`${flags.totalKills||0}`],
+    ['1987 FILES RECOVERED', `${flags.lore||0}/7`],
+  ];
+  const CW = 460, CHc = 40 + rows.length*22, cx = W/2 - CW/2, cy = CH - CHc - 96;
+  ctx.fillStyle='rgba(28,23,48,0.92)'; ctx.fillRect(cx, cy, CW, CHc);
+  ctx.strokeStyle='#caa84a'; ctx.lineWidth=2; ctx.strokeRect(cx, cy, CW, CHc);
+  ctx.textAlign='center'; ctx.font='bold 13px monospace'; ctx.fillStyle='#f0c75e';
+  ctx.fillText('— PERFORMANCE REVIEW —', W/2, cy+24);
+  ctx.font='12px monospace';
+  rows.forEach(([k,v],i)=>{
+    const ry = cy+44+i*22;
+    ctx.textAlign='left';  ctx.fillStyle='#9b8fb5'; ctx.fillText(k, cx+24, ry);
+    ctx.textAlign='right'; ctx.fillStyle='#e8e0f0'; ctx.fillText(v, cx+CW-24, ry);
+  });
+  ctx.textAlign='center';
 }
 
 function drawEnd(){
@@ -411,7 +510,8 @@ function drawEnd(){
     ctx.fillText('HR will frame it as "pursuing other opportunities."', W/2, 288);
     ctx.fillText(`You reached ${player.rank.title} with ${player.xp} XP.`, W/2, 330);
   }
+  drawSummaryCard();
   ctx.font='bold 16px monospace'; ctx.fillStyle='#f0c75e';
-  ctx.fillText('Press R to file an appeal (restart)', W/2, CH-110);
+  ctx.fillText('Press R to file an appeal (restart)', W/2, CH-40);
 }
 

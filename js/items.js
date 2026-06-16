@@ -39,8 +39,18 @@ const ITEMS = {
   },
   cold_brew: {
     nm:'Emergency Cold Brew', spr:'coffee', kind:'consumable',
-    ds:'Nitro, unlabeled, found in the back of the break-room fridge behind a 2014 yogurt. Restores 45 Billable Energy.',
+    ds:'Nitro, unlabeled, found in the back of the break-room fridge behind a 2014 yogurt. Restores 45 Billable Energy. [Hotkey 1]',
     heal:45,
+  },
+  objection_writ: {
+    nm:'Pre-Filed Continuance', spr:'dossier', kind:'consumable',
+    ds:'A blank continuance, signed and stamped. Use it to FREEZE the room — clears incoming fire and stuns every non-boss enemy for three seconds. [Hotkey 2]',
+    effect:'continuance',
+  },
+  retainer: {
+    nm:'Emergency Retainer', spr:'gear', kind:'consumable',
+    ds:'Five figures, wired instantly. For five seconds the firm simply will not let you be harmed. Total damage immunity. [Hotkey 3]',
+    effect:'shield', dur:5,
   },
   // ---- suits (armor: the 'suit' slot; defense soaks a % of every hit) ----
   pinstripe_suit: {
@@ -109,11 +119,13 @@ const ITEM_TIER = {
   pinstripe_suit:1, mail_vest:1, brass_key:1, valet_key:1, cold_brew:1,
   bespoke_suit:2, red_pen:2, precedent_binder:2, espresso_rig:2,
   bates_stamper:2, monogrammed_cufflinks:2, pro_bono_plaque:2,
+  objection_writ:2, retainer:2,
   good_pens:3, letter_opener:3, kevlar_suit:3, server_capacitor:3,
   founders_signet:4, printer_companion:4,
 };
 const ITEM_PRICE = {
-  cold_brew:40, pinstripe_suit:60, precedent_binder:160, red_pen:180,
+  cold_brew:40, pinstripe_suit:60, objection_writ:75, retainer:110,
+  precedent_binder:160, red_pen:180,
   bespoke_suit:220, espresso_rig:260, kevlar_suit:520,
 };
 const TIER_COLOR = { 1:'#9b8fb5', 2:'#9be05e', 3:'#5ec8f0', 4:'#caa84a' };
@@ -164,11 +176,30 @@ function equipItem(id){
 }
 function useConsumable(id){
   const it = ITEMS[id]; if(!it || it.kind!=='consumable') return;
-  const i = player.inventory.indexOf(id); if(i<0) return;
+  const i = player.inventory.indexOf(id); if(i<0){ SFX.buzz(); return; }
   player.inventory.splice(i,1);
   if(it.heal){ player.hp = Math.min(player.maxhp, player.hp + it.heal);
     floaters.push({ x:player.x, y:player.y-22, text:`+${it.heal} CAFFEINE`, t:0.9, color:'#9be05e' }); }
+  if(it.effect==='continuance'){
+    enemyShots = [];                                  // sweep the room clear of fire
+    for(const e of enemies){
+      if(e.boss) e.slowT = Math.max(e.slowT||0, 3);   // bosses can't be frozen, only mired
+      else e.stunT = Math.max(e.stunT||0, 3);
+    }
+    floaters.push({ x:player.x, y:player.y-26, text:'CONTINUANCE GRANTED', t:1.2, color:'#5ec8f0' });
+    announce('CONTINUANCE GRANTED. The court freezes. For three seconds, nothing may proceed against you.', false, 3);
+    shake = Math.max(shake, 6);
+  }
+  if(it.effect==='shield'){
+    player.shieldT = Math.max(player.shieldT||0, it.dur||5);
+    floaters.push({ x:player.x, y:player.y-26, text:'RETAINER ACTIVE', t:1.2, color:'#5ec8f0' });
+  }
   SFX.coffee();
+}
+// quick-use the first carried consumable matching a hotkey (no-op + buzz if none)
+function quickUse(id){
+  if(state!=='play') return;
+  if(hasItem(id)) useConsumable(id); else SFX.buzz();
 }
 
 // ---- effective stats: class base + equipped weapon ----

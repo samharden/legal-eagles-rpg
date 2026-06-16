@@ -79,6 +79,8 @@ const dmgMult = () => (1 + (player.rank.lvl-1)*0.10) * gearMul('dmgMul');
 function gainBillables(n, quiet){
   if(!player || n<=0) return;
   player.billables += n;
+  flags.totalBilled = (flags.totalBilled||0) + n;   // lifetime hours, for the performance review
+
   if(!quiet) floaters.push({ x:player.x, y:player.y-12, text:`+${n} hrs billed`, t:1.2, color:'#caa84a' });
 }
 const fmtBH = n => (n||0).toLocaleString('en-US');

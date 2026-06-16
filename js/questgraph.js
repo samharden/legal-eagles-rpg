@@ -137,7 +137,7 @@ function qComplete(q){
   if(r.ambition) flags.ambition += r.ambition;
   // a quest with its own onComplete presents its own conclusion (scenes, endings)
   if(q.onComplete){ saveGame(); try{ q.onComplete(); }catch(e){} return; }
-  SFX.promote();
+  SFX.closeMatter();
   announce('MATTER CLOSED: '+q.name+(r.msg ? ' — '+r.msg : ''), true, 5.5);
   saveGame();
 }
@@ -183,12 +183,17 @@ const MATTER_TEMPLATES = [
   { enemy:'assoc',     verb:'Outbill',  noun:'Associates of the Month',  pay:24, minQ:6 },
 ];
 let boardOffers = [], boardActive = null, boardSeq = 0;
-const matterName = m => `${m.verb} ${m.n} ${m.noun}`;
+const matterName = m => `${m.hazard?'HAZARD: ':''}${m.verb} ${m.n} ${m.noun}`;
 function genOffer(){
   const pool = MATTER_TEMPLATES.filter(t => !t.minQ || questIdx >= t.minQ);
   const t = pool[Math.floor(Math.random()*pool.length)];
   const n = 3 + Math.floor(Math.random()*5);              // 3..7
-  return { id:'m'+(boardSeq++), enemy:t.enemy, verb:t.verb, noun:t.noun, n, bh:n*t.pay, xp:Math.round(n*t.pay*0.4) };
+  // ~30% of matters are HAZARD work: ~2.4x the fee, but the targets arrive with an
+  // opposing-counsel escort. A real risk/reward call against the billables faucet.
+  const hazard = questIdx >= 3 && Math.random() < 0.30;
+  const mult = hazard ? 2.4 : 1;
+  return { id:'m'+(boardSeq++), enemy:t.enemy, verb:t.verb, noun:t.noun, n, hazard,
+           bh:Math.round(n*t.pay*mult), xp:Math.round(n*t.pay*0.4*mult) };
 }
 function refreshBoard(){ boardOffers = [genOffer(), genOffer(), genOffer()]; }
 function acceptMatter(i){
@@ -196,6 +201,7 @@ function acceptMatter(i){
   if(!m || boardActive) return;
   boardActive = { ...m, prog:0 };
   for(let k=0;k<m.n;k++){ const p = findOpen(player.x, player.y, 320); spawnEnemy(m.enemy, p.x, p.y); }
+  if(m.hazard) for(let k=0;k<2;k++){ const p = findOpen(player.x, player.y, 360); spawnEnemy('counsel', p.x, p.y); } // the escort
   SFX.quest(); shake = Math.max(shake, 6);
   announce(`MATTER ACCEPTED: ${matterName(m)}. The work has been dispatched to the floor — defend your billables.`, true, 4.5);
   boardOffers[i] = genOffer();   // the slot refreshes immediately
@@ -206,7 +212,8 @@ function boardKill(type){
   boardActive.prog++;
   if(boardActive.prog >= boardActive.n){
     gainBillables(boardActive.bh); gainXP(boardActive.xp);
-    SFX.promote();
+    flags.boardClosed = (flags.boardClosed||0) + 1;
+    SFX.closeMatter();
     announce(`MATTER CLOSED: ${matterName(boardActive)}. +${boardActive.bh} billable hours, billed and collected.`, true, 5);
     boardActive = null;
     saveGame();

@@ -30,7 +30,7 @@ let killCount, collectCount;
 let msg = { text:'', t:0, big:false };
 let mouse = { x:480, y:300, down:false };
 let keys = {};
-let levelFlash = 0, shake = 0, gameTime = 0;
+let levelFlash = 0, shake = 0, gameTime = 0, hitStop = 0; // hitStop: brief freeze on heavy impacts (juice)
 
 const NPCS = [
   { id:'hargrove', nm:'Managing Partner Hargrove', spr:'hargrove', x:22*TILE, y:4*TILE },

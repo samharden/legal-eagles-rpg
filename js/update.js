@@ -20,6 +20,7 @@ function update(dt){
   if(keys['a']||keys['arrowleft']) dx--;
   if(keys['d']||keys['arrowright']) dx++;
   if(!dx && !dy && joy.on && Math.hypot(joy.dx, joy.dy) > 0.25){ dx = joy.dx; dy = joy.dy; }
+  player.moving = !!(dx||dy);   // Decaf Gremlins rage when you hold still
   if(dx||dy){ const l=Math.hypot(dx,dy); moveEntity(player, dx/l*220, dy/l*220, dt); player.face = {x:dx/l, y:dy/l}; }
   player.pushCd = (player.pushCd||0) - dt;
   if((dx||dy) && player.pushCd <= 0){
@@ -32,6 +33,7 @@ function update(dt){
   if(player.spinT>0) player.spinT -= dt;
   if(player.hurtT>0) player.hurtT -= dt;
   if(player.coffeeCd>0) player.coffeeCd -= dt;
+  if(player.shieldT>0) player.shieldT -= dt;   // Retainer: temporary damage immunity
   if(keys[' '] || keys['j']) melee();
   if(keys['k'] || mouse.down) fire();
   if(keys['l']) spin();
@@ -285,6 +287,8 @@ function update(dt){
     e.wob += dt*6;
     if(e.hurtT>0) e.hurtT -= dt;
     if(e.slowT>0) e.slowT -= dt;
+    if(e.stunT>0) e.stunT -= dt;
+    const stunned = e.stunT>0;   // struck by a spin: can't move or shoot
     // target the mail cart instead of the player when it's closer
     let tgt = player;
     let d = Math.hypot(player.x-e.x, player.y-e.y);
@@ -297,7 +301,9 @@ function update(dt){
     let want = 1;
     if(e.shoots && d < 220) want = -0.6;
     if(e.slowT>0) want *= 0.45; // Bates-stamped: slowed under the weight of process
-    if(d > 30) moveEntity(e, Math.cos(ang)*e.spd*want, Math.sin(ang)*e.spd*want, dt);
+    let spd = e.spd;
+    if(e.rage && !player.moving) spd *= 1.85; // Decaf Gremlin pounces on the stationary
+    if(d > 30 && !stunned) moveEntity(e, Math.cos(ang)*spd*want, Math.sin(ang)*spd*want, dt);
     // contact damage — range matches the drawn sprites (34px, bosses 64px), not the
     // smaller hitbox radii, so an enemy visibly touching the target always damages it.
     // Must also exceed the 30px approach standoff above, where melee enemies park.
@@ -322,11 +328,11 @@ function update(dt){
           enemyShots.push({ x:e.x, y:e.y, vx:Math.cos(a)*210, vy:Math.sin(a)*210, dmg:e.dmg, r:7, life:2.2 });
         }
         floaters.push({ x:e.x, y:e.y-44, text:'GAVEL.', t:0.9, color:'#ff9bb0' });
-        shake = Math.max(shake, 8); SFX.boom();
+        shake = Math.max(shake, 8); hitStop = Math.max(hitStop, 0.05); SFX.boom();
       }
     }
     // shooting (always aims at the player; carts don't bleed)
-    if(e.shoots){
+    if(e.shoots && !stunned){
       e.shotT -= dt;
       const dp = Math.hypot(player.x-e.x, player.y-e.y);
       if(e.shotT<=0 && dp<480){
@@ -343,8 +349,15 @@ function update(dt){
     for(const s of shots){
       if(s.life<=0 || s.hit.has(e)) continue;
       if(Math.hypot(s.x-e.x, s.y-e.y) < e.r + s.r){
-        e.hp -= s.dmg; e.hurtT = 0.12;
-        floaters.push({ x:e.x, y:e.y-e.r-6, text:Math.round(s.dmg), t:0.6, color:'#fff' });
+        if(e.dodge && Math.random() < e.dodge){     // wraith slips the shot — strike or spin it
+          floaters.push({ x:e.x, y:e.y-e.r-6, text:'WITHDRAWN', t:0.5, color:'#9b8fb5' });
+          if(s.pierce) s.hit.add(e); else s.life = 0;
+          continue;
+        }
+        const dmg = s.dmg * (1 - (e.resist||0));     // golem/instrument: paper-dense, shrugs off paper
+        e.hp -= dmg; e.hurtT = 0.12;
+        floaters.push({ x:e.x, y:e.y-e.r-6, text:e.resist?'DENSE '+Math.round(dmg):Math.round(dmg), t:0.6, color:e.resist?'#9b8fb5':'#fff' });
+        for(let i=0;i<2;i++) particles.push({ x:s.x, y:s.y, vx:(Math.random()*2-1)*110, vy:(Math.random()*2-1)*110, t:0.14+Math.random()*0.1, spr:'spark' });
         if(s.pierce) s.hit.add(e); else s.life = 0;
       }
     }
@@ -354,6 +367,8 @@ function update(dt){
     if(e.hp<=0){
       const q = QUESTS[questIdx];
       if(questPhase==='active' && e.type===q.goal.enemy) killCount++;
+      flags.totalKills = (flags.totalKills||0) + 1;            // lifetime tally for the performance review
+      if(e.boss) hitStop = Math.max(hitStop, 0.18);            // a boss death lands hard
       questEvent('kill', { enemy:e.type });
       boardKill(e.type);                                       // assignment-board matter progress
       gainXP(e.xp);
@@ -458,6 +473,10 @@ function update(dt){
 }
 
 function hurtPlayer(d, contact=false){
+  if(player.shieldT>0){                         // Retainer in effect: the firm absorbs it
+    if(!contact && Math.random()<0.5) floaters.push({ x:player.x, y:player.y-26, text:'RETAINED', t:0.7, color:'#5ec8f0' });
+    return;
+  }
   d *= (1 - equipDefense());   // suit / accessory armor soaks a fraction of every hit
   if(player.hurtT>0 && contact) { player.hp -= d; return; } // contact ticks don't spam quips
   player.hp -= d;

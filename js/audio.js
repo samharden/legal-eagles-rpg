@@ -47,6 +47,10 @@ const SFX = {
   blip(){ tone({f:740, t:0.035, vol:0.06}); },
   promote(){ [523,659,784,1047].forEach((f,i)=>tone({f, t:0.12, vol:0.13, when:i*0.09})); },
   quest(){ tone({f:392, t:0.1, vol:0.11}); tone({f:523, t:0.14, vol:0.11, when:0.1}); },
+  // a matter resolving: a confirming low-then-bright cadence, distinct from the rank-up fanfare
+  closeMatter(){ tone({f:330, t:0.14, vol:0.12}); tone({f:494, t:0.16, vol:0.12, when:0.12}); tone({f:659, t:0.22, vol:0.13, when:0.26}); tone({f:988, t:0.12, vol:0.08, when:0.3}); },
+  // a boss arriving: subterranean dread under a brief metallic snarl
+  bossIntro(){ tone({f:78, f2:52, type:'sawtooth', t:1.0, vol:0.22}); tone({f:155, f2:116, type:'square', t:0.7, vol:0.07, when:0.04}); noiseHit({t:0.7, vol:0.12, fc:320}); tone({f:233, t:0.3, vol:0.05, when:0.5}); },
   gate(){ tone({f:120, f2:60, type:'sawtooth', t:0.4, vol:0.18}); noiseHit({t:0.3, vol:0.13, fc:400}); },
   lever(){ tone({f:440, f2:220, t:0.08, vol:0.11}); },
   buzz(){ tone({f:110, type:'sawtooth', t:0.35, vol:0.16}); },

@@ -3,6 +3,7 @@
 function spawnEnemy(type, x, y){
   const t = ENEMY_TYPES[type];
   enemies.push({ type, ...t, x, y, hp:t.hp, maxhp:t.hp, shotT: Math.random()*1.5, hurtT:0, wob:Math.random()*7 });
+  if(t.boss) SFX.bossIntro();   // every boss gets a dread sting, wherever it spawns
 }
 
 function fire(){
@@ -50,10 +51,11 @@ function melee(){
       if(slow){ e.slowT = 1.4; floaters.push({ x:e.x, y:e.y-e.r-18, text:'STAMPED', t:0.6, color:'#5ec8f0' }); }
       moveEntity(e, fx*260, fy*260, 0.06); // knockback, wall-aware
       floaters.push({ x:e.x, y:e.y-e.r-6, text:Math.round(dmg), t:0.6, color: e.boss&&bossMul>1?'#caa84a':'#fff' });
+      for(let i=0;i<3;i++) particles.push({ x:e.x, y:e.y, vx:(Math.random()*2-1)*150, vy:(Math.random()*2-1)*150, t:0.16+Math.random()*0.1, spr:'spark' });
     }
   }
   SFX.melee();
-  if(hit){ shake = Math.max(shake, 3); SFX.hit(); }
+  if(hit){ shake = Math.max(shake, 3); hitStop = Math.max(hitStop, 0.04); SFX.hit(); } // a connecting strike has weight
 }
 
 function spin(){
@@ -65,12 +67,13 @@ function spin(){
     const d = Math.hypot(e.x-player.x, e.y-player.y);
     if(d < 84 + e.r){
       e.hp -= dmg; e.hurtT = 0.15;
+      if(!e.boss) e.stunT = Math.max(e.stunT||0, 1.3); // Motion to Strike also stuns the room
       moveEntity(e, (e.x-player.x)/(d||1)*430, (e.y-player.y)/(d||1)*430, 0.08);
       floaters.push({ x:e.x, y:e.y-e.r-6, text:Math.round(dmg), t:0.6, color:'#f0c75e' });
     }
   }
   enemyShots = enemyShots.filter(sh => Math.hypot(sh.x-player.x, sh.y-player.y) > 95);
   floaters.push({ x:player.x, y:player.y-32, text:'MOTION TO STRIKE!', t:0.9, color:'#f0c75e' });
-  shake = Math.max(shake, 6);
+  shake = Math.max(shake, 6); hitStop = Math.max(hitStop, 0.06);
 }
 

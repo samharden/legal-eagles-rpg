@@ -529,7 +529,8 @@ function startGame(genderId, classId){
             hasValetKey:false, grandfatherDown:false, chadGpa:false, chadWillJoin:false,
             portraits:0, eleven:false, baneWeak:false,
             trialWave:0, jury:0, baneSpawned:false,
-            lennyQ:0, lennyKills:0, act3:false };
+            lennyQ:0, lennyKills:0, act3:false, helpSeen:false,
+            totalKills:0, totalBilled:0, boardClosed:0 };
   cart = null; cartSpawnT = 0;
   pendingSpawn = null; orderT = 6; orderActive = false; orderFired = false;
   NPCS.forEach(n => n.hidden = false);
@@ -541,6 +542,8 @@ function startGame(genderId, classId){
   startDialog([
     N('memo', "Welcome to Dewey, Cheatham & Howe LLP. Your badge is enclosed. Your desk is the one that is on fire."),
     N('memo', "Managing Partner Hargrove will assign your first matter. He is north, on the executive carpet, radiating disappointment. Other colleagues may also require... assistance. — HR (do not reply; HR is the printer now)"),
-  ]);
+    N('memo', IS_TOUCH ? "Use the joystick to move and the buttons to STRIKE, FIRE, and SPIN. Tap TALK at a person or station. Your bag holds your gear and open matters."
+                       : "Orientation tip: press H at any time for the Field Manual — controls, your emergency filings (keys 1/2/3), and how to handle what's down here."),
+  ], () => { if(!IS_TOUCH && !flags.helpSeen){ flags.helpSeen = true; toggleHelp(); } });
 }
 

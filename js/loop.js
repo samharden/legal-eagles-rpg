@@ -5,9 +5,10 @@ function step(now){
   const dt = Math.min(0.05, (now-last)/1000); last = now;
   musicTick();
   if(state==='play'){
-    if(invOpen){ draw(); if(!IS_TOUCH) drawInventory(); }
+    if(helpOpen){ draw(); if(!IS_TOUCH) drawHelp(); }
+    else if(invOpen){ draw(); if(!IS_TOUCH) drawInventory(); }
     else if(shopOpen){ draw(); if(!IS_TOUCH) drawShop(); }
-    else { update(dt); draw(); }
+    else { if(hitStop>0){ hitStop -= dt; } else { update(dt); } draw(); } // hit-stop freezes the world, not the render
   }
   else if(state==='dialog'){ draw(); if(!IS_TOUCH) drawDialog(); }
   else if(state==='gameover'||state==='victory'){ draw(); drawEnd(); }
@@ -24,7 +25,15 @@ window.addEventListener('keydown', e=>{
   const k = e.key.toLowerCase();
   if(k===' ') e.preventDefault();
   if(k==='m'){ toggleMute(); return; }
+  if(helpOpen){ if(k==='escape' || k==='h') toggleHelp(); return; }
+  if(k==='h' && state==='play' && !invOpen && !shopOpen){ toggleHelp(); return; }
   if(k==='i' && (state==='play')){ toggleInventory(); return; }
+  // emergency filings: quick-use a carried consumable mid-fight
+  if(state==='play' && !invOpen && !shopOpen && !dlg){
+    if(k==='1'){ quickUse('cold_brew'); return; }
+    if(k==='2'){ quickUse('objection_writ'); return; }
+    if(k==='3'){ quickUse('retainer'); return; }
+  }
   if(invOpen){ // bag is open: swallow gameplay keys; allow scroll + close
     if(k==='escape' || k==='i') toggleInventory();
     else if(k==='arrowdown' || k==='s') invScroll += 48;
@@ -62,10 +71,11 @@ cv.addEventListener('mousemove', e=>{
 cv.addEventListener('mousedown', ()=>mouse.down=true);
 window.addEventListener('mouseup', ()=>mouse.down=false);
 cv.addEventListener('click', e=>{
-  if(!invOpen && !shopOpen) return;
+  if(!invOpen && !shopOpen && !helpOpen) return;
   const r=cv.getBoundingClientRect();
   const x=(e.clientX-r.left)*(W/r.width), y=(e.clientY-r.top)*(CH/r.height);
-  if(invOpen) inventoryClick(x, y); else shopClick(x, y);
+  if(helpOpen) helpClick(x, y);
+  else if(invOpen) inventoryClick(x, y); else shopClick(x, y);
 });
 cv.addEventListener('wheel', e=>{
   if(!invOpen && !shopOpen) return;

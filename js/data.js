@@ -36,10 +36,15 @@ const RANKS = [
   { lvl:10, title:'NAME PARTNER',     xp:1950, hp:280, quip:'They carved your name in the lobby granite. You checked: it is load-bearing.' },
 ];
 
+// Per-type combat traits (beyond hp/spd/dmg) make the tool you pick matter:
+//   resist : fraction of *ranged* (projectile) damage ignored — melee/spin bypass it.
+//            Dense enemies must be struck (Space/J) or spun (L), not just shot.
+//   dodge  : chance a projectile whiffs entirely — fast skirmishers you can't snipe.
+//   rage   : speeds up while the player stands still — keep moving or get swarmed.
 const ENEMY_TYPES = {
   paralegal: { nm:'Rogue Paralegal',       hp:24,  spd:90,  dmg:8,  xp:8,  r:14, shoots:false },
-  golem:     { nm:'Paperwork Golem',       hp:55,  spd:55,  dmg:12, xp:12, r:18, shoots:false },
-  wraith:    { nm:'Billable Hour Wraith',  hp:30,  spd:135, dmg:10, xp:10, r:13, shoots:false },
+  golem:     { nm:'Paperwork Golem',       hp:55,  spd:55,  dmg:12, xp:12, r:18, shoots:false, resist:0.55 },
+  wraith:    { nm:'Billable Hour Wraith',  hp:30,  spd:135, dmg:10, xp:10, r:13, shoots:false, dodge:0.45 },
   counsel:   { nm:'Opposing Counsel',      hp:70,  spd:75,  dmg:14, xp:22, r:15, shoots:true,  shotCd:1.6 },
   chad:      { nm:'Chad Worthington IV',    hp:140, spd:95,  dmg:14, xp:60, r:15, shoots:true,  shotCd:1.2 },
   intern:    { nm:'Over-Caffeinated Intern',hp:16, spd:175, dmg:6,  xp:6,  r:11, shoots:false },
@@ -48,9 +53,9 @@ const ENEMY_TYPES = {
   grandfather:{ nm:"Worthington II, 'The Grandfather'", hp:420, spd:75, dmg:18, xp:140, r:24, shoots:true, shotCd:1.0, boss:true },
   assoc:     { nm:'Associate of the Month', hp:60,  spd:110, dmg:12, xp:25, r:14, shoots:true,  shotCd:1.3 },
   bailiff:   { nm:'Bailiff',                hp:90,  spd:70,  dmg:16, xp:20, r:16, shoots:false },
-  gremlin:   { nm:'Decaf Gremlin',          hp:20,  spd:150, dmg:6,  xp:8,  r:11, shoots:false },
+  gremlin:   { nm:'Decaf Gremlin',          hp:20,  spd:150, dmg:6,  xp:8,  r:11, shoots:false, rage:true },
   bane:      { nm:'The Hon. Mortimer Bane', hp:800, spd:65,  dmg:20, xp:400,r:28, shoots:true,  shotCd:0.9, boss:true },
-  instrument:{ nm:'The Founding Agreement', hp:1100,spd:48,  dmg:24, xp:600,r:30, shoots:true,  shotCd:0.7, boss:true },
+  instrument:{ nm:'The Founding Agreement', hp:1100,spd:48,  dmg:24, xp:600,r:30, shoots:true,  shotCd:0.7, boss:true, resist:0.30 },
 };
 
 const QUESTS = [
