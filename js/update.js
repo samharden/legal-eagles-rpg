@@ -6,6 +6,25 @@ function moveEntity(e, vx, vy, dt){
   if(!collides(e.x, ny, e.r)) e.y = ny;
 }
 
+function eShot(e, a, sp, r){
+  enemyShots.push({ x:e.x, y:e.y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, dmg:e.dmg, r:r||6, life:2.5 });
+}
+// Boss firing patterns — chosen by the active phase's `pattern`. Radial patterns
+// (ring/spiral) ignore aim; spread/aimed3 fire along the telegraphed angle e.aimA.
+function bossFire(e){
+  const base = e.aimA||0, P = e.pattern||'spread';
+  if(P==='ring'){              // full radial wall — circle out of it
+    const n=14; for(let i=0;i<n;i++) eShot(e, i/n*Math.PI*2, 200, 7);
+  } else if(P==='spiral'){     // rotating arms — keep moving to thread them
+    e.spiralA=(e.spiralA||0)+0.5;
+    for(let i=0;i<3;i++) eShot(e, e.spiralA + i*(Math.PI*2/3), 215, 6);
+  } else if(P==='aimed3'){     // tight fast triple straight at you
+    for(let i=0;i<3;i++) eShot(e, base+(i-1)*0.10, 320, 6);
+  } else {                     // 'spread' — the classic wide triple
+    for(let i=0;i<3;i++) eShot(e, base+(i-1)*0.22, 260, 6);
+  }
+}
+
 function update(dt){
   gameTime += dt;
   qTick();
@@ -289,6 +308,22 @@ function update(dt){
     if(e.slowT>0) e.slowT -= dt;
     if(e.stunT>0) e.stunT -= dt;
     const stunned = e.stunT>0;   // struck by a spin: can't move or shoot
+    // boss phases: as HP drops past each threshold, swap firing pattern/cadence/speed.
+    // phases are listed high→low `at` (hp fraction); we jump to the deepest one crossed.
+    if(e.boss && e.phases){
+      if(e.phaseIdx===undefined){ e.phaseIdx = -1; e.baseSpd = e.spd; }
+      const frac = e.hp/e.maxhp;
+      let want = e.phaseIdx;
+      for(let i=e.phaseIdx+1;i<e.phases.length;i++) if(frac<=e.phases[i].at) want = i;
+      if(want>e.phaseIdx){
+        e.phaseIdx = want; const ph = e.phases[want];
+        if(ph.pattern) e.pattern = ph.pattern;
+        if(ph.shotCd!==undefined) e.shotCd = ph.shotCd;
+        if(ph.windup!==undefined) e.windup = ph.windup;
+        if(ph.spd!==undefined) e.spd = e.baseSpd*ph.spd;
+        if(ph.say){ announce(ph.say, false, 3); shake=Math.max(shake,10); hitStop=Math.max(hitStop,0.08); if(SFX.boss) SFX.boss(); }
+      }
+    }
     // target the mail cart instead of the player when it's closer
     let tgt = player;
     let d = Math.hypot(player.x-e.x, player.y-e.y);
@@ -355,11 +390,8 @@ function update(dt){
       if(e.windT>0){
         e.windT -= dt;
         if(e.windT<=0){
-          const n = e.boss ? 3 : 1;
-          for(let i=0;i<n;i++){
-            const a = e.aimA + (i-(n-1)/2)*0.22;   // along the telegraphed angle, not live aim
-            enemyShots.push({ x:e.x, y:e.y, vx:Math.cos(a)*260, vy:Math.sin(a)*260, dmg:e.dmg, r:6, life:2.5 });
-          }
+          if(e.boss) bossFire(e);                  // phase-driven pattern (spread/aimed3/ring/spiral)
+          else eShot(e, e.aimA, 260, 6);           // grunts: one aimed shot
           SFX.shoot();
         }
       } else {
