@@ -186,6 +186,23 @@ function draw(){
       }
       ctx.restore();
     }
+    else if(e.charge && e.chState==='wind'){ // charger winding a lunge — orange arrow down the path
+      const a=e.aimA, prog=1-e.chT/e.charge.wind, reach=e.charge.speed*e.charge.dur;
+      const hx=ex+Math.cos(a)*reach, hy=ey+Math.sin(a)*reach;
+      ctx.save();
+      ctx.strokeStyle='rgba(240,150,50,'+(0.3+0.5*prog)+')'; ctx.lineWidth=3+3*prog;
+      ctx.beginPath(); ctx.moveTo(ex,ey); ctx.lineTo(hx,hy); ctx.stroke();
+      ctx.fillStyle='rgba(240,150,50,'+(0.4+0.5*prog)+')';
+      ctx.beginPath(); ctx.moveTo(hx,hy);
+      ctx.lineTo(hx-Math.cos(a-0.4)*14, hy-Math.sin(a-0.4)*14);
+      ctx.lineTo(hx-Math.cos(a+0.4)*14, hy-Math.sin(a+0.4)*14);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    else if(e.charge && e.chState==='recover'){ // spent the lunge — dizzy ring marks the punish window
+      ctx.save(); ctx.strokeStyle='rgba(240,200,94,0.55)'; ctx.lineWidth=2; ctx.setLineDash([3,4]);
+      ctx.beginPath(); ctx.arc(ex, ey, e.r+8, 0, 7); ctx.stroke(); ctx.restore();
+    }
   }
 
   // allies

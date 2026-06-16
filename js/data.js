@@ -42,6 +42,8 @@ const RANKS = [
 //   dodge  : chance a projectile whiffs entirely — fast skirmishers you can't snipe.
 //   rage   : speeds up while the player stands still — keep moving or get swarmed.
 //   strafe : orbits the player at `ring` px instead of beelining — circle-strafe duels.
+//   charge : {range,wind,speed,dur,cd,recover} — telegraphs, then lunges in a committed
+//            straight line, then recovers (rooted & vulnerable). A melee dasher you bait & punish.
 //   windup : seconds a shooter telegraphs before firing (aim locks at windup start, so
 //            sidestepping the tell makes the shot whiff). Defaults: 0.4 grunt / 0.55 boss.
 const ENEMY_TYPES = {
@@ -57,7 +59,7 @@ const ENEMY_TYPES = {
              { at:0.4, pattern:'aimed3', shotCd:0.6, spd:1.15, say:'EMERITUS: "Back in MY day, associates BLED for billables."' } ] },
   grandfather:{ nm:"Worthington II, 'The Grandfather'", hp:420, spd:75, dmg:18, xp:140, r:24, shoots:true, shotCd:1.0, boss:true },
   assoc:     { nm:'Associate of the Month', hp:60,  spd:110, dmg:12, xp:25, r:14, shoots:true,  shotCd:1.3, strafe:true, ring:170, windup:0.38 },
-  bailiff:   { nm:'Bailiff',                hp:90,  spd:70,  dmg:16, xp:20, r:16, shoots:false },
+  bailiff:   { nm:'Bailiff',                hp:90,  spd:70,  dmg:16, xp:20, r:16, shoots:false, charge:{ range:300, wind:0.5, speed:620, dur:0.32, cd:2.6, recover:0.6 } },
   gremlin:   { nm:'Decaf Gremlin',          hp:20,  spd:150, dmg:6,  xp:8,  r:11, shoots:false, rage:true },
   bane:      { nm:'The Hon. Mortimer Bane', hp:800, spd:65,  dmg:20, xp:400,r:28, shoots:true,  shotCd:0.9, boss:true,
     phases:[ { at:1.0, pattern:'spread', shotCd:0.9 },

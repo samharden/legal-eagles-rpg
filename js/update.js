@@ -332,6 +332,29 @@ function update(dt){
       if(dc < d){ tgt = cart; d = dc; }
     }
     const ang = Math.atan2(tgt.y-e.y, tgt.x-e.x);
+    // CHARGER state machine (bailiff): approach → wind up (rooted tell) → committed
+    // straight lunge → recover (rooted & vulnerable, so a whiffed charge is punishable).
+    // While winding/dashing/recovering it drives its own motion, so the normal chase below
+    // is skipped (charging flag). Reuses e.aimA for the locked lunge angle (chargers don't shoot).
+    let charging = false;
+    if(e.charge && !stunned){
+      const C = e.charge;
+      if(e.chState===undefined){ e.chState='ready'; e.chCd = C.cd*0.5; }
+      if(e.chState==='ready'){
+        e.chCd -= dt;
+        if(e.chCd<=0 && d < (C.range||280) && d > 40){ e.chState='wind'; e.chT = C.wind; e.aimA = ang; }
+      } else if(e.chState==='wind'){
+        charging = true; e.chT -= dt;
+        if(e.chT<=0){ e.chState='dash'; e.chT = C.dur; e.chDx = Math.cos(e.aimA); e.chDy = Math.sin(e.aimA); if(SFX.melee) SFX.melee(); }
+      } else if(e.chState==='dash'){
+        charging = true; e.chT -= dt;
+        moveEntity(e, e.chDx*C.speed, e.chDy*C.speed, dt);
+        if(e.chT<=0){ e.chState='recover'; e.chT = C.recover; floaters.push({ x:e.x, y:e.y-e.r-6, text:'WINDED', t:0.6, color:'#f0c75e' }); }
+      } else { // recover
+        charging = true; e.chT -= dt;
+        if(e.chT<=0){ e.chState='ready'; e.chCd = C.cd; }
+      }
+    }
     // chase (shooters keep distance)
     let want = 1;
     if(e.shoots && d < 220) want = -0.6;
@@ -351,7 +374,7 @@ function update(dt){
     } else {
       mvx = Math.cos(ang)*want; mvy = Math.sin(ang)*want;
     }
-    if(d > 30 && !stunned){
+    if(d > 30 && !stunned && !charging){
       const bx=e.x, by=e.y;
       moveEntity(e, mvx*spd, mvy*spd, dt);
       if(e.strafe && e.x===bx && e.y===by) e.sdir = -e.sdir; // bumped a wall — reverse the orbit
