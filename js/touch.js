@@ -39,7 +39,7 @@ if(IS_TOUCH){
     el.addEventListener('touchend', up, {passive:false});
     el.addEventListener('touchcancel', up, {passive:false});
   };
-  bindBtn('tbJ','j'); bindBtn('tbK','k'); bindBtn('tbL','l'); bindBtn('tbE','e');
+  bindBtn('tbJ','j'); bindBtn('tbK','k'); bindBtn('tbL','l'); bindBtn('tbE','e'); bindBtn('tbDash','shift');
   document.getElementById('tbM').addEventListener('touchstart', e=>{ e.preventDefault(); toggleMute(); }, {passive:false});
   document.getElementById('tbI').addEventListener('touchstart', e=>{ e.preventDefault(); toggleInventory(); }, {passive:false});
 

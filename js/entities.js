@@ -6,10 +6,18 @@ function spawnEnemy(type, x, y){
   if(t.boss) SFX.bossIntro();   // every boss gets a dread sting, wherever it spawns
 }
 
-function fire(){
+function fire(atCursor){
   const c = weaponStats();
   if(player.cd > 0) return;
   player.cd = c.cd;
+  // mouse fire aims at the cursor (world coords); key fire keeps 8-way facing
+  if(atCursor && !IS_TOUCH && mouse.y < HUD_Y){
+    const wx = mouse.x/ZOOM + cam.x, wy = mouse.y/ZOOM + cam.y;
+    if(Math.hypot(wx-player.x, wy-player.y) > 4){
+      const a = Math.atan2(wy-player.y, wx-player.x);
+      player.face = { x:Math.cos(a), y:Math.sin(a) };   // turn into the shot
+    }
+  }
   if(orderActive && worldId==='courtroom' && !orderFired){
     orderFired = true;
     const p = findOpen(player.x, player.y, 180);

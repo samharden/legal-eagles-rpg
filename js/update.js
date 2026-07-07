@@ -6,20 +6,21 @@ function moveEntity(e, vx, vy, dt){
   if(!collides(e.x, ny, e.r)) e.y = ny;
 }
 
-function eShot(e, a, sp, r){
-  enemyShots.push({ x:e.x, y:e.y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, dmg:e.dmg, r:r||6, life:2.5 });
+function eShot(e, a, sp, r, color){
+  enemyShots.push({ x:e.x, y:e.y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, dmg:e.dmg, r:r||6, life:2.5, color });
 }
 // Boss firing patterns — chosen by the active phase's `pattern`. Radial patterns
 // (ring/spiral) ignore aim; spread/aimed3 fire along the telegraphed angle e.aimA.
+// Each pattern has its own shot color so a phase change reads mid-fight.
 function bossFire(e){
   const base = e.aimA||0, P = e.pattern||'spread';
   if(P==='ring'){              // full radial wall — circle out of it
-    const n=14; for(let i=0;i<n;i++) eShot(e, i/n*Math.PI*2, 200, 7);
+    const n=14; for(let i=0;i<n;i++) eShot(e, i/n*Math.PI*2, 200, 7, '#ff9bb0');
   } else if(P==='spiral'){     // rotating arms — keep moving to thread them
     e.spiralA=(e.spiralA||0)+0.5;
-    for(let i=0;i<3;i++) eShot(e, e.spiralA + i*(Math.PI*2/3), 215, 6);
+    for(let i=0;i<3;i++) eShot(e, e.spiralA + i*(Math.PI*2/3), 215, 6, '#c58cff');
   } else if(P==='aimed3'){     // tight fast triple straight at you
-    for(let i=0;i<3;i++) eShot(e, base+(i-1)*0.10, 320, 6);
+    for(let i=0;i<3;i++) eShot(e, base+(i-1)*0.10, 320, 6, '#ffb35e');
   } else {                     // 'spread' — the classic wide triple
     for(let i=0;i<3;i++) eShot(e, base+(i-1)*0.22, 260, 6);
   }
@@ -40,7 +41,24 @@ function update(dt){
   if(keys['d']||keys['arrowright']) dx++;
   if(!dx && !dy && joy.on && Math.hypot(joy.dx, joy.dy) > 0.25){ dx = joy.dx; dy = joy.dy; }
   player.moving = !!(dx||dy);   // Decaf Gremlins rage when you hold still
-  if(dx||dy){ const l=Math.hypot(dx,dy); moveEntity(player, dx/l*220, dy/l*220, dt); player.face = {x:dx/l, y:dy/l}; }
+  // DASH — Motion to Expedite: a committed ~140px burst (Shift / DASH button) that
+  // phases through projectiles while it lasts; contact damage still applies, so it
+  // dodges the telegraphed shot, not the bailiff parked on top of you.
+  player.dashCd -= dt;
+  if(player.dashT > 0){
+    player.dashT -= dt;
+    moveEntity(player, player.dashDx*880, player.dashDy*880, dt);
+    player.face = { x:player.dashDx, y:player.dashDy };
+    player.moving = true;
+    particles.push({ x:player.x, y:player.y, vx:-player.dashDx*60, vy:-player.dashDy*60, t:0.18, spr:'spark' });
+  } else if(keys['shift'] && player.dashCd <= 0){
+    const l = Math.hypot(dx,dy);   // dash along held input; standing still dashes where you face
+    player.dashDx = l ? dx/l : player.face.x;
+    player.dashDy = l ? dy/l : player.face.y;
+    player.dashT = 0.16; player.dashCd = 1.6;
+    SFX.dash();
+  } else if(dx||dy){ const l=Math.hypot(dx,dy); moveEntity(player, dx/l*220, dy/l*220, dt);
+    if(!padAim) player.face = {x:dx/l, y:dy/l}; }   // right-stick aim outranks run direction
   player.pushCd = (player.pushCd||0) - dt;
   if((dx||dy) && player.pushCd <= 0){
     if(dx && tryPush(Math.sign(dx),0)) player.pushCd = 0.22;
@@ -54,7 +72,7 @@ function update(dt){
   if(player.coffeeCd>0) player.coffeeCd -= dt;
   if(player.shieldT>0) player.shieldT -= dt;   // Retainer: temporary damage immunity
   if(keys[' '] || keys['j']) melee();
-  if(keys['k'] || mouse.down) fire();
+  if(keys['k'] || mouse.down) fire(mouse.down);
   if(keys['l']) spin();
 
   // camera
@@ -296,7 +314,9 @@ function update(dt){
     s.x += s.vx*dt; s.y += s.vy*dt; s.life -= dt;
     if(blockedShot(s.x,s.y)) s.life=0;
     if(s.life>0 && Math.hypot(s.x-player.x,s.y-player.y) < player.r+s.r){
-      hurtPlayer(s.dmg); s.life=0;
+      if(player.dashT>0){ // mid-dash: the filing sails through where you just were
+        if(!s.dodged){ s.dodged = true; floaters.push({ x:player.x, y:player.y-26, text:'EXPEDITED', t:0.7, color:'#5ec8f0' }); }
+      } else { hurtPlayer(s.dmg); s.life=0; }
     }
   }
   enemyShots = enemyShots.filter(s=>s.life>0);
@@ -349,10 +369,46 @@ function update(dt){
       } else if(e.chState==='dash'){
         charging = true; e.chT -= dt;
         moveEntity(e, e.chDx*C.speed, e.chDy*C.speed, dt);
-        if(e.chT<=0){ e.chState='recover'; e.chT = C.recover; floaters.push({ x:e.x, y:e.y-e.r-6, text:'WINDED', t:0.6, color:'#f0c75e' }); }
+        // a connecting lunge is one heavy hit that sends you flying (wall-aware),
+        // then the charger is spent — no grinding a pinned player
+        if(tgt===player && Math.hypot(player.x-e.x, player.y-e.y) < e.r + player.r + 6){
+          hurtPlayer(e.dmg);
+          moveEntity(player, e.chDx*1500, e.chDy*1500, 0.12);
+          shake = Math.max(shake, 9); hitStop = Math.max(hitStop, 0.07);
+          floaters.push({ x:player.x, y:player.y-30, text:'TACKLED!', t:0.9, color:'#ff9bb0' });
+          e.chState='recover'; e.chT = C.recover;
+        }
+        else if(e.chT<=0){ e.chState='recover'; e.chT = C.recover; floaters.push({ x:e.x, y:e.y-e.r-6, text:'WINDED', t:0.6, color:'#f0c75e' }); }
       } else { // recover
         charging = true; e.chT -= dt;
         if(e.chT<=0){ e.chState='ready'; e.chCd = C.cd; }
+      }
+    }
+    // SLAMMER (golem): parks in reach, raises the full weight of process (rooted tell),
+    // then drops it — an AoE burst you sidestep. Slammers deal no passive contact
+    // grind (see the touch block below): all their damage is this telegraphed slam.
+    let slamWind = false;
+    if(e.slam && !stunned){
+      const S = e.slam;
+      if(e.slamCd===undefined) e.slamCd = S.cd*0.5;
+      if(e.slamT > 0){
+        slamWind = true;
+        e.slamT -= dt;
+        if(e.slamT <= 0){
+          e.slamCd = S.cd;
+          if(Math.hypot(player.x-e.x, player.y-e.y) < S.radius + player.r){
+            hurtPlayer(e.dmg*S.mult);
+            const dp = Math.hypot(player.x-e.x, player.y-e.y)||1;   // shoved off the impact
+            moveEntity(player, (player.x-e.x)/dp*900, (player.y-e.y)/dp*900, 0.1);
+          }
+          if(cart && Math.hypot(cart.x-e.x, cart.y-e.y) < S.radius + cart.r) cart.hp -= e.dmg*S.mult;
+          shake = Math.max(shake, 6); SFX.slam();
+          for(let i=0;i<8;i++){ const a=i/8*Math.PI*2;
+            particles.push({ x:e.x+Math.cos(a)*20, y:e.y+Math.sin(a)*20, vx:Math.cos(a)*200, vy:Math.sin(a)*200, t:0.3+Math.random()*0.15, spr:'paper' }); }
+        }
+      } else {
+        e.slamCd -= dt;
+        if(e.slamCd<=0 && d < S.range + e.r){ e.slamT = e.slamMax = S.wind; }
       }
     }
     // chase (shooters keep distance)
@@ -361,7 +417,7 @@ function update(dt){
     if(e.slowT>0) want *= 0.45; // Bates-stamped: slowed under the weight of process
     let spd = e.spd;
     if(e.rage && !player.moving) spd *= 1.85; // Decaf Gremlin pounces on the stationary
-    const winding = e.windT>0;                 // mid-telegraph: plant and commit to the shot
+    const winding = e.windT>0 || slamWind;     // mid-telegraph: plant and commit to the attack
     if(winding) spd *= 0.22;                    // rooted while winding up — that's the tell you read
     // movement vector: strafers orbit at a preferred ring; everyone else beelines (±want)
     let mvx, mvy;
@@ -383,7 +439,7 @@ function update(dt){
     // smaller hitbox radii, so an enemy visibly touching the target always damages it.
     // Must also exceed the 30px approach standoff above, where melee enemies park.
     const touch = (e.boss ? 30 : 17) + 17;
-    if(d < touch){
+    if(d < touch && !e.slam){
       if(tgt === player){
         hurtPlayer(e.dmg*dt*2.2, true);
         if(e.type==='gremlin' && player.coffeeCd < 8){
@@ -400,7 +456,7 @@ function update(dt){
         e.novaT = 5;
         for(let i=0;i<12;i++){
           const a = i/12*Math.PI*2;
-          enemyShots.push({ x:e.x, y:e.y, vx:Math.cos(a)*210, vy:Math.sin(a)*210, dmg:e.dmg, r:7, life:2.2 });
+          enemyShots.push({ x:e.x, y:e.y, vx:Math.cos(a)*210, vy:Math.sin(a)*210, dmg:e.dmg, r:7, life:2.2, color:'#f0c75e' });
         }
         floaters.push({ x:e.x, y:e.y-44, text:'GAVEL.', t:0.9, color:'#ff9bb0' });
         shake = Math.max(shake, 8); hitStop = Math.max(hitStop, 0.05); SFX.boom();
@@ -456,6 +512,10 @@ function update(dt){
       gainBillables(Math.max(1, Math.round(e.xp*0.5)), true); // auto-credit billables on kill
       if(e.proBono) flags.lennyKills++;
       if(e.boss) SFX.boom(); else SFX.die();
+      if(e.boss){ // costs awarded against the losing party, plus a recovery spread
+        gainBillables(e.xp);
+        for(let i=0;i<3;i++){ const p = findOpen(e.x, e.y, 70); pickups.push({ x:p.x, y:p.y, spr:'coffee', t:0, heal:25 }); }
+      }
       if(e.type==='grandfather'){
         flags.grandfatherDown = true;
         announce('Worthington II dissipates into cigar smoke and unvested equity. The garage feels... settled.', false, 5);

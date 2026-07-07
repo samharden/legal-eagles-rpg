@@ -27,10 +27,13 @@ Pick your attorney and a practice area at New Hire Orientation. Each practice ar
 |-----|--------|
 | `WASD` / Arrow keys | Move |
 | `Space` / `J` | Briefcase strike (melee) |
-| `K` | Fire (practice-area attack) |
+| `K` / Click | Fire (practice-area attack) — mouse fire aims at the cursor |
+| `Shift` | Dash — *Motion to Expedite* (phases through projectiles) |
 | `L` | Spin attack — *Motion to Strike* (also clears projectiles) |
 | `E` | Talk / interact / push past |
 | `M` | Mute audio |
+| `F` | Fullscreen (Esc exits) |
+| 🎮 Controller | Xbox/PlayStation pads work (Bluetooth or USB): sticks move & aim-fire, A talk, B strike, X fire, Y spin, LB dash, Start bag |
 
 ### Locations
 

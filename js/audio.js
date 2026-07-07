@@ -13,6 +13,10 @@ function audioInit(){
   AU.nextT = C.currentTime;
   if(C.state==='suspended') C.resume();
 }
+// A controller-driven start is a synthetic click, not a user gesture, so the
+// context can be born suspended — resume it on the first real interaction.
+for(const ev of ['pointerdown','keydown','touchstart'])
+  window.addEventListener(ev, ()=>{ if(AU.ctx && AU.ctx.state==='suspended') AU.ctx.resume(); }, { capture:true });
 function tone({f=440, f2=0, type='square', t=0.1, vol=0.15, when=0, dest=null}){
   if(!AU.ctx || !AU.on) return;
   const C=AU.ctx, o=C.createOscillator(), g=C.createGain(), st=C.currentTime+when;
@@ -39,6 +43,8 @@ const SFX = {
   melee(){ noiseHit({t:0.06, vol:0.1, fc:2600}); },
   hit(){ tone({f:200, f2:90, t:0.08, vol:0.13}); },
   spin(){ tone({f:300, f2:900, type:'sawtooth', t:0.3, vol:0.09}); noiseHit({t:0.25, vol:0.09, fc:1800}); },
+  dash(){ tone({f:340, f2:980, type:'sawtooth', t:0.12, vol:0.07}); noiseHit({t:0.1, vol:0.06, fc:2200}); },
+  slam(){ noiseHit({t:0.22, vol:0.18, fc:600}); tone({f:90, f2:45, type:'sawtooth', t:0.25, vol:0.14}); },
   die(){ noiseHit({t:0.16, vol:0.16, fc:900}); tone({f:300, f2:60, type:'triangle', t:0.2, vol:0.14}); },
   boom(){ noiseHit({t:0.5, vol:0.28, fc:500}); tone({f:150, f2:40, type:'sawtooth', t:0.5, vol:0.18}); },
   hurt(){ tone({f:220, f2:110, type:'sawtooth', t:0.12, vol:0.15}); },

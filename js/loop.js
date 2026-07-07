@@ -3,11 +3,12 @@
 let last = performance.now();
 function step(now){
   const dt = Math.min(0.05, (now-last)/1000); last = now;
+  pollGamepad();
   musicTick();
   if(state==='play'){
     if(helpOpen){ draw(); if(!IS_TOUCH) drawHelp(); }
-    else if(invOpen){ draw(); if(!IS_TOUCH) drawInventory(); }
-    else if(shopOpen){ draw(); if(!IS_TOUCH) drawShop(); }
+    else if(invOpen){ draw(); if(!IS_TOUCH){ drawInventory(); padDrawCursor(invRects); } }
+    else if(shopOpen){ draw(); if(!IS_TOUCH){ drawShop(); padDrawCursor(shopRects); } }
     else { if(hitStop>0){ hitStop -= dt; } else { update(dt); } draw(); } // hit-stop freezes the world, not the render
   }
   else if(state==='dialog'){ draw(); if(!IS_TOUCH) drawDialog(); }
@@ -21,10 +22,24 @@ function loop(now){
 // keep ticking when rAF is throttled (hidden/background tab)
 setInterval(()=>{ const now = performance.now(); if(now - last > 250) step(now); }, 125);
 
+// fullscreen — F key or the ⛶ footer button; Esc exits natively.
+// The wrap div (not the canvas) goes fullscreen so the menu overlay stays usable.
+function toggleFullscreen(){
+  const wrap = document.getElementById('wrap');
+  const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+  try{
+    if(fsEl){ const p = (document.exitFullscreen || document.webkitExitFullscreen).call(document); if(p && p.catch) p.catch(()=>{}); }
+    else { const p = (wrap.requestFullscreen || wrap.webkitRequestFullscreen).call(wrap); if(p && p.catch) p.catch(()=>{}); }
+  }catch(e){ /* unsupported (e.g. iPhone Safari) — play on in the page */ }
+}
+const fsBtn = document.getElementById('fsBtn');
+if(fsBtn) fsBtn.addEventListener('click', toggleFullscreen);
+
 window.addEventListener('keydown', e=>{
   const k = e.key.toLowerCase();
   if(k===' ') e.preventDefault();
   if(k==='m'){ toggleMute(); return; }
+  if(k==='f'){ toggleFullscreen(); return; }
   if(helpOpen){ if(k==='escape' || k==='h') toggleHelp(); return; }
   if(k==='h' && state==='play' && !invOpen && !shopOpen){ toggleHelp(); return; }
   if(k==='i' && (state==='play')){ toggleInventory(); return; }
@@ -66,7 +81,7 @@ window.addEventListener('keydown', e=>{
 window.addEventListener('keyup', e=>{ keys[e.key.toLowerCase()]=false; });
 cv.addEventListener('mousemove', e=>{
   const r=cv.getBoundingClientRect();
-  mouse.x=(e.clientX-r.left)*(W/r.width); mouse.y=(e.clientY-r.top)*(H/r.height);
+  mouse.x=(e.clientX-r.left)*(W/r.width); mouse.y=(e.clientY-r.top)*(CH/r.height);
 });
 cv.addEventListener('mousedown', ()=>mouse.down=true);
 window.addEventListener('mouseup', ()=>mouse.down=false);

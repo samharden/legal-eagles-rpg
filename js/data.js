@@ -46,9 +46,13 @@ const RANKS = [
 //            straight line, then recovers (rooted & vulnerable). A melee dasher you bait & punish.
 //   windup : seconds a shooter telegraphs before firing (aim locks at windup start, so
 //            sidestepping the tell makes the shot whiff). Defaults: 0.4 grunt / 0.55 boss.
+//   slam   : {range,wind,cd,radius,mult} — parks in reach, winds up (rooted tell), then
+//            drops an AoE burst for dmg*mult. Slammers deal NO passive contact grind:
+//            all their damage is the telegraphed slam, so it's entirely sidesteppable.
 const ENEMY_TYPES = {
   paralegal: { nm:'Rogue Paralegal',       hp:24,  spd:90,  dmg:8,  xp:8,  r:14, shoots:false },
-  golem:     { nm:'Paperwork Golem',       hp:55,  spd:55,  dmg:12, xp:12, r:18, shoots:false, resist:0.55 },
+  golem:     { nm:'Paperwork Golem',       hp:55,  spd:55,  dmg:12, xp:12, r:18, shoots:false, resist:0.55,
+               slam:{ range:64, wind:0.6, cd:1.8, radius:72, mult:2 } },
   wraith:    { nm:'Billable Hour Wraith',  hp:30,  spd:135, dmg:10, xp:10, r:13, shoots:false, dodge:0.45 },
   counsel:   { nm:'Opposing Counsel',      hp:70,  spd:75,  dmg:14, xp:22, r:15, shoots:true,  shotCd:1.6, strafe:true, ring:210, windup:0.5 },
   chad:      { nm:'Chad Worthington IV',    hp:140, spd:95,  dmg:14, xp:60, r:15, shoots:true,  shotCd:1.2 },

@@ -485,14 +485,16 @@ function drawDialog(){
   const yy = by + 48 + lines.length*lh + 8;
   dlgRects = [];
   if(d.choices){
-    ctx.font = `bold ${fs}px monospace`; ctx.fillStyle = '#5ec8f0';
+    ctx.font = `bold ${fs}px monospace`;
     d.choices.forEach((c,i) => {
-      ctx.fillText(`[${i+1}] ${c.t}`, bx+100, yy + i*chh);
+      const sel = padOn && i===padDlgSel;   // controller: d-pad highlights, A chooses
+      ctx.fillStyle = sel ? '#f0c75e' : '#5ec8f0';
+      ctx.fillText(`${sel ? '>' : ' '}[${i+1}] ${c.t}`, bx+92, yy + i*chh);
       dlgRects.push({ x:bx+96, y:yy + i*chh - chh + 5, w:bw-110, h:chh });
     });
   } else {
     ctx.font = '12px monospace'; ctx.fillStyle = '#9b8fb5';
-    ctx.fillText(IS_TOUCH ? '[tap] continue' : '[E] continue', bx+bw-130, by+bh-12);
+    ctx.fillText(IS_TOUCH ? '[tap] continue' : (padOn ? '[E / A] continue' : '[E] continue'), bx+bw-130, by+bh-12);
   }
 }
 const COFFEE = { x: 40*TILE+TILE/2, y: 11*TILE+TILE/2 };
@@ -514,6 +516,7 @@ function startGame(genderId, classId){
     hp: 100, maxhp: 100, xp: 0, rank: RANKS[0],
     cd: 0, hurtT: 0, coffeeCd: 0,
     face: {x:0, y:1}, meleeCd: 0, spinCd: 0, swingT: 0, spinT: 0,
+    dashT: 0, dashCd: 0, dashDx: 0, dashDy: 1,
     inventory: [], equip: { weapon:null, accessory:null, suit:null },
     billables: 0,
   };
@@ -542,7 +545,7 @@ function startGame(genderId, classId){
   startDialog([
     N('memo', "Welcome to Dewey, Cheatham & Howe LLP. Your badge is enclosed. Your desk is the one that is on fire."),
     N('memo', "Managing Partner Hargrove will assign your first matter. He is north, on the executive carpet, radiating disappointment. Other colleagues may also require... assistance. — HR (do not reply; HR is the printer now)"),
-    N('memo', IS_TOUCH ? "Use the joystick to move and the buttons to STRIKE, FIRE, and SPIN. Tap TALK at a person or station. Your bag holds your gear and open matters."
+    N('memo', IS_TOUCH ? "Use the joystick to move and the buttons to STRIKE, FIRE, SPIN, and DASH. Tap TALK at a person or station. Your bag holds your gear and open matters."
                        : "Orientation tip: press H at any time for the Field Manual — controls, your emergency filings (keys 1/2/3), and how to handle what's down here."),
   ], () => { if(!IS_TOUCH && !flags.helpSeen){ flags.helpSeen = true; toggleHelp(); } });
 }

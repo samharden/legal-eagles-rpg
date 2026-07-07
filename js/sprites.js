@@ -16,6 +16,7 @@ function makeSprite(rows, pal){
   return c;
 }
 function drawSprite(spr, x, y, size, flip=false, alpha=1){
+  if(!spr) return;   // a bad sprite key must not throw mid-save and poison the canvas transform
   ctx.save();
   ctx.imageSmoothingEnabled = false;
   ctx.globalAlpha = alpha;

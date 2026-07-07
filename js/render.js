@@ -138,12 +138,13 @@ function draw(){
     ctx.font='10px monospace'; ctx.fillStyle='#f0e6c8'; ctx.fillText('THE MAIL', cx, cy-32);
   }
 
-  // enemy shots
+  // enemy shots (color = boss firing pattern, so a phase change reads mid-fight)
   for(const s of enemyShots){
-    ctx.fillStyle='#ff5577';
+    ctx.fillStyle = s.color || '#ff5577';
     ctx.beginPath(); ctx.arc(s.x-cam.x,s.y-cam.y,s.r,0,7); ctx.fill();
-    ctx.fillStyle='rgba(255,85,119,0.3)';
+    ctx.globalAlpha=0.3;
     ctx.beginPath(); ctx.arc(s.x-cam.x,s.y-cam.y,s.r+3,0,7); ctx.fill();
+    ctx.globalAlpha=1;
   }
   // player shots
   for(const s of shots){
@@ -203,6 +204,15 @@ function draw(){
       ctx.save(); ctx.strokeStyle='rgba(240,200,94,0.55)'; ctx.lineWidth=2; ctx.setLineDash([3,4]);
       ctx.beginPath(); ctx.arc(ex, ey, e.r+8, 0, 7); ctx.stroke(); ctx.restore();
     }
+    else if(e.slam && e.slamT>0){ // slammer hoisting the paperwork — impact zone fills in
+      const prog=1-e.slamT/e.slamMax;
+      ctx.save();
+      ctx.fillStyle='rgba(240,150,50,'+(0.08+0.16*prog)+')';
+      ctx.beginPath(); ctx.arc(ex, ey, e.slam.radius, 0, 7); ctx.fill();
+      ctx.strokeStyle='rgba(240,150,50,'+(0.35+0.45*prog)+')'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(ex, ey, e.slam.radius*prog, 0, 7); ctx.stroke();
+      ctx.restore();
+    }
   }
 
   // allies
@@ -250,6 +260,18 @@ function draw(){
     ctx.fillStyle = vg; ctx.fillRect(0,0,VW,VH);
   }
   ctx.restore(); // end world zoom — HUD, announcements, dialogs are screen-space
+
+  // desktop aim reticle — mouse fire (click) shoots at the cursor
+  if(!IS_TOUCH && state==='play' && !invOpen && !shopOpen && !helpOpen && mouse.y < HUD_Y){
+    ctx.strokeStyle = mouse.down ? '#f0c75e' : 'rgba(240,199,94,0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(mouse.x-8, mouse.y); ctx.lineTo(mouse.x-3, mouse.y);
+    ctx.moveTo(mouse.x+3, mouse.y); ctx.lineTo(mouse.x+8, mouse.y);
+    ctx.moveTo(mouse.x, mouse.y-8); ctx.lineTo(mouse.x, mouse.y-3);
+    ctx.moveTo(mouse.x, mouse.y+3); ctx.lineTo(mouse.x, mouse.y+8);
+    ctx.stroke();
+  }
 
   if(!IS_TOUCH) drawHUD(); // on touch the HUD lives in the DOM panel below the canvas
 
@@ -315,11 +337,13 @@ function drawHelp(){
   head('CONTROLS');
   row('WASD / Arrows','Move');
   row('Space / J','STRIKE — briefcase melee (no cooldown to speak of)');
-  row('K / Click','FIRE — your practice-area attack');
+  row('K / Click','FIRE — your practice-area attack (mouse aims at the cursor)');
   row('L','SPIN — Motion to Strike (clears bullets, STUNS the room)');
+  row('SHIFT','DASH — Motion to Expedite (phases through projectiles)');
   row('E','Talk / interact / use stations (Supply Closet, Board)');
   row('I','Bag — equip gear, read your open matters');
-  row('M  ·  H','Mute  ·  this manual');
+  row('M · H · F','Mute  ·  this manual  ·  fullscreen');
+  if(padOn) row('CONTROLLER','Sticks move / aim+fire · A talk · B strike · X fire · Y spin · LB dash');
   y += 6;
   head('EMERGENCY FILINGS  (buy at the Supply Closet, use anytime)');
   row('1','Emergency Cold Brew — restore Billable Energy');
@@ -327,7 +351,7 @@ function drawHelp(){
   row('3','Emergency Retainer — 5s of total immunity');
   y += 6;
   head('KNOW YOUR OPPOSITION');
-  tip('Paperwork Golems are DENSE — gunfire barely scratches them. STRIKE or SPIN to break them down.', '#9b8fb5');
+  tip('Paperwork Golems are DENSE — gunfire barely scratches them. STRIKE or SPIN to break them down, and step out of the slam.', '#9b8fb5');
   tip('Billable-Hour Wraiths DODGE incoming fire. Pin them with melee or catch them in a SPIN.', '#9b8fb5');
   tip('Decaf Gremlins POUNCE when you stand still and steal your caffeine. Keep moving.', '#9b8fb5');
   tip('Surrounded? SPIN stuns every non-boss in reach — buy yourself a beat, then clean up.', '#9be05e');
@@ -378,17 +402,19 @@ function drawHUD(){
   // --- middle: arsenal ---
   ctx.font='11px monospace'; ctx.fillStyle='#e8e0f0';
   ctx.fillText('STRIKE — Space / J', 300, y0+22);
-  ctx.fillText(`FIRE (${player.cls.atk}) — K`, 300, y0+38);
+  ctx.fillText(`FIRE (${player.cls.atk}) — K / Click`, 300, y0+36);
   ctx.fillStyle = player.spinCd<=0 ? '#9be05e' : '#9b8fb5';
-  ctx.fillText(player.spinCd<=0 ? 'SPIN — L  (READY)' : `SPIN — L  (${Math.max(0,player.spinCd).toFixed(1)}s)`, 300, y0+54);
+  ctx.fillText(player.spinCd<=0 ? 'SPIN — L  (READY)' : `SPIN — L  (${Math.max(0,player.spinCd).toFixed(1)}s)`, 300, y0+50);
+  ctx.fillStyle = player.dashCd<=0 ? '#9be05e' : '#9b8fb5';
+  ctx.fillText(player.dashCd<=0 ? 'DASH — Shift  (READY)' : `DASH — Shift  (${Math.max(0,player.dashCd).toFixed(1)}s)`, 300, y0+64);
   ctx.font='bold 12px monospace'; ctx.fillStyle='#caa84a';
-  ctx.fillText(`HOURS BILLED: ${fmtBH(player.billables)}`, 300, y0+78);
+  ctx.fillText(`HOURS BILLED: ${fmtBH(player.billables)}`, 300, y0+82);
   // emergency filings (quick-use 1/2/3) + manual hint
   const cc = id => countItem(id);
   ctx.font='10px monospace'; ctx.fillStyle='#9b8fb5';
-  ctx.fillText(`1 BREW x${cc('cold_brew')}  ·  2 WRIT x${cc('objection_writ')}  ·  3 RETAINER x${cc('retainer')}`, 300, y0+94);
+  ctx.fillText(`1 BREW x${cc('cold_brew')}  ·  2 WRIT x${cc('objection_writ')}  ·  3 RETAINER x${cc('retainer')}`, 300, y0+96);
   ctx.fillStyle = player.shieldT>0 ? '#5ec8f0' : '#5a4f73';
-  ctx.fillText(player.shieldT>0 ? `RETAINER: ${player.shieldT.toFixed(1)}s — IMMUNE` : 'H — FIELD MANUAL', 300, y0+108);
+  ctx.fillText(player.shieldT>0 ? `RETAINER: ${player.shieldT.toFixed(1)}s — IMMUNE` : 'H — FIELD MANUAL', 300, y0+110);
 
   // --- right: current matter + side quests ---
   const q = QUESTS[questIdx];
