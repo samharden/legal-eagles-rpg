@@ -254,14 +254,42 @@ function buildVault(){
     stairs:[ { tx:13, ty:16, to:'annex', dx:15*TILE+20, dy:13*TILE+20, label:'[E] back up to the annex' } ],
   };
 }
-function buildWorlds(){ worlds = {}; buildOffice(); buildAnnex(); buildGarage(); buildFloor24(); buildCourtroom(); buildVault(); }
+// ---- ambient staff & lighting moods (session-transient; not saved) ----
+// mood: { vign: edge-darkness 0..1, tint: css color washed over the floor, pulse: breathe }
+function extraSpot(w){
+  let tx, ty, tries = 0;
+  do { tx = 2+Math.floor(Math.random()*(w.w-4)); ty = 2+Math.floor(Math.random()*(w.h-4)); }
+  while(solid(w.grid[ty][tx]) && ++tries < 200);
+  return { x:tx*TILE+20, y:ty*TILE+20 };
+}
+function seedExtras(){
+  const mkx = (w, n, sprs) => {
+    w.extras = [];
+    for(let i=0;i<n;i++){
+      const p = extraSpot(w);
+      w.extras.push({ x:p.x, y:p.y, tx:p.x, ty:p.y, r:12, spr:sprs[i%sprs.length],
+                      pauseT:Math.random()*2, barkT:3+Math.random()*10, wob:Math.random()*7, flip:false });
+    }
+  };
+  mkx(worlds.office, 7, ['juror','p_m','p_f']);
+  mkx(worlds.floor24, 5, ['p_f','juror','p_m']);
+  worlds.office.mood = null;                                              // fluorescent honesty
+  worlds.annex.mood  = { vign:0.55 };
+  worlds.garage.mood = { vign:0.55, tint:'rgba(40,60,120,0.05)' };        // sodium-lamp chill
+  worlds.floor24.mood = { tint:'rgba(70,130,220,0.07)' };                 // thermostat set to "deposition"
+  worlds.courtroom.mood = { vign:0.30, tint:'rgba(200,170,90,0.05)' };    // gavel-colored gravity
+  worlds.vault.mood = { vign:0.68, tint:'rgba(60,200,140,0.05)', pulse:true }; // it breathes
+}
+function buildWorlds(){ worlds = {}; buildOffice(); buildAnnex(); buildGarage(); buildFloor24(); buildCourtroom(); buildVault(); seedExtras(); }
 function loadWorld(id){
   worldId = id; const w = worlds[id];
   map = w.grid; MAPW = w.w; MAPH = w.h;
   enemies = w.enemies; pickups = w.pickups;
+  extras = w.extras || [];
 }
 function setWorld(id, px, py){
-  worlds[worldId].enemies = enemies; worlds[worldId].pickups = pickups;
+  if(worldId==='office' && id!=='office') reviewEnd();   // leaving the floor recesses Document Review
+  worlds[worldId].enemies = enemies; worlds[worldId].pickups = pickups; worlds[worldId].extras = extras;
   loadWorld(id);
   questEvent('reach', { world:id });
   player.x = px; player.y = py;

@@ -131,6 +131,7 @@ function pollGamepad(){
       padMenuHighlight();
     } else keys['e'] = true;   // update() consumes and clears this itself
   }
+  if(edge(3) && state==='victory') startNGPlus();   // Y on the victory screen accepts THE MERGER
 
   // --- B: close whatever panel is up ---
   if(edge(1) && inPanel){

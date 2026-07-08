@@ -5,6 +5,7 @@ let player, enemies, shots, enemyShots, pickups, floaters, particles;
 let cam = {x:0,y:0};
 let questIdx, questPhase; // phase: 'get'|'active'|'turnin'|'none'
 let allies = [], servers = [], dlg = null, flags = {};
+let extras = [];   // ambient staff — wander, mutter, panic; never fight, never saved
 let companion = null; // the Printer Companion follower (synced each frame from equip state)
 let cart = null, cartSpawnT = 0; // Rosa's mail-cart escort (office only)
 let pendingSpawn = null;         // quest spawns deferred until the player reaches the quest's world

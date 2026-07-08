@@ -78,10 +78,14 @@ XP promotes you: Junior Associate → Associate → Senior Associate → Of Coun
 
 Coffee restores Billable Energy. Your dialogue choices track **Ethics** and **Ambition** — they decide which of the endings you get. Seven dusty case files from 1959–1987 are hidden across the maps; reading them unlocks things best discovered in the dark. The jury must be won. All twelve.
 
+Assignment-board matters scale with your rank — tougher targets, bigger fees. Once Act III opens, the board also offers **DOCUMENT REVIEW**: endless production waves, paid per wave survived. And after any ending, press `N` to accept **THE MERGER** — NG+ with your gear and hours carried over, rank reset, and every opposing party fifty percent more motivated.
+
 ## Story
 Something is wrong at this firm. The coffee never quite works. Everyone is always tired. The billing records go back to 1987 — and one timesheet says twenty-five hours in a single day. There's a numbered trust, a partner who never aged, a stapler-shaped hole in the mailroom's history, and a judge who has been hearing this firm's cases since before you were born. Your partnership review is at midnight, in the corner office.
 
 Don't read old timesheets. They read back.
+
+The floors are alive: ambient staff wander the halls muttering about the Hendricks file, panic when fighting breaks out (press `E` to poke one), and each map carries its own lighting mood — the vault, in particular, breathes.
 
 ## Technical Notes
 - Single `index.html` file — all game logic, pixel sprites, maps, quests, and audio inline

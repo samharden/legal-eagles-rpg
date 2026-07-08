@@ -1,8 +1,12 @@
 "use strict";
 // ============================== ENTITIES ==============================
-function spawnEnemy(type, x, y){
+function spawnEnemy(type, x, y, scale){
   const t = ENEMY_TYPES[type];
-  enemies.push({ type, ...t, x, y, hp:t.hp, maxhp:t.hp, shotT: Math.random()*1.5, hurtT:0, wob:Math.random()*7 });
+  let s = scale || 1;
+  if(flags.ngplus) s *= 1.5;   // THE MERGER: the whole opposition re-papered, 50% angrier
+  const e = { type, ...t, x, y, hp:t.hp*s, maxhp:t.hp*s, shotT: Math.random()*1.5, hurtT:0, wob:Math.random()*7 };
+  if(s !== 1){ e.dmg = Math.round(t.dmg*(1+(s-1)*0.5)); e.xp = Math.round(t.xp*s); } // dmg scales gentler than hp
+  enemies.push(e);
   if(t.boss) SFX.bossIntro();   // every boss gets a dread sting, wherever it spawns
 }
 

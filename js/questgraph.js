@@ -192,21 +192,67 @@ function genOffer(){
   // opposing-counsel escort. A real risk/reward call against the billables faucet.
   const hazard = questIdx >= 3 && Math.random() < 0.30;
   const mult = hazard ? 2.4 : 1;
+  // matters grow with the attorney: targets spawn tougher, and the fee keeps pace,
+  // so board work stays a fight (and a faucet) all the way to Name Partner
+  const lvl = (player && player.rank) ? player.rank.lvl : 1;
+  const rm = 1 + 0.12*(lvl-1);
   return { id:'m'+(boardSeq++), enemy:t.enemy, verb:t.verb, noun:t.noun, n, hazard,
-           bh:Math.round(n*t.pay*mult), xp:Math.round(n*t.pay*0.4*mult) };
+           sc: 1 + 0.15*(lvl-1),
+           bh:Math.round(n*t.pay*mult*rm), xp:Math.round(n*t.pay*0.4*mult*rm) };
 }
 function refreshBoard(){ boardOffers = [genOffer(), genOffer(), genOffer()]; }
 function acceptMatter(i){
   const m = boardOffers[i];
-  if(!m || boardActive) return;
+  if(!m || boardActive || review) return;
   boardActive = { ...m, prog:0 };
-  for(let k=0;k<m.n;k++){ const p = findOpen(player.x, player.y, 320); spawnEnemy(m.enemy, p.x, p.y); }
-  if(m.hazard) for(let k=0;k<2;k++){ const p = findOpen(player.x, player.y, 360); spawnEnemy('counsel', p.x, p.y); } // the escort
+  for(let k=0;k<m.n;k++){ const p = findOpen(player.x, player.y, 320); spawnEnemy(m.enemy, p.x, p.y, m.sc||1); }
+  if(m.hazard) for(let k=0;k<2;k++){ const p = findOpen(player.x, player.y, 360); spawnEnemy('counsel', p.x, p.y, m.sc||1); } // the escort
   SFX.quest(); shake = Math.max(shake, 6);
   announce(`MATTER ACCEPTED: ${matterName(m)}. The work has been dispatched to the floor — defend your billables.`, true, 4.5);
   boardOffers[i] = genOffer();   // the slot refreshes immediately
   saveGame();
 }
+// ============================== DOCUMENT REVIEW (ENDLESS) ==============================
+// Post-Act-III survival mode, offered by the assignment board: escalating waves of
+// scaled enemies on the office floor, paid per wave survived. Session-transient —
+// leaving the floor recesses the review; only the best-wave record persists (flags).
+let review = null;   // { wave, rest } — rest is the breather countdown between waves
+function startReview(){
+  review = { wave:0, rest:0 };
+  announce('DOCUMENT REVIEW COMMENCES. Discovery is infinite. Each production wave pays on completion; leave the floor to recess.', true, 5);
+  reviewNextWave();
+}
+function reviewNextWave(){
+  review.wave++;
+  const w = review.wave, lvl = player.rank.lvl;
+  const sc = (1 + 0.15*(lvl-1)) * (1 + 0.08*(w-1));
+  const pool = ['paralegal','intern','wraith','gremlin','golem'];
+  if(w >= 3) pool.push('counsel','assoc');
+  if(w >= 5) pool.push('bailiff');
+  const n = Math.min(14, 3 + w);
+  for(let i=0;i<n;i++){
+    let p;
+    do { p = findOpen(player.x, player.y, 380); } while(Math.hypot(p.x-player.x, p.y-player.y) < 220);
+    spawnEnemy(pool[Math.floor(Math.random()*pool.length)], p.x, p.y, sc);
+  }
+  if(w % 5 === 0){ const p = findOpen(player.x, player.y, 380); spawnEnemy('expert', p.x, p.y, sc*0.8); } // partner audit
+  SFX.quest();
+  announce(`DOCUMENT REVIEW — WAVE ${w}. ${n + (w%5===0?1:0)} documents contest their production.`, true, 3.5);
+}
+function reviewWaveCleared(){
+  const pay = Math.round((30 + 14*review.wave) * (1 + 0.12*(player.rank.lvl-1)));
+  gainBillables(pay); gainXP(Math.round(pay*0.4));
+  flags.reviewBest = Math.max(flags.reviewBest||0, review.wave);
+  review.rest = 2.5;
+  SFX.closeMatter();
+  announce(`WAVE ${review.wave} PRODUCED. +${pay} hrs. The next production is being wheeled in...`, false, 3);
+}
+function reviewEnd(){
+  if(!review) return;
+  announce(`DOCUMENT REVIEW RECESSED at wave ${review.wave}. Best on record: ${flags.reviewBest||0}. The documents will wait. They always do.`, false, 4.5);
+  review = null;
+}
+
 function boardKill(type){
   if(!boardActive || boardActive.enemy !== type) return;
   boardActive.prog++;

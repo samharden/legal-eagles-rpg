@@ -181,6 +181,15 @@ function update(dt){
         used = true;
       }
     }
+    // poke a coworker: they bark, immediately, on the record
+    if(!used) for(const ex of extras){
+      if(Math.hypot(player.x-ex.x, player.y-ex.y) < 44){
+        const pool = enemies.length ? EXTRA_BARKS.panic : (EXTRA_BARKS[worldId] || EXTRA_BARKS.office);
+        floaters.push({ x:ex.x, y:ex.y-26, text:pool[Math.floor(Math.random()*pool.length)], t:2.4, color:'#bcb0d4' });
+        ex.barkT = 7 + Math.random()*15;
+        used = true; break;
+      }
+    }
     // desk workstations — last in the chain so named stations always win the press
     if(!used){
       const term = nearTerminal();
@@ -535,6 +544,45 @@ function update(dt){
     }
   }
   enemies = enemies.filter(e=>e.hp>0);
+
+  // endless Document Review: floor cleared → pay the wave, breathe, next production
+  if(review && worldId==='office'){
+    if(review.rest > 0){ review.rest -= dt; if(review.rest <= 0){ review.rest = 0; reviewNextWave(); } }
+    else if(enemies.length === 0) reviewWaveCleared();
+  }
+
+  // ambient staff: wander desk to desk, mutter near the player, panic during combat
+  const panic = enemies.length > 0;
+  for(const ex of extras){
+    ex.barkT -= dt;
+    if(ex.pauseT > 0 && !panic) ex.pauseT -= dt;
+    else {
+      const d = Math.hypot(ex.tx-ex.x, ex.ty-ex.y);
+      if(d < 6){
+        // arrived: linger, then pick a new spot a few desks away (panic skips the linger)
+        let nt = null;
+        for(let i=0;i<20 && !nt;i++){
+          const tx = Math.floor(ex.x/TILE) + Math.floor(Math.random()*9)-4;
+          const ty = Math.floor(ex.y/TILE) + Math.floor(Math.random()*9)-4;
+          if(tx>0 && ty>0 && tx<MAPW-1 && ty<MAPH-1 && !solid(map[ty][tx])) nt = { tx, ty };
+        }
+        if(nt){ ex.tx = nt.tx*TILE+20; ex.ty = nt.ty*TILE+20; }
+        ex.pauseT = panic ? 0 : 1 + Math.random()*3;
+      } else {
+        const bx = ex.x, by = ex.y;
+        moveEntity(ex, (ex.tx-ex.x)/d*(panic?150:55), (ex.ty-ex.y)/d*(panic?150:55), dt);
+        ex.flip = ex.tx < ex.x;
+        if(ex.x===bx && ex.y===by){ ex.tx = ex.x; ex.ty = ex.y; } // wedged on a wall: replan next frame
+      }
+    }
+    if(ex.barkT <= 0){
+      ex.barkT = 7 + Math.random()*15;
+      if(panic || Math.hypot(player.x-ex.x, player.y-ex.y) < 260){
+        const pool = panic ? EXTRA_BARKS.panic : (EXTRA_BARKS[worldId] || EXTRA_BARKS.office);
+        floaters.push({ x:ex.x, y:ex.y-26, text:pool[Math.floor(Math.random()*pool.length)], t:2.4, color:'#bcb0d4' });
+      }
+    }
+  }
 
   // allies (billing immunity: invulnerable, highly motivated)
   for(const al of allies){

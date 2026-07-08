@@ -120,6 +120,10 @@ function draw(){
     drawSprite(SPR[p.spr], p.x-cam.x, p.y-cam.y+b, 28);
   }
 
+  // ambient staff (drawn under the named NPCs — background people)
+  for(const ex of extras)
+    drawSprite(SPR[ex.spr], ex.x-cam.x, ex.y-cam.y + Math.sin(gameTime*3+ex.wob)*1.5, 30, ex.flip, 0.92);
+
   // NPCs
   ctx.textAlign='center'; ctx.textBaseline='middle';
   if(worldId==='office') for(const n of NPCS){
@@ -269,10 +273,16 @@ function draw(){
   }
   ctx.globalAlpha=1;
 
-  if(worldId==='annex' || worldId==='garage'){
-    const vg = ctx.createRadialGradient(player.x-cam.x, player.y-cam.y, 90, player.x-cam.x, player.y-cam.y, 420);
-    vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,0.55)');
-    ctx.fillStyle = vg; ctx.fillRect(0,0,VW,VH);
+  // per-map lighting mood: a color wash and/or a personal-space vignette (see seedExtras)
+  const mood = worlds[worldId].mood;
+  if(mood){
+    if(mood.tint){ ctx.fillStyle = mood.tint; ctx.fillRect(0,0,VW,VH); }
+    if(mood.vign){
+      const a = mood.pulse ? mood.vign*(0.9 + 0.1*Math.sin(gameTime*1.6)) : mood.vign;
+      const vg = ctx.createRadialGradient(player.x-cam.x, player.y-cam.y, 90, player.x-cam.x, player.y-cam.y, 420);
+      vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,`rgba(0,0,0,${a})`);
+      ctx.fillStyle = vg; ctx.fillRect(0,0,VW,VH);
+    }
   }
   ctx.restore(); // end world zoom — HUD, announcements, dialogs are screen-space
 
@@ -458,6 +468,7 @@ function sideQuestLines(){
   if(flags.portraits>0 && !flags.eleven) s.push(`* Library portraits: ${flags.portraits}/11`);
   { const tn = Object.keys(flags.termRead||{}).length;
     if(tn>0 && !flags.intranetDone) s.push(`* Intranet archive: ${tn}/${Object.keys(TERMINALS).length} messages`); }
+  if(review) s.push(review.rest>0 ? `* DOC REVIEW: wave ${review.wave} paid — next incoming` : `* DOC REVIEW: wave ${review.wave} — clear the floor`);
   if(flags.eleven && !flags.baneWeak && questIdx>=6) s.push('* Ask Dolores about the eleven');
   if(questIdx===8 && questPhase==='active' && !flags.baneSpawned) s.push(`* Jury won: ${flags.jury}/12`);
   return s;
@@ -476,7 +487,9 @@ function drawSummaryCard(){
     ['ENEMIES SANCTIONED',`${flags.totalKills||0}`],
     ['1987 FILES RECOVERED', `${flags.lore||0}/7`],
   ];
-  const CW = 460, CHc = 40 + rows.length*22, cx = W/2 - CW/2, cy = CH - CHc - 96;
+  if(flags.reviewBest) rows.push(['DOC REVIEW — BEST WAVE', `${flags.reviewBest}`]);
+  if(flags.merger) rows.push(['MERGERS SURVIVED', `${flags.merger}`]);
+  const CW = 460, CHc = 40 + rows.length*22, cx = W/2 - CW/2, cy = CH - CHc - 60;
   ctx.fillStyle='rgba(28,23,48,0.92)'; ctx.fillRect(cx, cy, CW, CHc);
   ctx.strokeStyle='#caa84a'; ctx.lineWidth=2; ctx.strokeRect(cx, cy, CW, CHc);
   ctx.textAlign='center'; ctx.font='bold 13px monospace'; ctx.fillStyle='#f0c75e';
@@ -587,6 +600,8 @@ function drawEnd(){
   }
   drawSummaryCard();
   ctx.font='bold 16px monospace'; ctx.fillStyle='#f0c75e';
-  ctx.fillText('Press R to file an appeal (restart)', W/2, CH-40);
+  ctx.fillText(state==='victory'
+    ? 'R — file an appeal (restart)   ·   N — accept THE MERGER (NG+: keep gear & hours, enemies +50%)'
+    : 'Press R to file an appeal (restart)', W/2, CH-40);
 }
 

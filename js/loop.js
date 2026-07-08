@@ -72,6 +72,7 @@ window.addEventListener('keydown', e=>{
     return;
   }
   keys[k]=true;
+  if(k==='n' && state==='victory'){ startNGPlus(); return; }
   if(k==='r' && (state==='gameover'||state==='victory')){
     document.getElementById('menu').style.display='flex';
     state='menu';

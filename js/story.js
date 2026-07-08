@@ -186,6 +186,26 @@ function endAct3(){
   if(flags.ending === 'sign') SFX.jingleLose(); else SFX.jingleWin();
   clearSave();
 }
+// NG+ — THE MERGER: a fresh run that keeps your gear and hours. Rank resets (the
+// merged entity does not recognize prior promotions); every enemy in the building,
+// spawned or pre-placed, is re-papered 50% tougher via flags.ngplus (see spawnEnemy).
+function startNGPlus(){
+  const carry = { inv:[...player.inventory], equip:{...player.equip}, billables:player.billables,
+                  genderId:player.spr.slice(2), classId:player.cls.id, merger:(flags.merger||0)+1,
+                  reviewBest:flags.reviewBest||0 };
+  startGame(carry.genderId, carry.classId);
+  player.inventory = carry.inv; player.equip = carry.equip; player.billables = carry.billables;
+  flags.ngplus = true; flags.merger = carry.merger; flags.reviewBest = carry.reviewBest;
+  for(const id in worlds) for(const e of worlds[id].enemies){   // scale the pre-placed too
+    e.hp *= 1.5; e.maxhp *= 1.5; e.dmg = Math.round(e.dmg*1.25); e.xp = Math.round(e.xp*1.5);
+  }
+  recalcMaxHP(); player.hp = player.maxhp;
+  dlg = null;
+  startDialog([
+    N('memo', `MEMORANDUM — RE: THE MERGER${carry.merger>1 ? ' ('+carry.merger+')' : ''}. Dewey, Cheatham & Howe has merged with itself, retroactively, effective 1959. All matters are reopened. All opposing parties are fifty percent more motivated. Your gear, hours, and enemies-made carry over. Your rank does not — the merged entity recognizes no prior promotions. Welcome back to Orientation, counselor.`),
+  ]);
+  saveGame();
+}
 function talkLocke(){
   const done = qstate.p_locke && qstate.p_locke.status === 'done';
   if(done){
@@ -311,6 +331,13 @@ function talkBenny(){
       N('benny', "Three parts. ONE: descaling solution — there's a vintage jug on the supply shelves in the Records Annex. TWO: a heating element — some partner abandoned a five-figure espresso rig down in the parking garage. Sublevel P3; freight elevator's in the mailroom. Fair warning: the rig's behind the valet cage, and the Worthingtons have kept that key since '87. THREE: a limited-edition portafilter. Chad bought the last one at a charity auction. To DISPLAY it. So really, Chad is steps two AND three. Godspeed."),
     ], () => { flags.coffeeBrief = true; });
   }
+  else if(flags.termRead['office:14,11'] && !flags.bennyTicket){
+    startDialog([
+      N('benny', "You found ticket 4471?! I closed that in NINETY-FOUR and it reopens itself every year. Same night. Look — since you're apparently the only person in this building who READS:"),
+      N('benny', "The 25th hour is real. The billing system posts into it, every entry lands in matter 000-1959, and I traced the receiving server once. There's no server. There's a ROOM. I don't go to the room. Here — two cold brews from my personal stash. If you're going to keep reading things that read back, be caffeinated for it."),
+    ], () => { flags.bennyTicket = true; gainXP(30); giveItem('cold_brew', true); giveItem('cold_brew', true);
+               announce('Benny slips you two Emergency Cold Brews (quick-use: 1). He also updates ticket 4471: "KNOWN ISSUE. DO NOT FIX."', false, 4.5); });
+  }
   else if(flags.bennyQ === 0){
     startDialog([
       N('benny', "Oh thank god, someone with conflict experience. The document management system is down. THREE servers need a percussive reboot. Smack 'em till the light goes green."),
@@ -351,6 +378,12 @@ function talkDolores(){
     ]);
   } else if(flags.doloresQ === 1){
     startDialog([N('dolores', "The envelope, dear. Mister Worthington. Sealed. I will know.")]);
+  } else if(flags.termRead['office:15,20'] && !flags.doloresDraft){
+    startDialog([
+      N('dolores', "(The typing stops. In forty years, the typing has never stopped.) You read my draft. The one on the old terminal, to Prudence."),
+      N('dolores', "I wrote it the week she vanished and never touched SEND. The key felt like a witness stand. ...She kept a continuance countersigned in 1981 — blank as to date — in case either of us ever needed more time. Take it. I have decided you are what we were saving the time FOR. (The typing resumes. It sounds, briefly, like applause.)"),
+    ], () => { flags.doloresDraft = true; flags.ethics++; gainXP(30); giveItem('objection_writ', true);
+               announce('Dolores gives you a Pre-Filed Continuance (quick-use: 2) and forty years of unspent tenderness, notarized. (+1 Ethics)', false, 5); });
   } else {
     startDialog([N('dolores', flags.rosaQ === 2 ? "My stamper came home, I hear. (She almost smiles. The room warms by two degrees.)" : "Delivered? Good. (typing) The boy's father was the same. All bluster, no Bates.")]);
   }
@@ -415,11 +448,17 @@ function talkLenny(){
   }
 }
 function talkBoard(){
+  if(review){
+    startDialog([N('memo', `DOCUMENT REVIEW IN PROGRESS — wave ${review.wave}. The board declines to assign new matters to an attorney currently buried in production. Leave the floor to recess.`)]);
+    return;
+  }
   if(boardActive){
     startDialog([N('memo', `OPEN MATTER: ${matterName(boardActive)} — ${boardActive.prog}/${boardActive.n} handled. The board takes one matter at a time. Close this one first.`)]);
     return;
   }
   const ch = boardOffers.map((m,i) => ({ t:`${matterName(m)}  ·  ${m.bh} hrs`, fx:()=>acceptMatter(i) }));
+  if(flags.act3) ch.push({ t:`DOCUMENT REVIEW — endless production, pays per wave. (best: ${flags.reviewBest||0})`,
+    fx:()=>startReview() });
   ch.push({ t:"Not right now.", say:"The board waits. It is, after all, cork. It has nothing but time — and so, technically, do you." });
   startDialog([
     N('memo', "ASSIGNMENT BOARD — standing matters, billable on completion. The work is eternal; so is the firm. Take one:", ch),
@@ -453,13 +492,50 @@ function npcMarker(n){
     case 'rosa':     return flags.rosaQ===0 ? '!'
                           : (flags.rosaQ===1 && flags.hasStamper) || flags.mailQ===2 ? '?'
                           : (flags.rosaQ===2 && flags.mailQ===0) ? '!' : null;
-    case 'benny':    return flags.bennyQ===0 || (flags.coffeeQ===1 && !flags.coffeeBrief) ? '!' : (flags.bennyQ===1 && flags.serversFixed>=3 ? '?' : null);
-    case 'dolores':  return flags.doloresQ===0 ? '!' : (flags.eleven && !flags.baneWeak && questIdx>=6) ? '!' : null;
+    case 'benny':    return flags.bennyQ===0 || (flags.coffeeQ===1 && !flags.coffeeBrief) || (flags.termRead['office:14,11'] && !flags.bennyTicket) ? '!' : (flags.bennyQ===1 && flags.serversFixed>=3 ? '?' : null);
+    case 'dolores':  return flags.doloresQ===0 ? '!' : (flags.eleven && !flags.baneWeak && questIdx>=6) ? '!' : (flags.doloresQ>=2 && flags.termRead['office:15,20'] && !flags.doloresDraft) ? '!' : null;
     case 'lenny':    return flags.lennyQ===0 ? '!' : (flags.lennyQ===1 && flags.lennyKills>=3) ? '?' : null;
     case 'chad':     return flags.doloresQ===1 ? '?' : (flags.grandfatherDown && !flags.chadGpa) || (flags.coffeeBrief && !flags.partChad) ? '!' : null;
   }
   return null;
 }
+
+// ---- AMBIENT STAFF: non-combat extras who wander, mutter, and panic ----
+const EXTRA_BARKS = {
+  office: [
+    "Has anyone seen the Hendricks file? Anyone?",
+    "I've been on hold with the clerk's office since Tuesday.",
+    "0.1 — thinking about the case in the shower.",
+    "The fourth floor printer is a cry for help.",
+    "I billed a dream once. It settled.",
+    "Lunch? I had lunch in 2019. It was fine.",
+    "Don't take the stairs past B2. Trust me.",
+    "My paralegal quit. My OTHER paralegal... turned.",
+    "Redlines due at midnight. They're always due at midnight.",
+    "I found a conference room nobody knows about. It's mine now.",
+    "Partner track? I'm on partner TREADMILL.",
+    "The vending machine took my hours AND my dignity.",
+    "Whoever's billing matter 000-1959 — please stop.",
+    "I CC'd myself for the company. The company of me.",
+  ],
+  floor24: [
+    "We're not allowed to say 'Dewey' on this floor.",
+    "Associate of the Month gets a plaque AND a cot.",
+    "Our coffee is decaf. Silas says ambition is a stimulant.",
+    "I hear their mailroom has a ghost. We have a Peloton.",
+    "Billing race at nine. Loser drafts the interrogatories.",
+    "The good pens are in the display case. LOOKING is billable.",
+  ],
+  panic: [
+    "NOT THE BILLABLES!",
+    "I'm taking PTO! Retroactively!",
+    "This is why I went in-house— oh no, I didn't.",
+    "SAVE THE HENDRICKS FILE!",
+    "I have a deposition!! I'll hide in it!",
+    "Someone call security! Someone BILL security!",
+    "Not again. Not during MY quarter.",
+  ],
+};
 
 // ---- THE INTRANET ARCHIVE: every desk computer is a readable workstation ----
 // Nine authored messages (keyed 'world:tx,ty' on real desk tiles) carry a second
@@ -601,7 +677,8 @@ function startGame(genderId, classId){
             portraits:0, eleven:false, baneWeak:false,
             trialWave:0, jury:0, baneSpawned:false,
             lennyQ:0, lennyKills:0, act3:false, helpSeen:false,
-            termRead:{}, intranetDone:false,
+            termRead:{}, intranetDone:false, bennyTicket:false, doloresDraft:false,
+            reviewBest:0, ngplus:false, merger:0,
             totalKills:0, totalBilled:0, boardClosed:0 };
   cart = null; cartSpawnT = 0;
   pendingSpawn = null; orderT = 6; orderActive = false; orderFired = false;
