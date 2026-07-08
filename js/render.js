@@ -352,35 +352,56 @@ function drawHelp(){
   ctx.fillStyle='#f0c75e'; ctx.font='bold 12px monospace'; ctx.textAlign='center';
   ctx.fillText('CLOSE', cb.x+cb.w/2, cb.y+18); ctx.textAlign='left'; helpRects.push(cb);
 
-  let y = PY+62;
-  const head = (t)=>{ ctx.font='bold 13px monospace'; ctx.fillStyle='#caa84a'; ctx.fillText(t, PX+24, y); y+=20; };
-  const row  = (k,t)=>{ ctx.font='bold 12px monospace'; ctx.fillStyle='#5ec8f0'; ctx.fillText(k, PX+34, y);
-                        ctx.font='12px monospace'; ctx.fillStyle='#e8e0f0'; ctx.fillText(t, PX+170, y); y+=18; };
-  const tip  = (t,c)=>{ ctx.font='12px monospace'; ctx.fillStyle=c||'#9be05e';
-                        wrap(t, 80).forEach((l,i)=>{ ctx.fillText((i?'   ':'• ')+l, PX+34, y); y+=16; }); };
+  // two columns: keyboard & filings on the left, the full controller map on the right
+  let y = PY+62, y2 = PY+62;
+  const CX2 = PX+352;   // right-column origin
+  const head  = (t)=>{ ctx.font='bold 13px monospace'; ctx.fillStyle='#caa84a'; ctx.fillText(t, PX+24, y); y+=20; };
+  const row   = (k,t)=>{ ctx.font='bold 12px monospace'; ctx.fillStyle='#5ec8f0'; ctx.fillText(k, PX+34, y);
+                         ctx.font='12px monospace'; ctx.fillStyle='#e8e0f0'; ctx.fillText(t, PX+142, y); y+=18; };
+  const head2 = (t)=>{ ctx.font='bold 13px monospace'; ctx.fillStyle='#caa84a'; ctx.fillText(t, CX2, y2); y2+=20; };
+  const row2  = (k,t)=>{ ctx.font='bold 12px monospace'; ctx.fillStyle='#5ec8f0'; ctx.fillText(k, CX2+10, y2);
+                         ctx.font='12px monospace'; ctx.fillStyle='#e8e0f0'; ctx.fillText(t, CX2+130, y2); y2+=18; };
+  const tip   = (t,c)=>{ ctx.font='12px monospace'; ctx.fillStyle=c||'#9be05e';
+                         wrap(t, 80).forEach((l,i)=>{ ctx.fillText((i?'   ':'• ')+l, PX+34, y); y+=16; }); };
 
-  head('CONTROLS');
+  head('KEYBOARD & MOUSE');
   row('WASD / Arrows','Move');
-  row('Space / J','STRIKE — briefcase melee (no cooldown to speak of)');
-  row('K / Click','FIRE — your practice-area attack (mouse aims at the cursor)');
-  row('L','SPIN — Motion to Strike (clears bullets, STUNS the room)');
-  row('SHIFT','DASH — Motion to Expedite (phases through projectiles)');
-  row('E','Talk / interact / use stations (Supply Closet, Board)');
-  row('I','Bag — equip gear, read your open matters');
-  row('M · H · F','Mute  ·  this manual  ·  fullscreen');
-  if(padOn) row('CONTROLLER','Sticks move / aim+fire · A talk · B strike · X fire · Y spin · LB dash');
+  row('Space / J','STRIKE — briefcase melee');
+  row('K / Click','FIRE (mouse aims at cursor)');
+  row('L','SPIN — clears bullets, stuns');
+  row('SHIFT','DASH — dodges projectiles');
+  row('E','Talk / read / interact');
+  row('I','Bag & open matters');
+  row('M · H · F','Mute · manual · fullscreen');
   y += 6;
-  head('EMERGENCY FILINGS  (buy at the Supply Closet, use anytime)');
-  row('1','Emergency Cold Brew — restore Billable Energy');
-  row('2','Pre-Filed Continuance — freeze the room for 3s');
-  row('3','Emergency Retainer — 5s of total immunity');
-  y += 6;
+  head('EMERGENCY FILINGS (hotkeys)');
+  row('1','Cold Brew — restore energy');
+  row('2','Continuance — freeze room 3s');
+  row('3','Retainer — 5s immunity');
+
+  head2('🎮 XBOX / PS CONTROLLER');
+  row2('L-stick / D-pad','Move · navigate menus');
+  row2('R-stick','Aim + auto-FIRE (twin-stick)');
+  row2('A','Talk / confirm / advance');
+  row2('B','STRIKE  (in menus: close)');
+  row2('X / RB / RT','FIRE');
+  row2('Y','SPIN');
+  row2('LB / LT','DASH');
+  row2('Start','Bag');
+  row2('Back / View','This manual');
+  y2 += 8;
+  ctx.font='italic 11px monospace'; ctx.fillStyle = padOn ? '#9be05e' : '#9b8fb5';
+  ctx.fillText(padOn ? '✓ controller connected' : 'Pair over Bluetooth — detected automatically.', CX2+10, y2);
+  // column divider
+  ctx.strokeStyle='#3a3153'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(CX2-16, PY+50); ctx.lineTo(CX2-16, Math.max(y, y2)+4); ctx.stroke();
+
+  y = Math.max(y, y2+16) + 8;
   head('KNOW YOUR OPPOSITION');
   tip('Paperwork Golems are DENSE — gunfire barely scratches them. STRIKE or SPIN to break them down, and step out of the slam.', '#9b8fb5');
   tip('Billable-Hour Wraiths DODGE incoming fire. Pin them with melee or catch them in a SPIN.', '#9b8fb5');
   tip('Decaf Gremlins POUNCE when you stand still and steal your caffeine. Keep moving.', '#9b8fb5');
   tip('Surrounded? SPIN stuns every non-boss in reach — buy yourself a beat, then clean up.', '#9be05e');
-  y += 10;
   ctx.font='italic 11px monospace'; ctx.fillStyle='#9b8fb5';
   ctx.fillText('Press H or ESC to return to work. The work is eternal; so is the firm.', PX+24, PY+PH-18);
 }

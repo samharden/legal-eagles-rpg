@@ -288,7 +288,7 @@ function drawInventory(){
   if(invTab==='quests'){ drawQuestLog(PX,PY,PW,PH); return; }
 
   ctx.font='11px monospace'; ctx.fillStyle='#9b8fb5';
-  ctx.fillText('click an item to equip / unequip / use', PX+24, PY+54);
+  ctx.fillText(padOn ? 'click an item — or d-pad + A — to equip / unequip / use' : 'click an item to equip / unequip / use', PX+24, PY+54);
 
   // equip slots (three across: weapon / accessory / suit)
   const slotY=PY+78, slotW=Math.floor((PW-48-32)/3);
@@ -313,35 +313,70 @@ function drawInventory(){
   ctx.font='11px monospace'; ctx.fillStyle='#caa84a';
   ctx.fillText(`FIRE x${dmgX.toFixed(2)} dmg · x${rateX.toFixed(2)} rate · ${ws.count} shot${ws.count>1?'s':''}${ws.pierce?' · pierce':''}  |  ARMOR ${arm}%  ·  MAX HP ${player.maxhp}`, PX+24, slotY+78);
 
-  // carried-item list (deduped with counts) — clipped, scrollable viewport
+  // carried-item list — grouped by kind, equipped first, then rarity; clipped + scrollable
   const counts={}; for(const id of player.inventory) counts[id]=(counts[id]||0)+1;
   const ids=Object.keys(counts);
   ctx.font='bold 12px monospace'; ctx.fillStyle='#caa84a';
   ctx.fillText('CARRYING', PX+24, slotY+98);
   if(!ids.length){ ctx.fillStyle='#5a4f73'; ctx.font='italic 12px monospace';
     ctx.fillText('Your bag is empty. The firm has taken everything else.', PX+24, slotY+118); }
-  const rx=PX+24, rw=PW-48, rh=40, rowH=rh+6;
+  const SECTIONS = [ ['weapon','WEAPON MODS'], ['accessory','ACCESSORIES'], ['suit','SUITS'],
+                     ['consumable','EMERGENCY FILINGS'], ['key','KEY ITEMS & EVIDENCE'] ];
+  const isEq = id => Object.values(player.equip).includes(id);
+  const rows = [], seen = new Set();
+  for(const [kind,label] of SECTIONS){
+    const group = ids.filter(id => ITEMS[id].kind===kind)
+      .sort((a,b) => (isEq(b)-isEq(a)) || (tierOf(b)-tierOf(a)) || ITEMS[a].nm.localeCompare(ITEMS[b].nm));
+    if(!group.length) continue;
+    rows.push({ hdr:label, h:24 });
+    for(const id of group){ rows.push({ id, h:46 }); seen.add(id); }
+  }
+  const misc = ids.filter(id => !seen.has(id));
+  if(misc.length){ rows.push({ hdr:'MISCELLANY', h:24 }); for(const id of misc) rows.push({ id, h:46 }); }
+
+  const rx=PX+24, rw=PW-48, rh=40;
   const showFooter = invSel && ITEMS[invSel];
   const vy0 = slotY+108, vy1 = PY+PH - (showFooter ? 56 : 14), vh = vy1-vy0;
-  const contentH = ids.length*rowH;
-  invScroll = Math.max(0, Math.min(invScroll, contentH - vh)); // clamp each frame
+  const contentH = rows.reduce((s,r)=>s+r.h, 0);
+  invScroll = Math.max(0, Math.min(invScroll, Math.max(0, contentH - vh))); // clamp each frame
   ctx.save();
   ctx.beginPath(); ctx.rect(rx, vy0, rw, vh); ctx.clip();
-  for(let i=0;i<ids.length;i++){
-    const id=ids[i], it=ITEMS[id], ry=vy0 + i*rowH - invScroll;
-    if(ry+rh < vy0 || ry > vy1) continue;           // skip rows scrolled out of view
-    const equipped=Object.values(player.equip).includes(id);
-    ctx.fillStyle = equipped ? '#2a2340' : '#161122';
-    ctx.fillRect(rx,ry,rw,rh);
-    ctx.strokeStyle = equipped ? '#9be05e' : TIER_COLOR[tierOf(id)]; ctx.lineWidth=1; ctx.strokeRect(rx,ry,rw,rh);
-    drawSprite(SPR[it.spr], rx+24, ry+rh/2, 28);
+  let ry = vy0 - invScroll;
+  for(const r of rows){
+    const y = ry; ry += r.h;
+    if(y+r.h < vy0 || y > vy1) continue;             // skip rows scrolled out of view
+    if(r.hdr){                                       // section header with a rule line
+      ctx.fillStyle='#caa84a'; ctx.font='bold 10px monospace';
+      ctx.fillText(r.hdr, rx+2, y+16);
+      ctx.strokeStyle='#3a3153'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(rx+ctx.measureText(r.hdr).width+12, y+12); ctx.lineTo(rx+rw-2, y+12); ctx.stroke();
+      continue;
+    }
+    const id=r.id, it=ITEMS[id];
+    const equipped = isEq(id), sel = invSel===id;
+    ctx.fillStyle = equipped ? '#2a2340' : (sel ? '#1d1830' : '#161122');
+    ctx.fillRect(rx,y,rw,rh);
+    ctx.strokeStyle = equipped ? '#9be05e' : TIER_COLOR[tierOf(id)]; ctx.lineWidth = sel?2:1; ctx.strokeRect(rx,y,rw,rh);
+    drawSprite(SPR[it.spr], rx+24, y+rh/2, 28);
     ctx.fillStyle='#e8e0f0'; ctx.font='bold 12px monospace';
-    ctx.fillText(it.nm + (counts[id]>1?`  x${counts[id]}`:'') , rx+48, ry+16);
-    ctx.fillStyle='#9b8fb5'; ctx.font='10px monospace';
-    const tag = it.kind==='suit'?'SUIT':it.kind.toUpperCase();
-    const action = equipped?'[ EQUIPPED — click to remove ]':it.kind==='consumable'?'[ click to USE ]':EQUIP_KINDS.includes(it.kind)?'[ click to EQUIP ]':'';
-    ctx.fillText(tag+'   '+action, rx+48, ry+31);
-    invRects.push({x:rx,y:ry,w:rw,h:rh,id});
+    ctx.fillText(it.nm + (counts[id]>1?`  x${counts[id]}`:''), rx+48, y+16);
+    ctx.fillStyle='#7d7397'; ctx.font='10px monospace';
+    const maxc = 64;                                 // one line of flavor, truncated to fit the chip zone
+    ctx.fillText(it.ds.slice(0,maxc) + (it.ds.length>maxc?'…':''), rx+48, y+31);
+    // right edge: rarity label over an action chip
+    ctx.textAlign='right';
+    ctx.fillStyle=TIER_COLOR[tierOf(id)]; ctx.font='9px monospace';
+    ctx.fillText(TIER_NAME[tierOf(id)], rx+rw-12, y+13);
+    const act = equipped ? 'UNEQUIP' : it.kind==='consumable' ? 'USE' : EQUIP_KINDS.includes(it.kind) ? 'EQUIP' : '';
+    if(act){
+      const cw2=66, cx2=rx+rw-12-cw2, cy2=y+19;
+      ctx.fillStyle = equipped ? '#1c2e1c' : '#241d36'; ctx.fillRect(cx2, cy2, cw2, 16);
+      ctx.strokeStyle = equipped ? '#9be05e' : '#5ec8f0'; ctx.lineWidth=1; ctx.strokeRect(cx2, cy2, cw2, 16);
+      ctx.fillStyle = equipped ? '#9be05e' : '#5ec8f0'; ctx.font='bold 10px monospace'; ctx.textAlign='center';
+      ctx.fillText(act, cx2+cw2/2, cy2+12);
+    }
+    ctx.textAlign='left';
+    invRects.push({x:rx,y,w:rw,h:rh,id});
   }
   ctx.restore();
   // scrollbar
