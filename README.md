@@ -56,6 +56,7 @@ Nine main quests across two acts, assigned by Managing Partner Hargrove. Act I: 
 - **The Descaling** — rebuild the coffee machine from three scavenged parts. Weaponized espresso awaits.
 - **Dolores's Eleven** — the library portraits of eleven dead managing partners are wrong. Look closer. Then ask Dolores.
 - **Pro Bono** — Lenny has been in the lobby since 2019. Pays nothing. Worth everything.
+- **The Intranet Archive** — every workstation in both firms is readable. Nine messages were never meant to be kept. The staff knew. Read what they knew.
 
 ### Enemies
 - **Rogue Paralegal** — hoards supplies, cites "boundaries"

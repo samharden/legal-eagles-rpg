@@ -98,6 +98,21 @@ function draw(){
     drawSprite(SPR.dolores, wd.locke.tx*TILE+20-cam.x, wd.locke.ty*TILE+20-cam.y, 34, false, 0.4 + Math.sin(gameTime*2)*0.1);
     nearLbl(wd.locke.tx*TILE+20, wd.locke.ty*TILE+20, '[E] the ghost');
   }
+  // intranet archive: unread story terminals beacon like the printer; any desk reads
+  for(const key in TERMINALS){
+    if(flags.termRead[key] || !key.startsWith(worldId+':')) continue;
+    const [tx2,ty2] = key.slice(worldId.length+1).split(',').map(Number);
+    ctx.font='bold 14px monospace'; ctx.fillStyle='#5ec8f0'; ctx.textAlign='center';
+    ctx.fillText('✉', tx2*TILE+20-cam.x, ty2*TILE+8-cam.y + Math.sin(gameTime*4)*2);
+  }
+  {
+    const term = nearTerminal();
+    if(term){
+      const key = `${worldId}:${term.tx},${term.ty}`;
+      nearLbl(term.tx*TILE+20, term.ty*TILE+20,
+        TERMINALS[key] && !flags.termRead[key] ? '[E] unread mail' : '[E] workstation');
+    }
+  }
 
   // pickups
   for(const p of pickups){
@@ -441,6 +456,8 @@ function sideQuestLines(){
   }
   if(flags.lennyQ===1) s.push(flags.lennyKills>=3 ? '* Lenny: return his file' : `* Lenny: golems with his file ${flags.lennyKills}/3`);
   if(flags.portraits>0 && !flags.eleven) s.push(`* Library portraits: ${flags.portraits}/11`);
+  { const tn = Object.keys(flags.termRead||{}).length;
+    if(tn>0 && !flags.intranetDone) s.push(`* Intranet archive: ${tn}/${Object.keys(TERMINALS).length} messages`); }
   if(flags.eleven && !flags.baneWeak && questIdx>=6) s.push('* Ask Dolores about the eleven');
   if(questIdx===8 && questPhase==='active' && !flags.baneSpawned) s.push(`* Jury won: ${flags.jury}/12`);
   return s;

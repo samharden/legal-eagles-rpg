@@ -461,6 +461,74 @@ function npcMarker(n){
   return null;
 }
 
+// ---- THE INTRANET ARCHIVE: every desk computer is a readable workstation ----
+// Nine authored messages (keyed 'world:tx,ty' on real desk tiles) carry a second
+// lore track — the conspiracy as the STAFF experienced it, complementing the
+// seven 1987 case files. Every other computer serves deterministic office flavor.
+const TERMINALS = {
+  'office:14,11': { nm:'IT TICKET #4471 (1994, still open)',
+    text:'"My computer shows a 25th hour between 11:59 PM and midnight. The billing software accepts entries into it." — RESOLUTION (B. writes): Closing as WORKING AS INTENDED. Do NOT bill into the extra hour. Whatever you earn there isn\'t paid to YOU.' },
+  'office:20,14': { nm:'HR MEMO — RE: RETIREMENT OF T. GRAVES III (1987)',
+    text:'Per Clause 9 of the Founding Agreement, "retirement" shall be interpreted as defined in Sublevel C. The farewell party will end at 11:45 PM SHARP. Attendance after dark is not recommended, required, or survivable. Cake in the break room.' },
+  'office:25,17': { nm:'BILLING SYSTEM — ERROR LOG (last Tuesday)',
+    text:'TIME ENTRY REJECTED — REASON: TIMEKEEPER DECEASED (1987).\n> OVERRIDE ACCEPTED — AUTHORITY: CLAUSE 9.\n> ENTRY POSTED: 25.0 HRS — MATTER 000-1959.\n> HAVE A PRODUCTIVE DAY.' },
+  'office:15,20': { nm:'UNSENT DRAFT — D. (October 1987)',
+    text:'Prudence — you were right about the ninth clause. I kept your letter opener; it\'s the only thing in this building that still cuts. If you\'re somehow reading this: the vault remembers your birthday, and so do I. I\'m sorry I filed the complaint under H. — D.' },
+  'office:26,23': { nm:'RE: RE: RE: FWD: WHO KEEPS BILLING TO MATTER 000-1959?',
+    text:'41 replies. Accounting says the matter predates the firm. The firm says it predates accounting. The last reply is from the mailroom terminal, sent at 12:00 AM: "The matter is the client. Please stop asking." Everyone stopped asking.' },
+  'office:19,28': { nm:'RECEPTION — VISITOR LOG (page 1,340)',
+    text:'11:58 PM — M. Bane, Hon. — purpose: "standing appointment." Badge #13, not returned since 1963. NOTE FROM NIGHT DESK: he does not use the elevator. We do not know how he gets to the corner office. We have stopped watching the stairwell camera.' },
+  'office:24,28': { nm:'FACILITIES MEMO — ELEVATOR INSPECTION',
+    text:'Finding: the building has 30 floors; the elevator has 31 buttons. Recommendation: do not press the unmarked one. STATUS: recommendation overruled — signatory: the unmarked one. Facilities has updated its resume.' },
+  'floor24:4,11': { nm:'G&R INTERNAL — S. GRABBIT (1981)',
+    text:'To all staff of my NEW firm: we left Dewey, Cheatham & Howe with the good pens and our souls. Leaving one of those behind was a mistake — you may decide which. POLICY: accept no referral on any DC&H matter older than 1959. Not for any fee. Especially not for a generous one.' },
+  'floor24:19,17': { nm:'G&R ASSOCIATES CHAT — ARCHIVED BY LEGAL',
+    text:'"ok but why do DC&H associates stop AGING when they make partner" — "ours just stop" — "HR says that\'s normal" — "HR is a printer over there, did you know that" — [THREAD LOCKED BY LEGAL. REMINDER: WE DO NOT DISCUSS THE COMPETITION\'S BENEFITS PACKAGE.]' },
+};
+const TERM_FLAVOR = [
+  'PER MY LAST EMAIL. (Attached: 41 previous emails. They are all identical. The attachment is 340 MB.)',
+  'SUBJECT: cake in the break room!!! — UPDATE: the cake is gone. UPDATE 2: the cake was for a deposition. UPDATE 3: opposing counsel ate it. Motion to compel a new cake is pending.',
+  'OUT OF OFFICE: I am out of the office from March 2011 and will respond to your message upon my return. If urgent, please contact someone who still works here.',
+  'REMINDER FROM ACCOUNTING: a 0.1 saved is a 0.1 earned. A 0.1 unentered is a WRAITH. Enter your time.',
+  'SUBJECT: MANDATORY FUN — this Friday\'s team-building is mandatory. Fun levels will be monitored and reported to the partnership.',
+  'The screensaver is a DVD logo drifting toward the corner of the screen. It has never hit the corner. Employees have billed 61.3 collective hours watching. It knows.',
+  'KITCHEN NOTICE: whoever keeps labeling their food "EVIDENCE" — the fridge is not a chain of custody, and yes, someone tampered with your yogurt.',
+  'CLE REMINDER: "Ethics at Midnight" has been rescheduled to noon, by unanimous, urgent vote of everyone who attended last year.',
+];
+function readTerminal(tx, ty){
+  const key = `${worldId}:${tx},${ty}`;
+  const t = TERMINALS[key];
+  if(t){
+    const first = !flags.termRead[key];
+    startDialog([{ nm:t.nm, spr:'computer', text:t.text }], () => {
+      if(!first) return;
+      flags.termRead[key] = true;
+      gainXP(8);
+      const n = Object.keys(flags.termRead).length, total = Object.keys(TERMINALS).length;
+      if(n === total){
+        flags.intranetDone = true; flags.ethics++; gainXP(60);
+        announce('THE INTRANET ARCHIVE IS COMPLETE. Nine messages nobody was meant to keep. You understand the staff now — the ones who stayed, and the one who didn\'t. (+60 XP, +1 Ethics)', false, 6.5);
+      } else announce(`INTRANET ARCHIVE: ${n}/${total}. The mail server hums, pleased to be read.`, false, 3);
+    });
+  } else {
+    // ordinary desk: stable flavor pick, so each workstation "belongs" to someone
+    const h = (tx*7 + ty*13 + worldId.length*31) % TERM_FLAVOR.length;
+    startDialog([{ nm:'WORKSTATION — UNLOCKED, UNATTENDED', spr:'computer', text:TERM_FLAVOR[h] }]);
+  }
+}
+// nearest readable desk tile within reach (shared by the E-handler and the render hint)
+function nearTerminal(){
+  const ptx = Math.floor(player.x/TILE), pty = Math.floor(player.y/TILE);
+  let best = null, bd = 60;
+  for(let ty=pty-1; ty<=pty+1; ty++) for(let tx=ptx-1; tx<=ptx+1; tx++){
+    if(map[ty] && map[ty][tx]===2){
+      const d = Math.hypot(player.x-(tx*TILE+20), player.y-(ty*TILE+20));
+      if(d < bd){ bd = d; best = { tx, ty }; }
+    }
+  }
+  return best;
+}
+
 let dlgRects = []; // tappable choice hitboxes in canvas coords, rebuilt each drawDialog
 function drawDialog(){
   if(!dlg) return;
@@ -533,6 +601,7 @@ function startGame(genderId, classId){
             portraits:0, eleven:false, baneWeak:false,
             trialWave:0, jury:0, baneSpawned:false,
             lennyQ:0, lennyKills:0, act3:false, helpSeen:false,
+            termRead:{}, intranetDone:false,
             totalKills:0, totalBilled:0, boardClosed:0 };
   cart = null; cartSpawnT = 0;
   pendingSpawn = null; orderT = 6; orderActive = false; orderFired = false;

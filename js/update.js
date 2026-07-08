@@ -181,6 +181,11 @@ function update(dt){
         used = true;
       }
     }
+    // desk workstations — last in the chain so named stations always win the press
+    if(!used){
+      const term = nearTerminal();
+      if(term){ SFX.blip(); readTerminal(term.tx, term.ty); used = true; }
+    }
     if(!used && worldId==='office' && Math.hypot(player.x-COFFEE.x, player.y-COFFEE.y) < 70){
       if(flags.coffeeQ===1){
         const parts = (flags.partDescaler?1:0)+(flags.partElement?1:0)+(flags.partChad?1:0);
