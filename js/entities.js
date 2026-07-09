@@ -58,7 +58,8 @@ function melee(){
   let hit = false;
   for(const e of enemies){
     if(Math.hypot(e.x-cx, e.y-cy) < e.r + 28){
-      const dmg = base * (e.boss ? bossMul : 1);
+      let dmg = base * (e.boss ? bossMul : 1);
+      if(perkHas('execute') && e.hp < e.maxhp*0.35) dmg *= 1.2;   // The Closer
       e.hp -= dmg; e.hurtT = 0.12; hit = true;
       if(slow){ e.slowT = 1.4; floaters.push({ x:e.x, y:e.y-e.r-18, text:'STAMPED', t:0.6, color:'#5ec8f0' }); }
       moveEntity(e, fx*260, fy*260, 0.06); // knockback, wall-aware
@@ -72,7 +73,7 @@ function melee(){
 
 function spin(){
   if(player.spinCd > 0) return;
-  player.spinCd = 6; player.spinT = 0.35;
+  player.spinCd = 6 * perkMul('spinCdMul'); player.spinT = 0.35;   // Motion Practice: granted faster
   SFX.spin();
   const dmg = 24 * dmgMult();
   for(const e of enemies){

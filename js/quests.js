@@ -72,12 +72,14 @@ function gainXP(n){
     // promotion bonus: +10% damage per level via lvl multiplier (applied at shot time)
   }
 }
-const dmgMult = () => (1 + (player.rank.lvl-1)*0.10) * gearMul('dmgMul');
+const dmgMult = () => (1 + (player.rank.lvl-1)*0.10) * gearMul('dmgMul')
+  * (perkHas('stand') && player.standT > 1 ? 1.25 : 1);   // Stare Decisis: precedent rewards patience
 
 // Billable Hours — the firm's currency (distinct from XP/rank). Quiet on kills
 // (the HUD counter updates); a floater on quest/board payouts.
 function gainBillables(n, quiet){
   if(!player || n<=0) return;
+  n = Math.round(n * perkMul('bhMul'));   // Rainmaker: the work finds you
   player.billables += n;
   flags.totalBilled = (flags.totalBilled||0) + n;   // lifetime hours, for the performance review
 

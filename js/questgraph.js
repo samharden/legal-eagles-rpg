@@ -53,6 +53,70 @@ const QLINE = [
     reward:{ items:['letter_opener'], xp:80, ethics:1,
              msg:'The Letter Opener of P. Locke — an accessory whose edge bites deepest into bosses. Equip it from your bag [I].' },
   },
+  // ---- CASEWORK: investigation matters — intake → evidence → confrontation → your call ----
+  {
+    id:'kessler', name:'Kessler v. The Fourth Floor',
+    blurb:'A client was billed a twenty-five-hour day and PAID it. Rosa kept the file. Build the case.',
+    prereq:()=> questIdx>=3, auto:true,
+    stages:[
+      { type:'talk', npc:'rosa', hint:'Ask Rosa (mailroom) about the Kessler file.' },
+      { type:'collect', item:'kessler_exhibit', n:3, hint:'Recover the 3 missing Kessler exhibits around the office.',
+        onStart:()=>{
+          // push to the LIVE pickups global (update() reassigns it each frame, so the
+          // per-world array is stale); Rosa is office-only, so the world is right
+          for(const [tx,ty] of [[17,5],[9,13],[36,22]])
+            pickups.push({ x:tx*TILE+20, y:ty*TILE+20, spr:'dossier', kind:'item', item:'kessler_exhibit', t:0 });
+          announce('Rosa marks likely floors on your mail: the library carpet, the conference room, the break room. Of course the break room.', false, 5);
+        } },
+      { type:'talk', npc:'rosa', hint:'Bring the exhibits back to Rosa and make the call.' },
+    ],
+    onComplete:()=> kesslerResolution(),   // settle / trial / bury — the choice IS the reward
+  },
+  {
+    id:'kessler_trial', name:'Kessler: The 25th Hour',
+    blurb:'You put the impossible hour on trial. It objects.',
+    prereq:()=> flags.kesslerCall==='trial', auto:true,
+    stages:[
+      { type:'kill', enemy:'wraith', n:6, hint:'Destroy the manifested overbilling — 6 billable-hour wraiths.',
+        onStart:()=>{
+          for(let i=0;i<6;i++){ const p=findOpen(player.x,player.y,340); spawnEnemy('wraith', p.x, p.y, 1.4); }
+          SFX.boom(); shake = Math.max(shake,10);
+          announce('THE 25TH HOUR TAKES THE STAND. Six wraiths of padded time materialize, screaming timestamps.', true, 4.5);
+        } },
+    ],
+    reward:{ xp:150, ethics:2, bh:200, msg:'Verdict for Kessler. The refund clears with interest. Rosa stamps the file CLOSED so hard the mailroom echoes.' },
+  },
+  {
+    id:'ghostwriter', name:'In re GHOSTWRITER',
+    blurb:'Since 1959, someone has been drafting opinions into the record after hours. The trail starts beneath the library.',
+    prereq:()=> questIdx>=6, auto:true,
+    stages:[
+      { type:'reach', world:'stacks', hint:'Find the chained stair in the library. Descend into the Deep Stacks.' },
+      { type:'collect', item:'ghost_manuscript', n:4, hint:'Recover 4 unsigned manuscripts from the Stacks.',
+        onStart:()=>{
+          // live global, not the per-world array — the reach stage just put us in the stacks
+          for(const [tx,ty] of [[5,4],[20,7],[8,16],[24,19]])
+            pickups.push({ x:tx*TILE+20, y:ty*TILE+20, spr:'file', kind:'item', item:'ghost_manuscript', t:0 });
+          announce('Four manuscripts, unsigned, still warm. The shelves have been keeping them. The shelves may object to withdrawal.', false, 5);
+        } },
+      { type:'talk', npc:'typewriter', hint:'Confront the Night Typewriter in the deepest alcove.' },
+    ],
+    reward:{ xp:120, msg:'In re GHOSTWRITER is resolved. The record will show exactly what you chose.' },
+  },
+  {
+    id:'ghostwriter_fight', name:'GHOSTWRITER: Contempt of Record',
+    blurb:'You chose exposure. Sixty years of misfiled opinions object.',
+    prereq:()=> flags.ghostCall==='expose', auto:true,
+    stages:[
+      { type:'kill', enemy:'golem', n:4, hint:'Destroy the objecting archive — 4 bound-volume golems.',
+        onStart:()=>{
+          for(let i=0;i<4;i++){ const p=findOpen(player.x,player.y,320); spawnEnemy('golem', p.x, p.y, 1.8); }
+          SFX.boom(); shake = Math.max(shake,12);
+          announce('THE ARCHIVE OBJECTS. Four bound volumes of ghost-written law slam off the shelves and stand up.', true, 4.5);
+        } },
+    ],
+    reward:{ items:['ghost_ribbon'], xp:220, ethics:2, bh:150, msg:"Sixty years of ghost opinions, vacated. THE GHOSTWRITER'S RIBBON is yours — equip it [I] and your filings hunt the guilty." },
+  },
   {
     id:'printer_jam',
     name:'The One Working Printer',
@@ -93,7 +157,10 @@ function qTick(){
     let ok; try{ ok = !q.prereq || q.prereq(); }catch(e){ ok = false; }
     if(!ok) continue;
     st.status = q.auto ? 'active' : 'available';
-    if(q.auto){ SFX.quest(); announce('NEW MATTER: '+q.name+' — '+q.blurb, true, 5); enterStage(q); }
+    if(q.auto){
+      SFX.quest(); announce('NEW MATTER: '+q.name+' — '+q.blurb, true, 5); enterStage(q);
+      questEvent('reach', { world: worldId });   // already standing in a reach target? counts.
+    }
   }
 }
 function qStartQuest(id){ // giver NPC accepts an offered quest
@@ -133,6 +200,7 @@ function qComplete(q){
   const r = q.reward || {};
   if(r.items) for(const it of r.items) giveItem(it, true);
   if(r.xp) gainXP(r.xp);
+  if(r.bh) gainBillables(r.bh);
   if(r.ethics)   flags.ethics   += r.ethics;
   if(r.ambition) flags.ambition += r.ambition;
   // a quest with its own onComplete presents its own conclusion (scenes, endings)

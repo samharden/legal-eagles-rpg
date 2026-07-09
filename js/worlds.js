@@ -34,6 +34,7 @@ function buildOffice(){
   g[21][2]=7; // freight elevator (mailroom) down to the parking garage
   g[28][30]=7; // elevator bank (lobby) up to the 24th floor — Act II
   g[28][13]=7; // firm car (lobby) to the courthouse — Act II
+  g[7][3]=7;  // chained stair in the library, down to the Deep Stacks — Act II
   // lobby
   hline(g,12,31,25,1); [17,18,25,26].forEach(x=>g[25][x]=0);
   for(const x of [19,20,23,24]) g[28][x]=2;
@@ -74,6 +75,8 @@ function buildOffice(){
         locked:()=>questIdx<6, lockMsg:'The 24-button is dark. A brass plaque: GRABBIT & RUNN LLP — BY APPOINTMENT ONLY.' },
       { tx:13, ty:28, to:'courtroom', dx:15*TILE+20, dy:19*TILE+20, label:'[E] firm car — courthouse',
         locked:()=>questIdx<8, lockMsg:'The firm car idles, judgmentally. Nothing on the court calendar. Yet.' },
+      { tx:3, ty:7, to:'stacks', dx:3*TILE+20, dy:2*TILE+20, label:'[E] the deep stacks',
+        locked:()=>questIdx<6, lockMsg:'A stair descends beneath the library, chained shut. The padlock predates padlocks. (The Stacks open in Act II.)' },
     ],
   };
 }
@@ -165,6 +168,31 @@ function buildGarage(){
   mk('golem',4,16); mk('wraith',2,14);
   // the Grandfather himself materializes only when the valet cage is unlocked
   mk('counsel',29,8); mk('counsel',32,16);
+}
+
+// THE DEEP STACKS — a shelf-maze dungeon beneath the library (Act II, In re GHOSTWRITER)
+function buildStacks(){
+  const g = mkGrid(30,26,0);
+  // serpentine shelf rows: alternate gap positions force a weaving descent
+  for(let i=0;i<7;i++){
+    const y = 3+i*3;
+    hline(g,2,27,y,6);
+    for(const gx of (i%2 ? [5,14,23] : [9,18,25])){ g[y][gx]=0; g[y][gx+1]=0; }
+  }
+  g[2][2]=7;               // stair back up to the library
+  rectF(g,24,23,27,24,0);  // the reading alcove, deepest corner
+  worlds.stacks = {
+    grid:g, w:30, h:26,
+    colors:{ floor:'#20180f', carpet:'#2a2014', wall:'#4a3a22', wallIn:'#332a16' },
+    enemies:[], pickups:[],
+    crates:[], plates:[], gates:{}, levers:[],
+    signs:[ { tx:4, ty:2, text:"DEEP STACKS — CLOSED SINCE 1959. Returns may be deposited in the slot. The slot is not on any floor plan." } ],
+    recall:null, typewriter:{ tx:26, ty:23 },
+    stairs:[ { tx:2, ty:2, to:'office', dx:4*TILE+20, dy:7*TILE+20, label:'[E] up to the library' } ],
+  };
+  const mk=(t,x,y)=>{ const e=ENEMY_TYPES[t]; worlds.stacks.enemies.push({ type:t, ...e, x:x*TILE+20, y:y*TILE+20, hp:e.hp, maxhp:e.hp, shotT:1, hurtT:0, wob:Math.random()*7 }); };
+  mk('golem',7,5); mk('wraith',16,8); mk('golem',22,11); mk('wraith',10,14);
+  mk('golem',18,17); mk('wraith',25,20); mk('paralegal',5,11); mk('paralegal',13,20);
 }
 
 function buildFloor24(){
@@ -279,8 +307,9 @@ function seedExtras(){
   worlds.floor24.mood = { tint:'rgba(70,130,220,0.07)' };                 // thermostat set to "deposition"
   worlds.courtroom.mood = { vign:0.30, tint:'rgba(200,170,90,0.05)' };    // gavel-colored gravity
   worlds.vault.mood = { vign:0.68, tint:'rgba(60,200,140,0.05)', pulse:true }; // it breathes
+  worlds.stacks.mood = { vign:0.60, tint:'rgba(200,160,60,0.05)' };            // dust with tenure
 }
-function buildWorlds(){ worlds = {}; buildOffice(); buildAnnex(); buildGarage(); buildFloor24(); buildCourtroom(); buildVault(); seedExtras(); }
+function buildWorlds(){ worlds = {}; buildOffice(); buildAnnex(); buildGarage(); buildStacks(); buildFloor24(); buildCourtroom(); buildVault(); seedExtras(); }
 function loadWorld(id){
   worldId = id; const w = worlds[id];
   map = w.grid; MAPW = w.w; MAPH = w.h;
@@ -293,6 +322,7 @@ function setWorld(id, px, py){
   loadWorld(id);
   questEvent('reach', { world:id });
   player.x = px; player.y = py;
+  player.contUsed = false;   // Contingency Fee resets on every floor change
   shots = []; enemyShots = [];
   for(const al of allies){ al.x = player.x+34; al.y = player.y; }
   if(pendingSpawn && pendingSpawn.world === worldId){

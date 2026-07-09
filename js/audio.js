@@ -86,6 +86,9 @@ const SONGS = {
   courtroom:{ bpm:100, hat:false,
     bass:[36,0,43,0,40,0,43,0,36,0,43,0,41,0,38,0],
     lead:[0,0,72,0,0,0,67,0,0,0,71,0,0,0,0,0] },
+  stacks:{ bpm:76, hat:false,   // the sub-library: slower than the annex, older than the firm
+    bass:[36,0,0,0,38,0,0,0,33,0,0,0,41,0,40,0],
+    lead:[0,0,0,72,0,0,0,0,74,0,0,0,0,0,71,0] },
 };
 function musicTick(){
   if(!AU.ctx || !AU.on) return;

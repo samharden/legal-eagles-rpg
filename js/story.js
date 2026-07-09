@@ -241,6 +241,7 @@ function gravesConfrontation(){
     { t:"...Where do I sign?", fx:()=>{ flags.ending='dark'; dlg=null; state='victory'; SFX.jingleLose(); clearSave(); return 'stop'; } },
   ];
   if(flags.lore >= 3) ch.push({ t:"I invoke Clause 9 of the 1987 Settlement.", say:"You— WHAT? Who let you into the records annex?! (The invoked clause burns in the air. He staggers.)", fx:()=>beginFinalBattle(0.6) });
+  if(flags.ethics >= 4) ch.push({ t:"[ETHICS 4] The associates you drained — every one would testify for me.", say:"(For a moment, four decades of stolen all-nighters look back at him through your eyes. His cufflinks tarnish.) Sentiment. It won't save— what is happening to my HANDS.", fx:()=>beginFinalBattle(0.75) });
   startDialog([
     N('graves', "Ahhh. The associate of the season. Do you know how many of YOUR hours I have already tasted? That all-nighter in document review — exquisite. Notes of panic and printer toner."),
     N('graves', "I shall offer this once: kneel, sign in red ink, and in forty years the hours of others will taste sweet to you as well.", ch),
@@ -273,6 +274,19 @@ function beginFinalBattle(mult){
 
 // ---- side quests ----
 function talkRosa(){
+  // CASEWORK: the Kessler file outranks mailroom business while it's live
+  const kq = qstate.kessler;
+  if(kq && kq.status==='active' && kq.stage===0){
+    startDialog([
+      N('rosa', "The Kessler file. (She slides a folder across the counter, wrapped in twine and dread.) Client was billed a twenty-five-hour day — and PAID it, because the late-fee schedule was described as 'a haunting.'"),
+      N('rosa', "Three exhibits went missing in The Reorganization, scattered around this floor. Find them. Build the case. Then come back, and we'll find out what kind of lawyer you are."),
+    ]);
+    return;
+  }
+  if(kq && kq.status==='active' && kq.stage===2){
+    startDialog([N('rosa', "All three exhibits. Deep breath, counselor.")]); // replaced instantly by the resolution scene
+    return;
+  }
   if(flags.rosaQ === 0 && flags.hasStamper){
     startDialog([
       N('rosa', "Is that— you ALREADY have it? You went into the vault... voluntarily? Uncanny. Dolores will weep. Internally, where it counts."),
@@ -408,6 +422,7 @@ function talkChad(){
       N('chad', "The portafilter? It's ITALIAN. It appreciates four percent annually. Why would I— wait. You NEED something from me. The portafilter AND grandfather's valet key. Oh, this is delicious. Name your humiliation.", [
         { t:"It's for the partners' lounge. (Lie.)", say:"The PARTNERS' lounge? Why didn't you say so. Take it. The key too. Tell them a Worthington provided.", fx:()=>{ flags.partChad=true; flags.hasValetKey=true; giveItem('valet_key',true); flags.ethics--; } },
         { t:"I need your help, Chad. You, specifically.", say:"...Say it again. Slower. (You do.) HA! Take the portafilter. And the key — grandfather would have liked you. He liked nobody. This memory will sustain me through winter.", fx:()=>{ flags.partChad=true; flags.hasValetKey=true; giveItem('valet_key',true); flags.ambition--; flags.chad++; } },
+        ...(flags.ambition >= 3 ? [{ t:"[AMBITION 3] A Worthington owes me. The filter, the key — now.", say:"(He goes pale in a way only old money can manage.) You sound like grandfather. Take them. TAKE THEM. ...I respect this and will be discussing it in therapy.", fx:()=>{ flags.partChad=true; flags.hasValetKey=true; giveItem('valet_key',true); flags.chad++; } }] : []),
         { t:"Forget it.", say:"Door's always open. The humiliation menu never closes." },
       ]),
     ]);
@@ -447,6 +462,57 @@ function talkLenny(){
     startDialog([N('lenny', "I won! Well — YOU won. The deposit comes back in six to eight business eons. I'm staying in the lobby though. It's load-bearing now. I'm load-bearing.")]);
   }
 }
+// ---- CASEWORK resolutions ----
+// Kessler: the confrontation fires from the quest's onComplete, replacing Rosa's
+// greeting synchronously. The choice IS the reward — three ways to be a lawyer.
+function kesslerResolution(){
+  player.inventory = player.inventory.filter(id => id !== 'kessler_exhibit'); // evidence, not luggage
+  const ch = [
+    { t:"SETTLE — quiet refund from the marketing budget. Nobody has to know.",
+      say:"(Rosa nods slowly.) Clean. Quiet. The client gets made whole and the building never hears its own name said out loud. You'd have made a fine mailroom clerk. That is high praise.",
+      fx:()=>{ flags.kesslerCall='settle'; flags.ambition++; gainBillables(60); } },
+    { t:"TRIAL — put the twenty-fifth hour on the record.",
+      say:"(She grins like a filing cabinet opening.) On the RECORD. Oh, the building will hate that. It will fight — padded hours always do. Go. I'll warm up the stamp.",
+      fx:()=>{ flags.kesslerCall='trial'; } },
+    ...(flags.ambition >= 2 ? [{ t:"[AMBITION 2] BURY IT — and bill Kessler for the burial.",
+      say:"(The mailroom goes very quiet. Even the cart.) ...You'll go far here. That was not a compliment.",
+      fx:()=>{ flags.kesslerCall='bury'; flags.ambition++; flags.ethics--; gainBillables(150); } }] : []),
+  ];
+  startDialog([
+    N('rosa', "Three exhibits. One impossible hour, billed and collected. Kessler trusted this firm. So — what kind of lawyer are you?", ch),
+  ], () => {
+    gainXP(100); SFX.closeMatter();
+    if(flags.kesslerCall==='trial') announce('KESSLER GOES TO TRIAL. The overbilled hours have noticed. They are coming to be heard.', true, 4.5);
+    else announce('MATTER CLOSED: Kessler v. The Fourth Floor. The file goes back in the drawer. The drawer approves.', true, 4.5);
+    saveGame();
+  });
+}
+// The Night Typewriter — the GHOSTWRITER confrontation, deepest alcove of the Stacks.
+// Emits the quest's final talk event from the chosen branch, act3Finale-style.
+function talkTypewriter(){
+  const gq = qstate.ghostwriter;
+  if(!gq || gq.status!=='active' || gq.stage!==2){
+    startDialog([N('memo', "An IBM Selectric, black as a docket, warm as a verdict. It is typing. There is no paper. There is no one at the keys. Perhaps come back when you know what to ask it.")]);
+    return;
+  }
+  const done = () => questEvent('talk', { npc:'typewriter' });
+  const ch = [
+    { t:"EXPOSE IT — every ghost-written opinion goes on the record.",
+      say:"The typing stops. The stacks inhale. Somewhere above you, sixty years of misfiled decisions begin pulling themselves off the shelves to object.",
+      fx:()=>{ flags.ghostCall='expose'; done(); } },
+    ...(flags.ambition >= 4 ? [{ t:"[AMBITION 4] REPRESENT IT — everyone deserves counsel. Retainer up front.",
+      say:"The carriage returns, slowly, like a handshake. A retainer prints itself: four hundred hours, pre-billed, origin undisclosed. You do not ask whose hours. That is what representation means.",
+      fx:()=>{ flags.ghostCall='client'; flags.ambition+=2; gainBillables(400); done(); } }] : []),
+    { t:"SMASH IT — some opinions should never be drafted.",
+      say:"The Selectric accepts the motion with dignity. Sixty years of unsigned dicta sigh out of the ribbon and disperse into the dust. The stacks feel, at last, proofread.",
+      fx:()=>{ flags.ghostCall='smash'; flags.ethics++; gainXP(80); done(); } },
+  ];
+  startDialog([
+    N('memo', "THE NIGHT TYPEWRITER. Drafting opinions into the record since 1959 — unsigned, uncited, unfailingly persuasive. Bane's best lines. Graves's retirement terms. It pauses mid-sentence. It is listening."),
+    N('memo', "The platen turns expectantly. Your move, counselor.", ch),
+  ]);
+}
+
 function talkBoard(){
   if(review){
     startDialog([N('memo', `DOCUMENT REVIEW IN PROGRESS — wave ${review.wave}. The board declines to assign new matters to an attorney currently buried in production. Leave the floor to recess.`)]);
@@ -472,6 +538,16 @@ function talkTo(n){
     return;
   }
   if(n.id === 'hargrove'){
+    if(player.rank.lvl >= 5 && !flags.compAsk){   // Junior Partner+: you may now negotiate
+      startDialog([
+        N('hargrove', "What. I'm busy being managing partner of a haunted building.", [
+          { t:"[JUNIOR PARTNER] About my compensation, Oswald.", say:"(You used his first name. Somewhere in the library, a portrait gasps.) ...Fine. A mid-year adjustment, out of the marketing budget. Tell NO ONE. Especially not marketing.", fx:()=>{ flags.compAsk = true; flags.ambition++; gainBillables(150); } },
+          { t:"Nothing, sir. Looking busy.", say:"Excellent. It's working." },
+        ]),
+      ]);
+      questEvent('talk', { npc:n.id });
+      return;
+    }
     startDialog([N('hargrove', HARGROVE_NAGS[Math.floor(Math.random()*HARGROVE_NAGS.length)])]);
   }
   else if(n.id === 'rosa') talkRosa();
@@ -488,10 +564,14 @@ function npcMarker(n){
     if(questPhase==='turnin') return '?';
   }
   switch(n.id){
-    case 'hargrove': return null; // Hargrove has no side quests; matter markers handled above
-    case 'rosa':     return flags.rosaQ===0 ? '!'
-                          : (flags.rosaQ===1 && flags.hasStamper) || flags.mailQ===2 ? '?'
-                          : (flags.rosaQ===2 && flags.mailQ===0) ? '!' : null;
+    case 'hargrove': return (player.rank.lvl >= 5 && !flags.compAsk) ? '!' : null; // comp talk unlocks at Junior Partner
+    case 'rosa': {
+      const kq = qstate.kessler;
+      if(kq && kq.status==='active' && (kq.stage===0 || kq.stage===2)) return kq.stage===2 ? '?' : '!';
+      return flags.rosaQ===0 ? '!'
+           : (flags.rosaQ===1 && flags.hasStamper) || flags.mailQ===2 ? '?'
+           : (flags.rosaQ===2 && flags.mailQ===0) ? '!' : null;
+    }
     case 'benny':    return flags.bennyQ===0 || (flags.coffeeQ===1 && !flags.coffeeBrief) || (flags.termRead['office:14,11'] && !flags.bennyTicket) ? '!' : (flags.bennyQ===1 && flags.serversFixed>=3 ? '?' : null);
     case 'dolores':  return flags.doloresQ===0 ? '!' : (flags.eleven && !flags.baneWeak && questIdx>=6) ? '!' : (flags.doloresQ>=2 && flags.termRead['office:15,20'] && !flags.doloresDraft) ? '!' : null;
     case 'lenny':    return flags.lennyQ===0 ? '!' : (flags.lennyQ===1 && flags.lennyKills>=3) ? '?' : null;
@@ -651,6 +731,29 @@ function rankFor(xp){
   return r;
 }
 
+// ---- PERKS: each promotion banks one development choice, offered between fights ----
+// Owed picks derive from rank vs. perks owned, so nothing extra is saved and old
+// saves collect their banked choices retroactively.
+function perksPending(){ return player ? Math.max(0, (player.rank.lvl - 1) - player.perks.length) : 0; }
+function offerPerk(){
+  const pool = PERKS.filter(p => !player.perks.includes(p.id));
+  if(!pool.length) return;
+  const picks = [];
+  while(picks.length < Math.min(2, pool.length)){
+    const p = pool[Math.floor(Math.random()*pool.length)];
+    if(!picks.includes(p)) picks.push(p);
+  }
+  const ch = picks.map(p => ({ t:`${p.nm} — ${p.ds}`, fx:()=>{
+    player.perks.push(p.id);
+    SFX.promote();
+    announce(`DEVELOPMENT AREA LOCKED IN: ${p.nm.toUpperCase()}. HR has updated your permanent file. The file hums.`, false, 4.5);
+    saveGame();
+  }}));
+  startDialog([
+    N('memo', `PROMOTION DEVELOPMENT PACKAGE${perksPending()>1 ? ` (${perksPending()} banked)` : ''} — the partnership requires you to develop exactly one professional strength per promotion. Choose. This is the only part of your review you control.`, ch),
+  ]);
+}
+
 function startGame(genderId, classId){
   buildWorlds();
   const cls = CLASSES.find(c=>c.id===classId);
@@ -661,6 +764,7 @@ function startGame(genderId, classId){
     cd: 0, hurtT: 0, coffeeCd: 0,
     face: {x:0, y:1}, meleeCd: 0, spinCd: 0, swingT: 0, spinT: 0,
     dashT: 0, dashCd: 0, dashDx: 0, dashDy: 1,
+    perks: [], standT: 0, contUsed: false,
     inventory: [], equip: { weapon:null, accessory:null, suit:null },
     billables: 0,
   };
@@ -678,7 +782,7 @@ function startGame(genderId, classId){
             trialWave:0, jury:0, baneSpawned:false,
             lennyQ:0, lennyKills:0, act3:false, helpSeen:false,
             termRead:{}, intranetDone:false, bennyTicket:false, doloresDraft:false,
-            reviewBest:0, ngplus:false, merger:0,
+            reviewBest:0, ngplus:false, merger:0, compAsk:false, kesslerCall:null, ghostCall:null,
             totalKills:0, totalBilled:0, boardClosed:0 };
   cart = null; cartSpawnT = 0;
   pendingSpawn = null; orderT = 6; orderActive = false; orderFired = false;

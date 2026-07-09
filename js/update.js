@@ -29,6 +29,8 @@ function bossFire(e){
 function update(dt){
   gameTime += dt;
   qTick();
+  // banked promotion perks: offered between fights, never mid-combat
+  if(!dlg && enemies.length===0 && perksPending() > 0) offerPerk();
   if(msg.t>0) msg.t -= dt;
   if(levelFlash>0) levelFlash -= dt;
   if(shake>0) shake -= dt*40;
@@ -41,6 +43,7 @@ function update(dt){
   if(keys['d']||keys['arrowright']) dx++;
   if(!dx && !dy && joy.on && Math.hypot(joy.dx, joy.dy) > 0.25){ dx = joy.dx; dy = joy.dy; }
   player.moving = !!(dx||dy);   // Decaf Gremlins rage when you hold still
+  player.standT = player.moving ? 0 : (player.standT||0) + dt;   // Stare Decisis charges while planted
   // DASH — Motion to Expedite: a committed ~140px burst (Shift / DASH button) that
   // phases through projectiles while it lasts; contact damage still applies, so it
   // dodges the telegraphed shot, not the bailiff parked on top of you.
@@ -51,11 +54,14 @@ function update(dt){
     player.face = { x:player.dashDx, y:player.dashDy };
     player.moving = true;
     particles.push({ x:player.x, y:player.y, vx:-player.dashDx*60, vy:-player.dashDy*60, t:0.18, spr:'spark' });
+    if(perkHas('dashTrail')) for(const e of enemies){   // Scorched Earth: the wake burns
+      if(Math.hypot(e.x-player.x, e.y-player.y) < 42){ e.hp -= 55*dmgMult()*dt; e.hurtT = 0.1; }
+    }
   } else if(keys['shift'] && player.dashCd <= 0){
     const l = Math.hypot(dx,dy);   // dash along held input; standing still dashes where you face
     player.dashDx = l ? dx/l : player.face.x;
     player.dashDy = l ? dy/l : player.face.y;
-    player.dashT = 0.16; player.dashCd = 1.6;
+    player.dashT = 0.16 * perkMul('dashLenMul'); player.dashCd = 1.6 * perkMul('dashCdMul');
     SFX.dash();
   } else if(dx||dy){ const l=Math.hypot(dx,dy); moveEntity(player, dx/l*220, dy/l*220, dt);
     if(!padAim) player.face = {x:dx/l, y:dy/l}; }   // right-stick aim outranks run direction
@@ -150,6 +156,10 @@ function update(dt){
       } else announce('A valet cage, padlocked. A small brass plate: KEY WITH VALET. Below it, engraved: W. A Worthington might still have it.', false, 3.5);
       used = true;
     }
+    if(!used && worldId==='stacks' && worlds.stacks.typewriter){
+      const tw = worlds.stacks.typewriter;
+      if(Math.hypot(player.x-(tw.tx*TILE+20), player.y-(tw.ty*TILE+20)) < 64){ talkTypewriter(); used = true; }
+    }
     if(!used) for(const sg of worlds[worldId].signs){
       if(nearT(sg)){ startDialog([{nm:'FADED SIGN', spr:'sign', text:sg.text}]); used = true; break; }
     }
@@ -215,9 +225,9 @@ function update(dt){
         SFX.buzz();
         announce('The machine emits one final, heartbreaking gurgle and DIES. The productivity of four hundred lawyers dies with it. Benny (IT) fixes things... percussively.', false, 5);
       } else if(player.coffeeCd<=0){
-        const heal = flags.coffeeUp ? 60 : 40;
+        const heal = Math.round((flags.coffeeUp ? 60 : 40) * perkMul('coffeeMul'));
         player.hp = Math.min(player.maxhp, player.hp + heal);
-        player.coffeeCd = flags.coffeeUp ? 6 : 12;
+        player.coffeeCd = (flags.coffeeUp ? 6 : 12) / (perkHas('coffeeMul') ? 2 : 1);
         floaters.push({ x:player.x, y:player.y-22, text:`+${heal} CAFFEINE`, t:1, color:'#9be05e' });
         SFX.coffee();
         announce(flags.coffeeUp ? 'The rebuilt machine produces something between espresso and a legal threat. (+60 Billable Energy)'
@@ -505,7 +515,8 @@ function update(dt){
           if(s.pierce) s.hit.add(e); else s.life = 0;
           continue;
         }
-        const dmg = s.dmg * (1 - (e.resist||0));     // golem/instrument: paper-dense, shrugs off paper
+        let dmg = s.dmg * (1 - (e.resist||0));       // golem/instrument: paper-dense, shrugs off paper
+        if(perkHas('execute') && e.hp < e.maxhp*0.35) dmg *= 1.2;   // The Closer: end it
         e.hp -= dmg; e.hurtT = 0.12;
         floaters.push({ x:e.x, y:e.y-e.r-6, text:e.resist?'DENSE '+Math.round(dmg):Math.round(dmg), t:0.6, color:e.resist?'#9b8fb5':'#fff' });
         for(let i=0;i<2;i++) particles.push({ x:s.x, y:s.y, vx:(Math.random()*2-1)*110, vy:(Math.random()*2-1)*110, t:0.14+Math.random()*0.1, spr:'spark' });
@@ -592,7 +603,7 @@ function update(dt){
     let best=null, bd=420;
     for(const e of enemies){ const d2=Math.hypot(e.x-al.x, e.y-al.y); if(d2<bd){ bd=d2; best=e; } }
     if(best && al.cd <= 0){
-      al.cd = 0.5;
+      al.cd = 0.5 / perkMul('allyRate');   // Second Chair: co-counsel bills double-time
       const a = Math.atan2(best.y-al.y, best.x-al.x);
       shots.push({ x:al.x, y:al.y, vx:Math.cos(a)*480, vy:Math.sin(a)*480, dmg:9, r:4, color:'#e8d06a', pierce:false, homing:false, life:1.4, hit:new Set() });
       if(Math.random() < 0.1) floaters.push({ x:al.x, y:al.y-24, text:'BILLED!', t:0.7, color:'#e8d06a' });
@@ -608,7 +619,7 @@ function update(dt){
     let best=null, bd=360;
     for(const e of enemies){ const d=Math.hypot(e.x-companion.x, e.y-companion.y); if(d<bd){ bd=d; best=e; } }
     if(best && companion.cd <= 0){
-      companion.cd = 1.3;
+      companion.cd = 1.3 / perkMul('allyRate');
       const a = Math.atan2(best.y-companion.y, best.x-companion.x);
       shots.push({ x:companion.x, y:companion.y, vx:Math.cos(a)*430, vy:Math.sin(a)*430, dmg:7*dmgMult(), r:5, color:'#cfd6e0', pierce:false, homing:false, life:1.5, hit:new Set() });
       if(Math.random() < 0.18) floaters.push({ x:companion.x, y:companion.y-22, text:'PC LOAD LETTER', t:0.7, color:'#cfd6e0' });
@@ -621,8 +632,9 @@ function update(dt){
     if(Math.hypot(p.x-player.x, p.y-player.y) < player.r + 16){
       SFX.pick();
       if(p.heal){
-        player.hp = Math.min(player.maxhp, player.hp + p.heal);
-        floaters.push({ x:player.x, y:player.y-22, text:`+${p.heal} CAFFEINE`, t:0.8, color:'#9be05e' });
+        const heal = Math.round(p.heal * perkMul('coffeeMul'));
+        player.hp = Math.min(player.maxhp, player.hp + heal);
+        floaters.push({ x:player.x, y:player.y-22, text:`+${heal} CAFFEINE`, t:0.8, color:'#9be05e' });
       } else if(p.kind === 'lore'){
         flags.lore++; gainXP(10);
         startDialog([N('dusty', LORE[p.idx])], () => {
@@ -672,6 +684,15 @@ function hurtPlayer(d, contact=false){
     return;
   }
   d *= (1 - equipDefense());   // suit / accessory armor soaks a fraction of every hit
+  // Contingency Fee: the firm declines your death — once per floor visit
+  if(player.hp - d <= 0 && perkHas('contingency') && !player.contUsed){
+    player.contUsed = true;
+    player.hp = 30; player.hurtT = 0.6;
+    player.shieldT = Math.max(player.shieldT||0, 1);
+    shake = Math.max(shake, 10); SFX.promote();
+    announce('CONTINGENCY FEE INVOKED. The firm declines your death — once per floor. The invoice is enormous.', false, 4.5);
+    return;
+  }
   if(player.hurtT>0 && contact) { player.hp -= d; return; } // contact ticks don't spam quips
   player.hp -= d;
   if(!contact || Math.random()<0.05){

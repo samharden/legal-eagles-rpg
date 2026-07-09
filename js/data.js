@@ -90,6 +90,23 @@ const QUESTS = [
   { id:9, name:'In Re: The Building',       goal:{type:'none'}, xp:0, spawn:[], act3:true },
 ];
 
+// Perks — one banked per promotion (rank 2+), chosen two-at-a-time from this pool.
+// Owed picks derive from rank.lvl-1 - player.perks.length (no extra save field, and
+// old saves retroactively collect theirs). Effects resolve via perkMul/perkHas.
+// Keep ds short: it renders as a single dialog-choice line on desktop AND mobile.
+const PERKS = [
+  { id:'motion_practice', nm:'Motion Practice',  ds:'SPIN cooldown -40%.',                                mods:{ spinCdMul:0.6 } },
+  { id:'rainmaker',       nm:'Rainmaker',        ds:'+30% billable hours from everything.',              mods:{ bhMul:1.3 } },
+  { id:'paper_trail',     nm:'Paper Trail',      ds:'Your shots PIERCE targets.',                        mods:{ pierce:true } },
+  { id:'second_chair',    nm:'Second Chair',     ds:'Allies & printer fire twice as fast.',              mods:{ allyRate:2 } },
+  { id:'contingency',     nm:'Contingency Fee',  ds:'Survive one fatal blow per floor.',                 mods:{ contingency:true } },
+  { id:'scorched_earth',  nm:'Scorched Earth',   ds:'DASH burns enemies you pass through.',              mods:{ dashTrail:true } },
+  { id:'billable_sprint', nm:'Billable Sprint',  ds:'DASH cooldown -35%, reach +25%.',                   mods:{ dashCdMul:0.65, dashLenMul:1.25 } },
+  { id:'closer',          nm:'The Closer',       ds:'+20% damage to enemies below 35% health.',          mods:{ execute:0.2 } },
+  { id:'iron_stomach',    nm:'Iron Stomach',     ds:'Coffee heals +50%, machine brews twice as fast.',   mods:{ coffeeMul:1.5 } },
+  { id:'stare_decisis',   nm:'Stare Decisis',    ds:'Stand still 1s: +25% damage until you move.',       mods:{ stand:true } },
+];
+
 const KILL_QUIPS = ['Sustained!','Sanctioned!','Case dismissed!','Stricken from the record!','Per curiam!','Res judicata, baby!','Moot!','SO ORDERED.'];
 const HURT_QUIPS = ['Objection... overruled.','That\'s sanctionable!','Ow. Billing this as research.','My ergonomic chair!'];
 

@@ -18,6 +18,7 @@ const WORLD_GREET = {
   floor24:'THE 24TH FLOOR — GRABBIT & RUNN LLP. The thermostat is set to "deposition."',
   courtroom:'THE COURTHOUSE — DEPT. 13, HON. MORTIMER BANE PRESIDING. The gavel is already warm.',
   vault:  'SUBLEVEL C — THE VAULT. Colder than the annex. The air tastes of old ink and older promises. Something here is listening, and has been since 1959.',
+  stacks: 'THE DEEP STACKS. Shelving without end. Dust with tenure. Somewhere below, a typewriter is working.',
 };
 const WORLD_NAME = {
   office: 'DEWEY, CHEATHAM & HOWE — MAIN FLOOR',
@@ -26,6 +27,7 @@ const WORLD_NAME = {
   floor24:'GRABBIT & RUNN LLP — 24TH FLOOR',
   courtroom:'COURTHOUSE — DEPARTMENT 13',
   vault:  'SUBLEVEL C — THE VAULT',
+  stacks: 'THE DEEP STACKS — SUB-LIBRARY',
 };
 let killCount, collectCount;
 let msg = { text:'', t:0, big:false };

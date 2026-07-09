@@ -57,6 +57,8 @@ Nine main quests across two acts, assigned by Managing Partner Hargrove. Act I: 
 - **Dolores's Eleven** — the library portraits of eleven dead managing partners are wrong. Look closer. Then ask Dolores.
 - **Pro Bono** — Lenny has been in the lobby since 2019. Pays nothing. Worth everything.
 - **The Intranet Archive** — every workstation in both firms is readable. Nine messages were never meant to be kept. The staff knew. Read what they knew.
+- **Kessler v. The Fourth Floor** *(casework)* — a client paid for a twenty-five-hour day. Gather the exhibits, then decide: settle, trial, or bury it.
+- **In re GHOSTWRITER** *(casework, Act II)* — descend **The Deep Stacks** beneath the library. Something has been drafting opinions into the record since 1959. Expose it, represent it, or smash it.
 
 ### Enemies
 - **Rogue Paralegal** — hoards supplies, cites "boundaries"
@@ -74,7 +76,9 @@ Nine main quests across two acts, assigned by Managing Partner Hargrove. Act I: 
 - **The Hon. Mortimer Bane** *(final boss)* — class of 1959, holds a grudge, throws the gavel
 
 ### Progression
-XP promotes you: Junior Associate → Associate → Senior Associate → Of Counsel → Junior Partner → **PARTNER**. Each promotion raises max HP (with a full heal) and damage.
+XP promotes you: Junior Associate → Associate → Senior Associate → Of Counsel → Junior Partner → **PARTNER**. Each promotion raises max HP (with a full heal) and damage — and banks a **development choice**: pick one of two permanent perks (dash that burns, a survivable fatal blow, +30% billables…) offered between fights. Nine promotions, ten perks — no two careers alike.
+
+Watch for **bracketed dialogue choices** like `[AMBITION 3]` — your Ethics, Ambition, and rank unlock lines other associates can't say.
 
 Coffee restores Billable Energy. Your dialogue choices track **Ethics** and **Ambition** — they decide which of the endings you get. Seven dusty case files from 1959–1987 are hidden across the maps; reading them unlocks things best discovered in the dark. The jury must be won. All twelve.
 

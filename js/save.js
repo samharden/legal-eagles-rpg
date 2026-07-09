@@ -28,7 +28,7 @@ function saveGame(){
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       v: 2,
       genderId: player.spr.slice(2), classId: player.cls.id,
-      player: { x:player.x, y:player.y, hp:player.hp, maxhp:player.maxhp, xp:player.xp, billables:player.billables },
+      player: { x:player.x, y:player.y, hp:player.hp, maxhp:player.maxhp, xp:player.xp, billables:player.billables, perks:player.perks },
       inventory: player.inventory, equip: player.equip, qstate,
       boardActive, boardOffers, boardSeq,
       worldId, questIdx, questPhase, killCount, collectCount, gameTime,
@@ -60,6 +60,8 @@ function loadGame(){
     dlg = null; state = 'play';         // skip the intro memo
     Object.assign(player, d.player);
     player.rank = rankFor(player.xp);
+    // perks: sanitize; older saves have none and collect their banked picks retroactively
+    player.perks = Array.isArray(player.perks) ? player.perks.filter(id => PERKS.some(p=>p.id===id)) : [];
     Object.assign(flags, d.flags);      // merge so flags added in future versions keep their defaults
     // inventory + equipment (v2); migrate from v1 flags otherwise
     if(d.v>=2 && d.inventory){

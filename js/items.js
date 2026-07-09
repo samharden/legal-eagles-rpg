@@ -110,6 +110,20 @@ const ITEMS = {
     ds:"The firm's last functioning printer, now loyal to you. It floats at your side and auto-fires paper-jam projectiles at the nearest enemy. PC LOAD LETTER.",
     mods:{ companion:true },
   },
+  // ---- Casework evidence & rewards ----
+  kessler_exhibit: {
+    nm:'Kessler Exhibit', spr:'dossier', kind:'key',
+    ds:'A billing record that cannot exist: a twenty-five-hour day, initialed twice — once in red.',
+  },
+  ghost_manuscript: {
+    nm:'Unsigned Manuscript', spr:'file', kind:'key',
+    ds:'An opinion in a hand nobody living writes. The footnotes cite cases that have not happened yet.',
+  },
+  ghost_ribbon: {
+    nm:"The Ghostwriter's Ribbon", spr:'gear', kind:'weapon',
+    ds:'A typewriter ribbon soaked in sixty years of unsigned dicta. Your filings seek the guilty on their own, and land harder.',
+    mods:{ special:'homing', dmgMul:1.15, color:'#c58cff' },
+  },
 };
 
 // ---- rarity tiers (1 Standard .. 4 Landmark) + shop prices ----
@@ -122,6 +136,7 @@ const ITEM_TIER = {
   objection_writ:2, retainer:2,
   good_pens:3, letter_opener:3, kevlar_suit:3, server_capacitor:3,
   founders_signet:4, printer_companion:4,
+  kessler_exhibit:2, ghost_manuscript:3, ghost_ribbon:4,
 };
 const ITEM_PRICE = {
   cold_brew:40, pinstripe_suit:60, objection_writ:75, retainer:110,
@@ -178,8 +193,9 @@ function useConsumable(id){
   const it = ITEMS[id]; if(!it || it.kind!=='consumable') return;
   const i = player.inventory.indexOf(id); if(i<0){ SFX.buzz(); return; }
   player.inventory.splice(i,1);
-  if(it.heal){ player.hp = Math.min(player.maxhp, player.hp + it.heal);
-    floaters.push({ x:player.x, y:player.y-22, text:`+${it.heal} CAFFEINE`, t:0.9, color:'#9be05e' }); }
+  if(it.heal){ const heal = Math.round(it.heal * perkMul('coffeeMul'));
+    player.hp = Math.min(player.maxhp, player.hp + heal);
+    floaters.push({ x:player.x, y:player.y-22, text:`+${heal} CAFFEINE`, t:0.9, color:'#9be05e' }); }
   if(it.effect==='continuance'){
     enemyShots = [];                                  // sweep the room clear of fire
     for(const e of enemies){
@@ -219,6 +235,7 @@ function weaponStats(){
     if(m.special)  s.special = m.special;
     if(m.color)    s.color = m.color;
   }
+  if(perkHas('pierce')) s.pierce = true;   // Paper Trail: everything leaves a record
   return s;
 }
 // passive-gear lookups across the accessory + suit slots (weapon mods are
@@ -227,6 +244,10 @@ const GEAR_SLOTS = ['accessory','suit'];
 function gearSum(key){ let v=0; for(const s of GEAR_SLOTS){ const it=player.equip&&ITEMS[player.equip[s]]; if(it&&it.mods&&it.mods[key]) v+=it.mods[key]; } return v; }
 function gearMul(key){ let m=1; for(const s of GEAR_SLOTS){ const it=player.equip&&ITEMS[player.equip[s]]; if(it&&it.mods&&it.mods[key]) m*=it.mods[key]; } return m; }
 function gearHas(key){ for(const s of GEAR_SLOTS){ const it=player.equip&&ITEMS[player.equip[s]]; if(it&&it.mods&&it.mods[key]) return true; } return false; }
+// perk lookups — player.perks holds PERKS ids; effects resolve like gear mods
+const perkDef = id => PERKS.find(p=>p.id===id);
+function perkMul(key){ let m=1; if(player&&player.perks) for(const id of player.perks){ const p=perkDef(id); if(p&&p.mods[key]) m*=p.mods[key]; } return m; }
+function perkHas(key){ if(player&&player.perks) for(const id of player.perks){ const p=perkDef(id); if(p&&p.mods[key]) return true; } return false; }
 // fraction of incoming damage blocked by equipped suit/accessory armor (capped)
 function equipDefense(){ return Math.min(0.70, gearSum('defense')); }
 function recalcMaxHP(){
@@ -307,11 +328,16 @@ function drawInventory(){
   drawSlot('ACCESSORY', 'accessory', PX+24+slotW+16);
   drawSlot('SUIT (ARMOR)', 'suit', PX+24+(slotW+16)*2);
 
-  // effective-stats summary line
+  // effective-stats summary line + earned perks
   const ws=weaponStats();
   const dmgX=(ws.dmg/player.cls.dmg)*dmgMult(), rateX=player.cls.cd/ws.cd, arm=Math.round(equipDefense()*100);
   ctx.font='11px monospace'; ctx.fillStyle='#caa84a';
-  ctx.fillText(`FIRE x${dmgX.toFixed(2)} dmg · x${rateX.toFixed(2)} rate · ${ws.count} shot${ws.count>1?'s':''}${ws.pierce?' · pierce':''}  |  ARMOR ${arm}%  ·  MAX HP ${player.maxhp}`, PX+24, slotY+78);
+  ctx.fillText(`FIRE x${dmgX.toFixed(2)} dmg · x${rateX.toFixed(2)} rate · ${ws.count} shot${ws.count>1?'s':''}${ws.pierce?' · pierce':''}  |  ARMOR ${arm}%  ·  MAX HP ${player.maxhp}`, PX+24, slotY+74);
+  ctx.font='10px monospace'; ctx.fillStyle='#9be05e';
+  const perkLine = player.perks.length
+    ? 'PERKS: ' + player.perks.map(id=>{ const p=perkDef(id); return p?p.nm:id; }).join(' · ')
+    : 'PERKS: none yet — every promotion banks a development choice';
+  ctx.fillText(perkLine.length>96 ? perkLine.slice(0,93)+'…' : perkLine, PX+24, slotY+88);
 
   // carried-item list — grouped by kind, equipped first, then rarity; clipped + scrollable
   const counts={}; for(const id of player.inventory) counts[id]=(counts[id]||0)+1;
