@@ -11,6 +11,7 @@ function step(now){
     else if(shopOpen){ draw(); if(!IS_TOUCH){ drawShop(); padDrawCursor(shopRects); } }
     else { if(hitStop>0){ hitStop -= dt; } else { update(dt); } draw(); } // hit-stop freezes the world, not the render
   }
+  else if(state==='intro'){ updateIntro(dt); drawIntro(); }
   else if(state==='dialog'){ draw(); if(!IS_TOUCH) drawDialog(); }
   else if(state==='gameover'||state==='victory'){ draw(); drawEnd(); }
   updateMobilePanel();
@@ -40,6 +41,7 @@ window.addEventListener('keydown', e=>{
   if(k===' ') e.preventDefault();
   if(k==='m'){ toggleMute(); return; }
   if(k==='f'){ toggleFullscreen(); return; }
+  if(state==='intro'){ if(k==='escape') introSkip(); else introAdvance(); return; }
   if(helpOpen){ if(k==='escape' || k==='h') toggleHelp(); return; }
   if(k==='h' && state==='play' && !invOpen && !shopOpen){ toggleHelp(); return; }
   if(k==='i' && (state==='play')){ toggleInventory(); return; }

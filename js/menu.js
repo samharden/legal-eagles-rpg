@@ -17,7 +17,7 @@ startBtn.onclick=()=>{
   audioInit(); // user gesture: safe to start the AudioContext here
   clearSave(); // signing a fresh engagement letter abandons the old case file
   document.getElementById('menu').style.display='none';
-  startGame(selGender, selClass);
+  startIntro(selGender, selClass); // the orientation film runs first; it calls startGame
   SFX.quest();
 };
 const continueBtn=document.getElementById('continueBtn');

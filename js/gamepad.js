@@ -125,6 +125,8 @@ function pollGamepad(){
       if(r) (invOpen ? inventoryClick : shopClick)(r.x + r.w/2, r.y + r.h/2);
     } else if(helpOpen){
       toggleHelp();
+    } else if(state==='intro'){
+      introAdvance();
     } else if(state==='gameover' || state==='victory'){
       document.getElementById('menu').style.display = 'flex';
       state = 'menu'; refreshContinue();
@@ -133,9 +135,10 @@ function pollGamepad(){
   }
   if(edge(3) && state==='victory') startNGPlus();   // Y on the victory screen accepts THE MERGER
 
-  // --- B: close whatever panel is up ---
-  if(edge(1) && inPanel){
-    if(invOpen) toggleInventory(); else if(shopOpen) toggleShop(); else toggleHelp();
+  // --- B: close whatever panel is up (in the intro reel: skip it) ---
+  if(edge(1)){
+    if(inPanel){ if(invOpen) toggleInventory(); else if(shopOpen) toggleShop(); else toggleHelp(); }
+    else if(state==='intro') introSkip();
   }
 
   // --- navigation: menu grid, dialog choices, bag/shop cursor ---

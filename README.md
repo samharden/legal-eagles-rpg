@@ -10,6 +10,9 @@ Open `index.html` in any modern browser. No build step, no dependencies, no serv
 
 ## Gameplay
 
+### The Orientation Film
+Signing the engagement letter on a new game screens *Orientation Film No. 000-1959* — a six-reel, arcade-attract-style cold open covering the firm, the events of March 13, 1987, your odds, the opposition's hourly rates, and the controls. Any key/tap/A turns the page; Esc, B, or the SKIP chip goes straight to your desk. Continuing a saved game skips it.
+
 ### Character Creation
 Pick your attorney and a practice area at New Hire Orientation. Each practice area is a different ranged attack:
 

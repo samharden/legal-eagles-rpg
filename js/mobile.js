@@ -7,9 +7,10 @@ function updateMobilePanel(){
   if(!IS_TOUCH) return;
   updateMobileBag();
   updateMobileShop();
-  // the panel only exists during gameplay — the menu is full-screen on mobile
+  // the panel only exists during gameplay — the menu is full-screen on mobile,
+  // and the intro reel draws entirely on the canvas
   const panel = document.getElementById('mpanel');
-  const wanted = state !== 'menu' ? 'block' : 'none';
+  const wanted = (state !== 'menu' && state !== 'intro') ? 'block' : 'none';
   if(panel.style.display !== wanted) panel.style.display = wanted;
   if(wanted === 'none') return;
   const box = document.getElementById('mdlg');
