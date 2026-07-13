@@ -9,7 +9,6 @@ let introPend = null;                       // {genderId, classId} held until th
 let introN = 0, introHoldT = 0, introChars = 0, introClock = 0;
 let introScenes = [];
 const INTRO_CPS = 55;                       // typewriter speed, chars/sec
-const INTRO_HOLD = 3.4;                     // linger after a scene fully types, then auto-advance
 const INTRO_SKIP = { x:830, y:14, w:114, h:32 };
 
 function startIntro(genderId, classId){
@@ -79,11 +78,9 @@ function updateIntro(dt){
     // typewriter tick every few characters
     if(AU.ctx && AU.on && (prev/3|0) !== (introChars/3|0))
       tone({ f:1250 + ((introChars*37)%5)*85, type:'square', t:0.012, vol:0.018 });
-    introHoldT = 0;
-  } else {
-    introHoldT += dt;
-    if(introHoldT > INTRO_HOLD) introNext();
   }
+  // when fully typed we simply wait here for the player's input (introAdvance)
+  // instead of auto-advancing, so nobody gets rushed past a scene mid-read.
 }
 function introAdvance(){ // any input: finish the typing first, then turn the page
   const s = introScenes[introN]; if(!s) return;
