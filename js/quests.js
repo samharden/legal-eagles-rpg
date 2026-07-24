@@ -60,7 +60,7 @@ function questProgressText(){
 
 function gainXP(n){
   player.xp += n;
-  floaters.push({ x:player.x, y:player.y-22, text:`+${n} XP`, t:1.2, color:'#f0c75e' });
+  bark(player.x, player.y-22, `+${n} XP`, '#f0c75e', 1.2);
   const nr = rankFor(player.xp);
   if(nr.lvl > player.rank.lvl){
     player.rank = nr;
@@ -83,7 +83,7 @@ function gainBillables(n, quiet){
   player.billables += n;
   flags.totalBilled = (flags.totalBilled||0) + n;   // lifetime hours, for the performance review
 
-  if(!quiet) floaters.push({ x:player.x, y:player.y-12, text:`+${n} hrs billed`, t:1.2, color:'#caa84a' });
+  if(!quiet) bark(player.x, player.y-12, `+${n} hrs billed`, '#caa84a', 1.2);
 }
 const fmtBH = n => (n||0).toLocaleString('en-US');
 

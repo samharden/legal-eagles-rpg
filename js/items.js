@@ -160,7 +160,7 @@ function buyItem(id){
   player.billables -= ITEM_PRICE[id];
   giveItem(id, true);
   SFX.coffee();
-  floaters.push({ x:player.x, y:player.y-22, text:'PURCHASED: '+ITEMS[id].nm.toUpperCase(), t:1.5, color:'#caa84a' });
+  bark(player.x, player.y-22, 'PURCHASED: '+ITEMS[id].nm.toUpperCase(), '#caa84a', 1.5);
 }
 
 // ---- inventory state ----
@@ -173,7 +173,7 @@ function giveItem(id, quiet){
   questEvent('collect', { item:id });
   if(!quiet){
     SFX.pick();
-    floaters.push({ x:player.x, y:player.y-26, text:'GOT: '+ITEMS[id].nm.toUpperCase(), t:1.4, color:'#caa84a' });
+    bark(player.x, player.y-26, 'GOT: '+ITEMS[id].nm.toUpperCase(), '#caa84a', 1.4);
     announce('Acquired: '+ITEMS[id].nm+'. (Press I to open your bag.)', false, 4);
   }
   return true;
@@ -195,20 +195,20 @@ function useConsumable(id){
   player.inventory.splice(i,1);
   if(it.heal){ const heal = Math.round(it.heal * perkMul('coffeeMul'));
     player.hp = Math.min(player.maxhp, player.hp + heal);
-    floaters.push({ x:player.x, y:player.y-22, text:`+${heal} CAFFEINE`, t:0.9, color:'#9be05e' }); }
+    fx.number(player.x, player.y-22, `+${heal} CAFFEINE`, '#9be05e'); }
   if(it.effect==='continuance'){
     enemyShots = [];                                  // sweep the room clear of fire
     for(const e of enemies){
       if(e.boss) e.slowT = Math.max(e.slowT||0, 3);   // bosses can't be frozen, only mired
       else e.stunT = Math.max(e.stunT||0, 3);
     }
-    floaters.push({ x:player.x, y:player.y-26, text:'CONTINUANCE GRANTED', t:1.2, color:'#5ec8f0' });
+    bark(player.x, player.y-26, 'CONTINUANCE GRANTED', '#5ec8f0', 1.2);
     announce('CONTINUANCE GRANTED. The court freezes. For three seconds, nothing may proceed against you.', false, 3);
-    shake = Math.max(shake, 6);
+    fx.addTrauma(0.3);
   }
   if(it.effect==='shield'){
     player.shieldT = Math.max(player.shieldT||0, it.dur||5);
-    floaters.push({ x:player.x, y:player.y-26, text:'RETAINER ACTIVE', t:1.2, color:'#5ec8f0' });
+    bark(player.x, player.y-26, 'RETAINER ACTIVE', '#5ec8f0', 1.2);
   }
   SFX.coffee();
 }

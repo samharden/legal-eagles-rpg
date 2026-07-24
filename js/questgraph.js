@@ -37,7 +37,7 @@ const QLINE = [
         onStart:()=>{
           const v = worlds.vault.instrument;
           spawnEnemy('instrument', v.tx*TILE+20, v.ty*TILE+20);
-          SFX.boom(); shake = Math.max(shake, 14);
+          SFX.boom(); fx.addTrauma(0.7);
           announce('The instrument case splits. Forty years of harvested hours pour upward into a shape. THE FOUNDING AGREEMENT stands.', true, 5.5);
         } },
     ],
@@ -80,7 +80,7 @@ const QLINE = [
       { type:'kill', enemy:'wraith', n:6, hint:'Destroy the manifested overbilling — 6 billable-hour wraiths.',
         onStart:()=>{
           for(let i=0;i<6;i++){ const p=findOpen(player.x,player.y,340); spawnEnemy('wraith', p.x, p.y, 1.4); }
-          SFX.boom(); shake = Math.max(shake,10);
+          SFX.boom(); fx.addTrauma(0.5);
           announce('THE 25TH HOUR TAKES THE STAND. Six wraiths of padded time materialize, screaming timestamps.', true, 4.5);
         } },
     ],
@@ -111,7 +111,7 @@ const QLINE = [
       { type:'kill', enemy:'golem', n:4, hint:'Destroy the objecting archive — 4 bound-volume golems.',
         onStart:()=>{
           for(let i=0;i<4;i++){ const p=findOpen(player.x,player.y,320); spawnEnemy('golem', p.x, p.y, 1.8); }
-          SFX.boom(); shake = Math.max(shake,12);
+          SFX.boom(); fx.addTrauma(0.6);
           announce('THE ARCHIVE OBJECTS. Four bound volumes of ghost-written law slam off the shelves and stand up.', true, 4.5);
         } },
     ],
@@ -127,7 +127,7 @@ const QLINE = [
       { type:'kill', enemy:'intern', n:6, hint:'Defend the printer while it reboots — clear 6 paper jams (interns).',
         onStart:()=>{
           for(let i=0;i<6;i++){ const p=findOpen(player.x, player.y, 300); spawnEnemy('intern', p.x, p.y); }
-          SFX.buzz(); shake = Math.max(shake, 8);
+          SFX.buzz(); fx.addTrauma(0.4);
           announce('The printer roars to life and IMMEDIATELY jams. Over-caffeinated interns swarm it. Defend it!', true, 4.5);
         } },
     ],
@@ -275,7 +275,7 @@ function acceptMatter(i){
   boardActive = { ...m, prog:0 };
   for(let k=0;k<m.n;k++){ const p = findOpen(player.x, player.y, 320); spawnEnemy(m.enemy, p.x, p.y, m.sc||1); }
   if(m.hazard) for(let k=0;k<2;k++){ const p = findOpen(player.x, player.y, 360); spawnEnemy('counsel', p.x, p.y, m.sc||1); } // the escort
-  SFX.quest(); shake = Math.max(shake, 6);
+  SFX.quest(); fx.addTrauma(0.3);
   announce(`MATTER ACCEPTED: ${matterName(m)}. The work has been dispatched to the floor — defend your billables.`, true, 4.5);
   boardOffers[i] = genOffer();   // the slot refreshes immediately
   saveGame();

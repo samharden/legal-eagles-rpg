@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#0a0812;color:#e8e0f0;font-family:"Courier New",monospace;}
+  ::selection{background:#f0c75e;color:#1a1626;}
+  a{color:#f0c75e;} a:hover{color:#ffd97a;}
+  canvas{display:block;image-rendering:pixelated;}
+  .le-btn{font-family:inherit;font-weight:bold;font-size:12px;letter-spacing:.5px;color:#e8e0f0;background:#241d36;border:2px solid #4a3f63;padding:9px 12px;cursor:pointer;transition:transform .08s,border-color .1s,background .1s;text-transform:uppercase;}
+  .le-btn:hover{border-color:#f0c75e;color:#f0c75e;}
+  .le-btn:active{transform:scale(.94);background:#3a2f55;}
+</style>
+</helmet>
+<script src="le-sprites.js"></script>
+<script src="anim.js"></script>
+<div style="min-height:100vh;padding:20px 18px 48px;display:flex;flex-direction:column;align-items:center;">
+  <div style="width:100%;max-width:1000px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;border-bottom:2px solid #4a3f63;padding-bottom:10px;margin-bottom:16px;">
+    <h1 style="font-size:22px;letter-spacing:3px;color:#f0c75e;text-shadow:0 0 14px #7a5c0080;">LEGAL EAGLES — INTRO REEL</h1>
+    <span style="color:#9b8fb5;font-size:12px;font-style:italic;">orientation film, re-cut on the animation engine</span>
+    <span style="margin-left:auto;color:#5ec8f0;font-size:11px;letter-spacing:1px;">6 exhibits · anim.js</span>
+  </div>
+
+  <div style="width:100%;max-width:1000px;border:3px solid #4a3f63;background:#000;">
+    <canvas id="intro-cv" width="960" height="672" style="width:100%;height:auto;"></canvas>
+  </div>
+
+  <div style="width:100%;max-width:1000px;margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+    <button class="le-btn" onClick="{{ toggleJuice }}" style="border-color:{{ juiceBorder }};color:{{ juiceColor }};min-width:150px;">{{ juiceLabel }}</button>
+    <button class="le-btn" onClick="{{ restart }}">&#8635; Restart</button>
+    <button class="le-btn" onClick="{{ prev }}">&#8249; Prev</button>
+    <button class="le-btn" onClick="{{ next }}">Next &#8250;</button>
+    <span style="color:#7d7397;font-size:11px;line-height:1.6;margin-left:auto;">Click the reel to advance · <b style="color:#9b8fb5;">Esc</b> skips · <b style="color:#9b8fb5;">&#8592;/&#8594;</b> step scenes</span>
+  </div>
+  <div style="width:100%;max-width:1000px;color:#7d7397;font-size:11px;line-height:1.6;margin-top:8px;">
+    {{ juiceHint }}
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { juice: true };
+  opts = { juice: true };
+
+  toggleJuice = () => { this.opts.juice = !this.opts.juice; this._startScene(this.idx || 0); this.setState({ juice: this.opts.juice }); };
+  restart = () => this._startScene(0);
+  prev = () => this._startScene(Math.max(0, (this.idx || 0) - 1));
+  next = () => this._advance();
+
+  renderVals() {
+    const on = this.state.juice;
+    return {
+      toggleJuice: this.toggleJuice, restart: this.restart, prev: this.prev, next: this.next,
+      juiceLabel: on ? 'NEW CUT \u25cf ON' : 'ORIGINAL \u25cb OFF',
+      juiceBorder: on ? '#9be05e' : '#5a4f73',
+      juiceColor: on ? '#9be05e' : '#9b8fb5',
+      juiceHint: on
+        ? 'Film-splice transitions, sprites that pop in and breathe (the counsel strikes, the roster shudders), a slow ken-burns push on the art, and a typewriter that pauses on punctuation and jolts on SHOUTED words.'
+        : 'The reel as it plays today: hard cuts, static sprites with a sine bob, a flat art band and an even, metronomic typewriter. Flip it on to compare.',
+    };
+  }
+
+  // ---------------------------------------------------------------- setup ---
+  componentDidMount() {
+    if (!window.LEAnim || !window.SPR) { setTimeout(() => this.componentDidMount(), 60); return; }
+    this.SPR = window.SPR; this.A = window.LEAnim; this.E = this.A.Easing;
+    this.cv = document.getElementById('intro-cv');
+    if (!this.cv) { setTimeout(() => this.componentDidMount(), 60); return; }
+    this.ctx = this.cv.getContext('2d');
+    this.W = 960; this.H = 672;
+
+    const wl = (lines, n = 80) => lines.flatMap(t => this._wrap(t, n));
+    this.scenes = [
+      { ex: 'EXHIBIT A', title: 'THE FIRM', art: this._artFirm, ty: 352, lines: wl([
+        '11:58 PM. Downtown. The tower at 1959 Precedent Plaza.',
+        'DEWEY, CHEATHAM & HOWE LLP — four hundred attorneys, six-minute billing increments, one elevator button nobody talks about.',
+        'The lights on the executive floors never go out.',
+        'Neither, strictly speaking, do the partners.',
+      ]) },
+      { ex: 'EXHIBIT B', title: 'MARCH 13, 1987', art: this._artLegend, ty: 372, lines: wl([
+        'On this night, Senior Partner THADDEUS GRAVES III billed twenty-five hours in a single day.',
+        'At midnight he was promoted to Partner Emeritus. He stopped aging. The firm stopped asking.',
+        "Since that night, hours have vanished from every associate's timesheet — and some associates have vanished with them.",
+        'HR calls this "attrition". HR is the printer now.',
+      ]) },
+      { ex: 'EXHIBIT C', title: 'THE NEW HIRE', art: this._artHire, ty: 372, lines: wl([
+        'You. Fresh bar card, one pinstripe suit, student debt visible from orbit.',
+        'The firm has offered you a desk, a briefcase, and every matter nobody else would touch.',
+        'Close the matters. Bill the hours. Rise from ASSOCIATE to NAME PARTNER.',
+        'And if the basement asks for your hours — OBJECT.',
+      ]) },
+      { ex: 'EXHIBIT D', title: 'THE OPPOSITION', art: this._artRoster, ty: 452, lines: wl([
+        'Everything the practice of law can throw at you, it will. Sanction it all — every hour is billable.',
+        'Rumor speaks of something older, below the records annex. The rumor bills twenty-five hours a day.',
+      ]) },
+      { ex: 'EXHIBIT E', title: 'YOUR PRACTICE', art: this._artPractice, ty: 368, lines: wl([
+        'TALK [E] to partners and staff — a gold ! means they have work for you.',
+        'STRIKE [Space] · FIRE [K or click — the mouse aims] · SPIN [L] · DASH [Shift].',
+        'Coffee heals. The supply closet sells gear for billable hours. Press H in-game for the full Field Manual.',
+      ]) },
+      { ex: 'EXHIBIT F', title: 'THE ENGAGEMENT', art: this._artStart, ty: 392, lines: wl([
+        'Your signature is binding. Your desk is on fire. This is normal.',
+        'Bill well, counselor — and stay out of the basement after midnight.',
+      ]) },
+    ];
+
+    this.SKIP = { x: 830, y: 14, w: 114, h: 32 };
+    this._onKey = (e) => {
+      if (e.key === 'Escape') { this._skip(); return; }
+      if (e.key === 'ArrowRight') { this._advance(); return; }
+      if (e.key === 'ArrowLeft') { this._startScene(Math.max(0, this.idx - 1)); return; }
+      e.preventDefault(); this._advance();
+    };
+    this._onPt = (e) => {
+      const r = this.cv.getBoundingClientRect();
+      const x = (e.clientX - r.left) * (this.W / r.width), y = (e.clientY - r.top) * (this.H / r.height);
+      const k = this.SKIP;
+      if (x >= k.x && x <= k.x + k.w && y >= k.y && y <= k.y + k.h) this._skip(); else this._advance();
+    };
+    window.addEventListener('keydown', this._onKey);
+    this.cv.addEventListener('pointerdown', this._onPt);
+
+    this._t = 0; this._dt = 0;
+    this._startScene(0);
+    this.last = performance.now();
+    this._raf = requestAnimationFrame(this._loop);
+  }
+  componentWillUnmount() { cancelAnimationFrame(this._raf); window.removeEventListener('keydown', this._onKey); }
+
+  _wrap(text, n) {
+    const words = text.split(' '), lines = []; let cur = '';
+    for (const w of words) { if ((cur + ' ' + w).trim().length > n) { lines.push(cur.trim()); cur = w; } else cur += ' ' + w; }
+    if (cur.trim()) lines.push(cur.trim());
+    return lines;
+  }
+  _total(s) { return s.lines.reduce((a, l) => a + l.length + 1, 0); }
+
+  _startScene(i) {
+    this.idx = i;
+    const s = this.scenes[i];
+    this.tw = new this.A.Typewriter(s.lines.join('\n'), {
+      cps: this.opts.juice ? 52 : 55,
+      onShout: () => { if (this.opts.juice) this.shake = Math.max(this.shake || 0, 2.2); },
+    });
+    this.trans = new this.A.Transition(0.5);
+    if (this.opts.juice) this.trans.start();
+    this.sceneT = 0; this.rigs = {}; this._beats = {}; this.shake = this.opts.juice ? 2 : 0;
+  }
+  _advance() {
+    if (!this.tw) return;
+    if (!this.tw.done) { this.tw.finish(); return; }
+    if (this.idx >= this.scenes.length - 1) { this._startScene(0); return; }
+    this._startScene(this.idx + 1);
+  }
+  _skip() { this._startScene(this.scenes.length - 1); this.tw.finish(); }
+
+  // deterministic pseudo-random
+  _ir(i) { const x = Math.sin(i * 127.1) * 43758.5453; return x - Math.floor(x); }
+  _beat(id, period, phase = 0) {
+    const n = Math.floor((this.sceneT + phase) / period);
+    if (this._beats[id] === undefined) { this._beats[id] = n; return false; }
+    if (n > this._beats[id]) { this._beats[id] = n; return true; }
+    return false;
+  }
+  // unified sprite draw: rigged (NEW) or flat sine-bob (OLD). returns the rig or null.
+  _spr(id, key, x, y, size, flip = false, alpha = 1) {
+    if (!this.opts.juice) {
+      window.LEblit(this.ctx, this.SPR[key], x, y + Math.sin(this._t * 1.7 + (id.charCodeAt(0) || 0)) * 3, size, flip, alpha);
+      return null;
+    }
+    let r = this.rigs[id];
+    if (!r) { r = new this.A.Rig({ bounce: 1 }); r.spawn(); this.rigs[id] = r; }
+    r.step(this._dt, { moving: false });
+    r.draw(this.ctx, this.SPR[key], x, y, size, flip, alpha);
+    return r;
+  }
+
+  // ------------------------------------------------------------- loop -------
+  _loop = (now) => {
+    this._dt = Math.min(0.04, (now - this.last) / 1000); this.last = now;
+    this._t += this._dt; this.sceneT += this._dt;
+    this.trans.step(this._dt);
+    if (this.shake > 0) this.shake -= this._dt * 26;
+    this._type(this._dt);
+    this._draw();
+    this._raf = requestAnimationFrame(this._loop);
+  };
+
+  _type(dt) {
+    if (this.opts.juice && this.trans.t < 0.12) return;   // let the splice settle first
+    this.tw.step(dt);
+  }
+
+  // ------------------------------------------------------------- draw -------
+  _draw() {
+    const ctx = this.ctx, W = this.W, H = this.H, J = this.opts.juice, E = this.E;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    if (J && this.shake > 0) ctx.translate((Math.random() * 2 - 1) * this.shake, (Math.random() * 2 - 1) * this.shake);
+    ctx.fillStyle = '#08060f'; ctx.fillRect(-8, -8, W + 16, H + 16);
+
+    const contentA = J ? this.trans.contentAlpha : 1;
+    const yOff = J ? this.trans.slideY : 0;
+    const kb = J ? this.trans.kenBurns(this.sceneT) : 1;
+
+    ctx.save();
+    ctx.globalAlpha = contentA;
+    ctx.translate(W / 2, 300); ctx.scale(kb, kb); ctx.translate(-W / 2, -300 + yOff);
+    this.scenes[this.idx].art.call(this, this._t);
+    this._headerBody();
+    ctx.restore();
+    ctx.globalAlpha = 1;
+
+    // film-splice: white flash + tracking scratches on scene entry
+    if (J && this.trans.flash > 0) { ctx.globalAlpha = this.trans.flash; ctx.fillStyle = '#f4eede'; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
+    if (J && this.trans.t < 0.32) {
+      ctx.globalAlpha = (1 - this.trans.t / 0.32) * 0.5; ctx.fillStyle = '#0a0812';
+      for (let i = 0; i < 4; i++) { const yy = this._ir(i + this.trans.t * 40) * H; ctx.fillRect(0, yy, W, 2); }
+      ctx.globalAlpha = 1;
+    }
+    this._chrome();
+  }
+
+  _headerBody() {
+    const ctx = this.ctx, W = this.W, s = this.scenes[this.idx], t = this._t;
+    ctx.textAlign = 'center';
+    ctx.font = '12px "Courier New", monospace'; ctx.fillStyle = '#7d7397';
+    ctx.fillText(`DEWEY, CHEATHAM & HOWE LLP \u00b7 ORIENTATION FILM No. 000-1959 \u00b7 ${s.ex}`, W / 2, 34);
+    ctx.font = 'bold 26px "Courier New", monospace'; ctx.fillStyle = '#f0c75e';
+    ctx.fillText(s.title.split('').join(' '), W / 2, 64);
+
+    ctx.textAlign = 'left';
+    ctx.font = '16px "Courier New", monospace';
+    const lineH = 27;
+    let left = this.tw.count, y = Math.min(s.ty, 540 - (s.lines.length - 1) * lineH);
+    for (const line of s.lines) {
+      if (left <= 0) break;
+      const n = Math.min(line.length, Math.floor(left));
+      const shown = line.slice(0, n);
+      ctx.fillStyle = '#e8e0f0'; ctx.fillText(shown, 140, y);
+      if (n < line.length || (left - line.length - 1 < 0 && Math.sin(t * 8) > 0)) {
+        ctx.fillStyle = '#f0c75e'; ctx.fillText('\u258c', 140 + ctx.measureText(shown).width, y);
+      }
+      left -= line.length + 1; y += lineH;
+    }
+  }
+
+  _chrome() {
+    const ctx = this.ctx, W = this.W, H = this.H, t = this._t;
+    ctx.textAlign = 'center';
+    if (Math.sin(t * 3.2) > -0.4) {
+      ctx.font = 'bold 14px "Courier New", monospace'; ctx.fillStyle = '#5ec8f0';
+      ctx.fillText('ANY KEY / CLICK \u2014 CONTINUE \u00b7 ESC \u2014 SKIP', W / 2, 556);
+    }
+    ctx.font = '12px "Courier New", monospace'; ctx.fillStyle = '#7d7397';
+    ctx.fillText(`REEL ${this.idx + 1} OF ${this.scenes.length}`, W / 2, 582);
+
+    const k = this.SKIP;
+    ctx.fillStyle = 'rgba(36,29,54,0.9)'; ctx.fillRect(k.x, k.y, k.w, k.h);
+    ctx.strokeStyle = '#4a3f63'; ctx.lineWidth = 2; ctx.strokeRect(k.x, k.y, k.w, k.h);
+    ctx.font = 'bold 13px "Courier New", monospace'; ctx.fillStyle = '#9b8fb5';
+    ctx.fillText('SKIP \u25b8\u25b8', k.x + k.w / 2, k.y + 21);
+
+    // CRT dressing
+    ctx.fillStyle = 'rgba(0,0,0,0.13)';
+    for (let sy = 0; sy < 600; sy += 4) ctx.fillRect(0, sy, W, 1);
+    ctx.fillStyle = 'rgba(255,255,255,0.02)';
+    ctx.fillRect(0, (t * 46) % 640 - 30, W, 30);
+    const vg = ctx.createRadialGradient(W / 2, 300, 260, W / 2, 300, 620);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.5)');
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, W, 600);
+    // letterbox
+    ctx.fillStyle = '#08060f'; ctx.fillRect(0, 600, W, H - 600);
+    ctx.font = '12px "Courier New", monospace'; ctx.fillStyle = '#4a3f63';
+    ctx.fillText('PROPERTY OF THE ORIENTATION & COMPLIANCE DEPARTMENT \u2014 DO NOT DUPLICATE \u2014 DO NOT REWIND PAST 1987', W / 2, 646);
+  }
+
+  // ---- scene art (ported; sprites routed through _spr for rigging) ---------
+  _artFirm(t) {
+    const ctx = this.ctx, W = this.W, ir = (i) => this._ir(i);
+    for (let i = 0; i < 70; i++) { ctx.globalAlpha = 0.25 + 0.5 * Math.abs(Math.sin(t * 1.6 + i)); ctx.fillStyle = '#d8d2e8'; ctx.fillRect(20 + ir(i) * 920, 84 + ir(i + 99) * 180, 2, 2); }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#d8d2e8'; ctx.beginPath(); ctx.arc(800, 122, 20, 0, 7); ctx.fill();
+    ctx.fillStyle = '#bcb0d4'; ctx.beginPath(); ctx.arc(793, 116, 5, 0, 7); ctx.fill();
+    for (const [bx, by, bw] of [[120, 190, 90], [230, 158, 70], [640, 172, 80], [740, 206, 66], [300, 214, 60]]) {
+      ctx.fillStyle = '#141021'; ctx.fillRect(bx, by, bw, 320 - by);
+      ctx.fillStyle = 'rgba(240,199,94,0.25)';
+      for (let i = 0; i < 8; i++) if (ir(bx + i) > 0.6) ctx.fillRect(bx + 6 + (i % 3) * ((bw - 16) / 3), by + 8 + ((i / 3) | 0) * 22, 8, 6);
+    }
+    ctx.fillStyle = '#241d36'; ctx.fillRect(410, 98, 140, 222);
+    ctx.strokeStyle = '#4a3f63'; ctx.lineWidth = 2; ctx.strokeRect(410, 98, 140, 222);
+    ctx.beginPath(); ctx.moveTo(480, 98); ctx.lineTo(480, 74); ctx.stroke();
+    ctx.fillStyle = `rgba(255,85,119,${0.4 + 0.5 * Math.abs(Math.sin(t * 2.4))})`; ctx.fillRect(477, 70, 6, 6);
+    for (let c = 0; c < 6; c++) for (let r = 0; r < 12; r++) {
+      const lit = ir(c * 31 + r * 7) > 0.48;
+      if (r < 2) ctx.fillStyle = `rgba(255,85,119,${0.35 + 0.4 * Math.abs(Math.sin(t * 3 + c))})`;
+      else if (lit) ctx.fillStyle = 'rgba(240,199,94,0.75)';
+      else ctx.fillStyle = '#161122';
+      ctx.fillRect(418 + c * 22, 106 + r * 17, 14, 10);
+    }
+    ctx.fillStyle = '#1a1626'; ctx.fillRect(0, 320, W, 14);
+  }
+  _artLegend(t) {
+    const ctx = this.ctx;
+    ctx.fillStyle = '#221a10'; ctx.fillRect(240, 92, 480, 232);
+    ctx.strokeStyle = '#6b5836'; ctx.lineWidth = 4; ctx.strokeRect(240, 92, 480, 232);
+    ctx.fillStyle = '#0d0a14';
+    for (let y = 100; y < 316; y += 26) { ctx.fillRect(250, y, 12, 14); ctx.fillRect(698, y, 12, 14); }
+    if (this.opts.juice && this._beat('emeritus', 3.2)) { const r = this.rigs['emeritus']; if (r) r.hurt(0, -0.3, 0.45); }
+    this._spr('emeritus', 'grandfather', 480, 214, 128, false, 0.95);
+    ctx.font = 'bold 24px "Courier New", monospace'; ctx.textAlign = 'center';
+    ctx.fillStyle = `rgba(255,85,119,${0.45 + 0.5 * Math.abs(Math.sin(t * 6.5))})`;
+    ctx.fillText('25:00:00', 480 + (Math.random() < 0.06 ? 3 : 0), 128);
+    window.LEblit(ctx, this.SPR.file, 348, 286, 30, false, 0.85);
+    window.LEblit(ctx, this.SPR.file, 612, 280, 30, true, 0.85);
+    window.LEblit(ctx, this.SPR.file, 388, 148, 26, false, 0.7);
+    ctx.fillStyle = 'rgba(255,244,214,0.05)';
+    for (let i = 0; i < 36; i++) ctx.fillRect(250 + Math.random() * 460, 100 + Math.random() * 214, 2, 2);
+    ctx.font = '12px "Courier New", monospace'; ctx.fillStyle = '#8a7448';
+    ctx.fillText('ARCHIVE FOOTAGE \u2014 RESOLUTION: DO NOT INVESTIGATE', 480, 340);
+  }
+  _artHire(t) {
+    const ctx = this.ctx;
+    const g = ctx.createRadialGradient(480, 230, 30, 480, 230, 220);
+    g.addColorStop(0, 'rgba(240,199,94,0.10)'); g.addColorStop(1, 'rgba(240,199,94,0)');
+    ctx.fillStyle = g; ctx.fillRect(260, 84, 440, 260);
+    if (this.opts.juice) { if (this._beat('hm', 2.4, 0)) this.rigs['hm'] && this.rigs['hm'].strike(); if (this._beat('hf', 2.4, 1.2)) this.rigs['hf'] && this.rigs['hf'].strike(); }
+    this._spr('hm', 'p_m', 415, 200, 108, false);
+    this._spr('hf', 'p_f', 545, 200, 108, true);
+    ctx.font = 'bold 20px "Courier New", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = '#f0c75e';
+    ctx.fillText('!', 415, 128 + Math.sin(t * 5) * 3);
+    ctx.fillText('!', 545, 128 + Math.sin(t * 5 + 2) * 3);
+    window.LEblit(ctx, this.SPR.briefcase, 400, 306, 42);
+    window.LEblit(ctx, this.SPR.stamper, 480, 306, 42);
+    window.LEblit(ctx, this.SPR.coffee, 560, 306, 42);
+  }
+  _artRoster(t) {
+    const ctx = this.ctx;
+    const foes = [['paralegal', 'ROGUE PARALEGAL', 8], ['intern', 'OVER-CAFFEINATED INTERN', 6], ['wraith', 'BILLABLE HOUR WRAITH', 10], ['golem', 'PAPERWORK GOLEM', 12], ['counsel', 'OPPOSING COUNSEL', 22], ['bailiff', 'BAILIFF', 20]];
+    ctx.textAlign = 'left';
+    foes.forEach(([spr, nm, hrs], i) => {
+      const x = i % 2 ? 560 : 210, y = 132 + ((i / 2) | 0) * 76;
+      if (this.opts.juice && this.sceneT < i * 0.12) return;   // staggered entrance
+      if (this.opts.juice && this._beat('foe' + i, 2.6, i * 0.4)) this.rigs['foe' + i] && this.rigs['foe' + i].hurt(i % 2 ? -1 : 1, 0, 0.7);
+      this._spr('foe' + i, spr, x, y, 52, i % 2 === 1);
+      ctx.font = 'bold 15px "Courier New", monospace'; ctx.fillStyle = '#e8e0f0'; ctx.fillText(nm, x + 40, y - 4);
+      ctx.font = '13px "Courier New", monospace'; ctx.fillStyle = '#f0c75e'; ctx.fillText(hrs + ' HRS', x + 40, y + 14);
+    });
+    window.LEblit(ctx, this.SPR.grandfather, 244, 398, 54, false, 0.2 + 0.06 * Math.sin(t * 1.3));
+    ctx.font = 'bold 14px "Courier New", monospace'; ctx.fillStyle = '#ff5577'; ctx.fillText('??? \u2014 SUBLEVEL B4 AND BELOW', 290, 392);
+    ctx.font = '12px "Courier New", monospace'; ctx.fillStyle = '#9b8fb5'; ctx.fillText('[RATE SEALED BY COURT ORDER]', 290, 410);
+  }
+  _artPractice(t) {
+    const ctx = this.ctx;
+    const panels = [['TALK', 'hargrove', 'E \u2014 gold ! = work'], ['SANCTION', 'counsel', 'strike \u00b7 fire \u00b7 spin \u00b7 dash'], ['CAFFEINATE', 'coffee', 'coffee is medicine'], ['LAWYER UP', 'briefcase', 'I \u2014 bag \u00b7 H \u2014 manual']];
+    panels.forEach(([lbl, spr, sub], i) => {
+      const x = 128 + i * 184;
+      ctx.fillStyle = '#161122'; ctx.fillRect(x, 104, 168, 208);
+      ctx.strokeStyle = '#4a3f63'; ctx.lineWidth = 2; ctx.strokeRect(x, 104, 168, 208);
+      ctx.font = 'bold 15px "Courier New", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = '#f0c75e'; ctx.fillText(lbl, x + 84, 128);
+      if (i === 1 && this.opts.juice && this._beat('counsel', 1.7)) this.rigs['pan1'] && this.rigs['pan1'].strike();
+      if (i === 0 && this.opts.juice && this._beat('harg', 2.1)) this.rigs['pan0'] && this.rigs['pan0'].punch(4);
+      if (spr === 'coffee' || spr === 'briefcase') window.LEblit(ctx, this.SPR[spr], x + 84, 208 + Math.sin(t * 2 + i) * 3, 66);
+      else this._spr('pan' + i, spr, x + 84, 208, 66);
+      if (i === 0) { ctx.fillStyle = '#f0c75e'; ctx.font = 'bold 18px "Courier New", monospace'; ctx.fillText('!', x + 84, 158 + Math.sin(t * 5) * 3); }
+      if (i === 1) { ctx.strokeStyle = `rgba(240,199,94,${0.5 + 0.4 * Math.sin(t * 4)})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x + 84, 208, 46, t * 3, t * 3 + 1.2); ctx.stroke(); }
+      ctx.font = '11px "Courier New", monospace'; ctx.fillStyle = '#9b8fb5'; ctx.fillText(sub, x + 84, 296);
+    });
+  }
+  _artStart(t) {
+    const ctx = this.ctx;
+    ctx.save(); ctx.textAlign = 'center'; ctx.shadowColor = '#7a5c00'; ctx.shadowBlur = 22;
+    ctx.fillStyle = '#f0c75e'; ctx.font = 'bold 52px "Courier New", monospace'; ctx.fillText('LEGAL EAGLES', 480, 168);
+    ctx.restore();
+    ctx.textAlign = 'center'; ctx.fillStyle = '#9b8fb5'; ctx.font = '18px "Courier New", monospace';
+    ctx.fillText('R I S E   T O   P A R T N E R', 480, 204);
+    this._spr('sm', 'p_m', 428, 282, 84, false);
+    this._spr('sf', 'p_f', 532, 282, 84, true);
+    const show = this.opts.juice ? this.sceneT > 1.4 : Math.sin(t * 4) > -0.3;
+    if (show) { ctx.fillStyle = '#f0c75e'; ctx.font = 'bold 20px "Courier New", monospace'; ctx.fillText('YOUR HOURS START NOW.', 480, 344); }
+  }
+}
+</script>
+</body>
+</html>

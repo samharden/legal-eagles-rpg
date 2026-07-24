@@ -1,7 +1,7 @@
 "use strict";
 // ============================== STATE ==============================
 let state = 'menu'; // menu | play | gameover | victory
-let player, enemies, shots, enemyShots, pickups, floaters, particles;
+let player, enemies, shots, enemyShots, pickups;
 let cam = {x:0,y:0};
 let questIdx, questPhase; // phase: 'get'|'active'|'turnin'|'none'
 let allies = [], servers = [], dlg = null, flags = {};
@@ -33,7 +33,8 @@ let killCount, collectCount;
 let msg = { text:'', t:0, big:false };
 let mouse = { x:480, y:300, down:false };
 let keys = {};
-let levelFlash = 0, shake = 0, gameTime = 0, hitStop = 0; // hitStop: brief freeze on heavy impacts (juice)
+let levelFlash = 0, gameTime = 0;   // screen shake + hit-stop now live on the FX layer below
+let fx;   // LEAnim.FX — shared particle/ring/flash/pop-number layer + trauma shake & hit-stop
 
 const NPCS = [
   { id:'hargrove', nm:'Managing Partner Hargrove', spr:'hargrove', x:22*TILE, y:4*TILE },

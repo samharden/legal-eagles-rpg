@@ -6,15 +6,50 @@
 // advances (or fast-forwards the typewriter), Esc / B / the SKIP chip goes straight
 // to startGame with the selections held in introPend.
 let introPend = null;                       // {genderId, classId} held until the reel ends
-let introN = 0, introHoldT = 0, introChars = 0, introClock = 0;
+let introN = 0, introClock = 0;
+let introSceneT = 0, introDt = 0;           // seconds in the current reel; last frame's dt (introSpr reads it)
+let introTW = null, introTrans = null;      // LEAnim.Typewriter + LEAnim.Transition for the current scene
+let introRigs = {}, introBeats = {};        // per-scene sprite rigs + beat counters (reset every scene)
+let introShake = 0;                         // tiny SHOUT/splice jolt, local to the reel
 let introScenes = [];
 const INTRO_CPS = 55;                       // typewriter speed, chars/sec
 const INTRO_SKIP = { x:830, y:14, w:114, h:32 };
 
+// Every reel starts here: fresh typewriter, fresh splice, fresh rigs.
+function introBeginScene(){
+  const s = introScenes[introN]; if(!s) return;
+  introTW = new LEAnim.Typewriter(s.lines.join('\n'), {
+    cps: INTRO_CPS,
+    // an ALL-CAPS word landing gives the film a jolt — GRAVES, OBJECT, NAME PARTNER…
+    onShout: () => { introShake = Math.max(introShake, 2.2); },
+  });
+  introTrans = new LEAnim.Transition(0.5);
+  introTrans.start();
+  introSceneT = 0; introRigs = {}; introBeats = {}; introShake = 2;
+}
+
+// Lazily rig a sprite the first time a scene draws it, then draw through the rig
+// so it pops in, breathes, and can react. Returns the rig so callers can trigger it.
+function introSpr(id, key, x, y, size, flip, alpha){
+  let r = introRigs[id];
+  if(!r){ r = new LEAnim.Rig({ bounce:1 }); r.spawn(); introRigs[id] = r; }
+  r.step(introDt, { moving:false });
+  r.draw(ctx, SPR[key], x, y, size, !!flip, alpha==null?1:alpha);
+  return r;
+}
+// Fires once per `period` seconds of scene time — never on the first frame.
+function introBeat(id, period, phase){
+  const n = Math.floor((introSceneT + (phase||0))/period);
+  if(introBeats[id]===undefined){ introBeats[id] = n; return false; }
+  if(n > introBeats[id]){ introBeats[id] = n; return true; }
+  return false;
+}
+
 function startIntro(genderId, classId){
   introPend = { genderId, classId };
   introScenes = buildIntroScenes();
-  introN = 0; introHoldT = 0; introChars = 0; introClock = 0;
+  introN = 0; introClock = 0;
+  introBeginScene();
   state = 'intro';
 }
 
@@ -64,33 +99,32 @@ function buildIntroScenes(){
   ];
 }
 
-const introTotal = s => s.lines.reduce((a,l)=>a+l.length+1, 0);
 // deterministic pseudo-random — stable stars/windows across frames
 const ir = i => { const x = Math.sin(i*127.1)*43758.5453; return x - Math.floor(x); };
 
 function updateIntro(dt){
-  introClock += dt;
-  const s = introScenes[introN]; if(!s) return;
-  const total = introTotal(s);
-  if(introChars < total){
-    const prev = introChars;
-    introChars = Math.min(total, introChars + INTRO_CPS*dt);
-    // typewriter tick every few characters
-    if(AU.ctx && AU.on && (prev/3|0) !== (introChars/3|0))
-      tone({ f:1250 + ((introChars*37)%5)*85, type:'square', t:0.012, vol:0.018 });
-  }
+  introDt = dt;                     // introSpr() steps the rigs with this
+  introClock += dt; introSceneT += dt;
+  if(!introScenes[introN] || !introTrans) return;
+  introTrans.step(dt);
+  if(introShake > 0) introShake = Math.max(0, introShake - dt*26);
+  const prev = introTW.count;
+  if(introTrans.t > 0.12) introTW.step(dt);   // let the splice settle before typing
+  // typewriter tick every few characters
+  if(AU.ctx && AU.on && (prev/3|0) !== (introTW.count/3|0))
+    tone({ f:1250 + ((introTW.count*37)%5)*85, type:'square', t:0.012, vol:0.018 });
   // when fully typed we simply wait here for the player's input (introAdvance)
   // instead of auto-advancing, so nobody gets rushed past a scene mid-read.
 }
 function introAdvance(){ // any input: finish the typing first, then turn the page
-  const s = introScenes[introN]; if(!s) return;
-  if(introChars < introTotal(s)) introChars = introTotal(s);
-  else introNext();
+  if(!introTW) return;
+  if(!introTW.done){ introTW.finish(); return; }
+  introNext();
 }
 function introNext(){
   introN++;
   if(introN >= introScenes.length){ introFinish(); return; }
-  introChars = 0; introHoldT = 0;
+  introBeginScene();
   if(AU.ctx && AU.on){ noiseHit({ t:0.09, vol:0.06, fc:3200, hp:900 }); tone({ f:392, t:0.06, vol:0.05 }); }
 }
 function introSkip(){ introFinish(); }
@@ -139,9 +173,9 @@ function introArtLegend(t){
   ctx.strokeStyle = '#6b5836'; ctx.lineWidth = 4; ctx.strokeRect(240, 92, 480, 232);
   ctx.fillStyle = '#0d0a14';
   for(let y=100;y<316;y+=26){ ctx.fillRect(250, y, 12, 14); ctx.fillRect(698, y, 12, 14); }
-  // the emeritus, at rest
-  const bob = Math.sin(t*1.1)*3;
-  drawSprite(SPR.grandfather, 480, 218 + bob, 128, false, 0.95);
+  // the emeritus, at rest — and periodically not at rest
+  if(introBeat('emeritus', 3.2)){ const r = introRigs['emeritus']; if(r) r.hurt(0, -0.3, 0.45); }
+  introSpr('emeritus', 'grandfather', 480, 214, 128, false, 0.95);
   ctx.font = 'bold 24px "Courier New", monospace'; ctx.textAlign = 'center';
   ctx.fillStyle = `rgba(255,85,119,${0.45+0.5*Math.abs(Math.sin(t*6.5))})`;
   ctx.fillText('25:00:00', 480 + (Math.random()<0.06 ? 3 : 0), 128);
@@ -157,8 +191,10 @@ function introArtHire(t){
   const g = ctx.createRadialGradient(480, 230, 30, 480, 230, 220);
   g.addColorStop(0, 'rgba(240,199,94,0.10)'); g.addColorStop(1, 'rgba(240,199,94,0)');
   ctx.fillStyle = g; ctx.fillRect(260, 84, 440, 260);
-  drawSprite(SPR.p_m, 415, 196 + Math.sin(t*1.7)*4, 108);
-  drawSprite(SPR.p_f, 545, 196 + Math.sin(t*1.7 + 1.3)*4, 108, true);
+  if(introBeat('hm', 2.4, 0))   introRigs['hm'] && introRigs['hm'].strike();
+  if(introBeat('hf', 2.4, 1.2))  introRigs['hf'] && introRigs['hf'].strike();
+  introSpr('hm', 'p_m', 415, 200, 108, false);
+  introSpr('hf', 'p_f', 545, 200, 108, true);
   ctx.font = 'bold 20px "Courier New", monospace'; ctx.textAlign = 'center';
   ctx.fillStyle = '#f0c75e';
   ctx.fillText('!', 415, 128 + Math.sin(t*5)*3);
@@ -176,7 +212,9 @@ function introArtRoster(t){
   ctx.textAlign = 'left';
   foes.forEach(([spr, nm, hrs], i) => {
     const x = i%2 ? 560 : 210, y = 132 + ((i/2)|0)*76;
-    drawSprite(SPR[spr], x, y + Math.sin(t*2.2 + i)*3, 52);
+    if(introSceneT < i*0.12) return;                       // staggered entrance
+    if(introBeat('foe'+i, 2.6, i*0.4)){ const r = introRigs['foe'+i]; if(r) r.hurt(i%2 ? -1 : 1, 0, 0.7); }
+    introSpr('foe'+i, spr, x, y, 52, i%2===1);
     ctx.font = 'bold 15px "Courier New", monospace'; ctx.fillStyle = '#e8e0f0';
     ctx.fillText(nm, x + 40, y - 4);
     ctx.font = '13px "Courier New", monospace'; ctx.fillStyle = '#f0c75e';
@@ -202,7 +240,10 @@ function introArtPractice(t){
     ctx.strokeStyle = '#4a3f63'; ctx.lineWidth = 2; ctx.strokeRect(x, 104, 168, 208);
     ctx.font = 'bold 15px "Courier New", monospace'; ctx.textAlign = 'center';
     ctx.fillStyle = '#f0c75e'; ctx.fillText(lbl, x+84, 128);
-    drawSprite(SPR[spr], x+84, 208 + Math.sin(t*2 + i)*3, 66);
+    if(i===0 && introBeat('harg', 2.1))    introRigs['pan0'] && introRigs['pan0'].punch(4);
+    if(i===1 && introBeat('counsel', 1.7))  introRigs['pan1'] && introRigs['pan1'].strike();
+    if(spr==='coffee' || spr==='briefcase') drawSprite(SPR[spr], x+84, 208 + Math.sin(t*2 + i)*3, 66);
+    else introSpr('pan'+i, spr, x+84, 208, 66);
     if(i===0){ ctx.fillStyle = '#f0c75e'; ctx.font = 'bold 18px "Courier New", monospace';
                ctx.fillText('!', x+84, 158 + Math.sin(t*5)*3); }
     if(i===1){ ctx.strokeStyle = `rgba(240,199,94,${0.5+0.4*Math.sin(t*4)})`; ctx.lineWidth = 3;
@@ -221,9 +262,9 @@ function introArtStart(t){
   ctx.textAlign = 'center';
   ctx.fillStyle = '#9b8fb5'; ctx.font = '18px "Courier New", monospace';
   ctx.fillText('R I S E   T O   P A R T N E R', 480, 204);
-  drawSprite(SPR.p_m, 428, 278 + Math.sin(introClock*1.7)*3, 84);
-  drawSprite(SPR.p_f, 532, 278 + Math.sin(introClock*1.7 + 1.3)*3, 84, true);
-  if(Math.sin(t*4) > -0.3){
+  introSpr('sm', 'p_m', 428, 282, 84, false);
+  introSpr('sf', 'p_f', 532, 282, 84, true);
+  if(introSceneT > 1.4){
     ctx.fillStyle = '#f0c75e'; ctx.font = 'bold 20px "Courier New", monospace';
     ctx.fillText('YOUR HOURS START NOW.', 480, 344);
   }
@@ -231,10 +272,17 @@ function introArtStart(t){
 
 // ---- render ----------------------------------------------------------------
 function drawIntro(){
-  const s = introScenes[introN]; if(!s) return;
+  const s = introScenes[introN]; if(!s || !introTrans) return;
   const t = introClock;
   ctx.setTransform(1,0,0,1,0,0);
-  ctx.fillStyle = '#08060f'; ctx.fillRect(0, 0, W, CH);
+  if(introShake > 0) ctx.translate((Math.random()*2-1)*introShake, (Math.random()*2-1)*introShake);
+  ctx.fillStyle = '#08060f'; ctx.fillRect(-8, -8, W+16, CH+16);
+
+  // the reel body splices in: fade + upward settle + a slow ken-burns push
+  ctx.save();
+  ctx.globalAlpha = introTrans.contentAlpha;
+  const kb = introTrans.kenBurns(introSceneT);
+  ctx.translate(W/2, 300); ctx.scale(kb, kb); ctx.translate(-W/2, -300 + introTrans.slideY);
   s.art(t);
   // header
   ctx.textAlign = 'center';
@@ -247,7 +295,7 @@ function drawIntro(){
   ctx.textAlign = 'left';
   ctx.font = (IS_TOUCH ? 20 : 16) + 'px "Courier New", monospace';
   const lineH = IS_TOUCH ? 30 : 27;
-  let left = introChars, y = Math.min(s.ty, 540 - (s.lines.length-1)*lineH);
+  let left = introTW.count, y = Math.min(s.ty, 540 - (s.lines.length-1)*lineH);
   for(const line of s.lines){
     if(left <= 0) break;
     const n = Math.min(line.length, Math.floor(left));
@@ -261,6 +309,19 @@ function drawIntro(){
     left -= line.length + 1;
     y += lineH;
   }
+  ctx.restore(); ctx.globalAlpha = 1;
+
+  // film splice: white flash, then a few tracking scratches as the frame settles
+  if(introTrans.flash > 0){
+    ctx.globalAlpha = introTrans.flash; ctx.fillStyle = '#f4eede';
+    ctx.fillRect(0, 0, W, 600); ctx.globalAlpha = 1;
+  }
+  if(introTrans.t < 0.32){
+    ctx.globalAlpha = (1 - introTrans.t/0.32)*0.5; ctx.fillStyle = '#0a0812';
+    for(let i=0;i<4;i++) ctx.fillRect(0, ir(i + introTrans.t*40)*600, W, 2);
+    ctx.globalAlpha = 1;
+  }
+
   // footer: prompt + reel counter (kept above y 600 so the mobile crop sees it)
   ctx.textAlign = 'center';
   if(Math.sin(t*3.2) > -0.4){

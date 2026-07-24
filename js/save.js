@@ -5,13 +5,20 @@
 // the save layers the mutable bits (enemies, gates, crates, flags...) on top.
 const SAVE_KEY = 'legalEagles.save.v1';
 
+// Animation rigs are live objects with methods — they must never round-trip
+// through JSON. Drop them (loadWorld re-attaches) along with anyone who is
+// mid-death-animation, since their loot and XP have already been awarded.
+function saveableEnemies(list){
+  return (list||[]).filter(e => !e.dying).map(e => { const { rig, ...rest } = e; return rest; });
+}
+
 function snapshotWorlds(){
   worlds[worldId].enemies = enemies; worlds[worldId].pickups = pickups; // fold live arrays back in, like setWorld does
   const out = {};
   for(const id in worlds){
     const w = worlds[id];
     out[id] = {
-      enemies: w.enemies, pickups: w.pickups,
+      enemies: saveableEnemies(w.enemies), pickups: w.pickups,
       crates: w.crates.map(c=>({tx:c.tx, ty:c.ty})),
       gates: Object.fromEntries(Object.entries(w.gates).map(([k,g])=>[k, g.open])),
       levers: w.levers.map(l=>l.on),

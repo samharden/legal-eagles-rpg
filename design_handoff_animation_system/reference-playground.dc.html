@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:radial-gradient(120% 120% at 50% 0%, #1c1730 0%, #100c1c 70%);color:#e8e0f0;font-family:"Courier New",monospace;}
+  a{color:#f0c75e;} a:hover{color:#ffd97a;}
+  ::selection{background:#f0c75e;color:#1a1626;}
+  canvas{display:block;image-rendering:pixelated;}
+  .le-btn{font-family:inherit;font-weight:bold;font-size:12px;letter-spacing:.5px;color:#e8e0f0;background:#241d36;border:2px solid #4a3f63;padding:9px 6px;cursor:pointer;transition:transform .08s,border-color .1s,background .1s;text-transform:uppercase;}
+  .le-btn:hover{border-color:#f0c75e;color:#f0c75e;}
+  .le-btn:active{transform:scale(.94);background:#3a2f55;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;background:#3a2f55;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:#f0c75e;cursor:pointer;border:2px solid #1a1626;}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;background:#f0c75e;cursor:pointer;border:2px solid #1a1626;}
+</style>
+</helmet>
+<script src="le-sprites.js"></script>
+<script src="anim.js"></script>
+<div style="min-height:100vh;padding:22px 18px 60px;display:flex;flex-direction:column;align-items:center;">
+
+  <div style="width:100%;max-width:1300px;">
+    <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;border-bottom:2px solid #4a3f63;padding-bottom:10px;margin-bottom:18px;">
+      <h1 style="font-size:24px;letter-spacing:3px;color:#f0c75e;text-shadow:0 0 14px #7a5c0080;">LEGAL EAGLES — ANIMATION SYSTEM</h1>
+      <span style="color:#9b8fb5;font-size:12px;font-style:italic;">procedural rig + FX engine · a drop-in upgrade for the static sprites</span>
+      <span style="margin-left:auto;color:#5ec8f0;font-size:11px;letter-spacing:1px;">v1.0 · anim.js</span>
+    </div>
+  </div>
+
+  <div style="width:100%;max-width:1300px;display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;">
+
+    <!-- ARENA -->
+    <div style="flex:1 1 440px;min-width:300px;">
+      <div style="position:relative;border:3px solid #4a3f63;background:#0d0a14;">
+        <canvas id="le-arena" width="960" height="560" style="width:100%;height:auto;"></canvas>
+      </div>
+      <div style="margin-top:8px;color:#9b8fb5;font-size:11px;line-height:1.7;">
+        <b style="color:#e8e0f0;">WASD / Arrows</b> move · <b style="color:#e8e0f0;">mouse</b> aims ·
+        <b style="color:#e8e0f0;">click / K</b> fire · <b style="color:#e8e0f0;">Space / J</b> strike ·
+        <b style="color:#e8e0f0;">L</b> spin · <b style="color:#e8e0f0;">Shift</b> dash — or use the panel →
+      </div>
+
+      <!-- STATE GALLERY -->
+      <div style="margin-top:22px;">
+        <div style="font-size:11px;letter-spacing:2px;color:#caa84a;border-bottom:1px solid #3a2f55;padding-bottom:6px;margin-bottom:10px;">STATE MACHINE — EVERY POSE, LOOPING</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <sc-for list="{{ gallery }}" as="g" hint-placeholder-count="7">
+            <div style="flex:1 1 110px;min-width:96px;text-align:center;">
+              <div style="border:2px solid #2a2340;background:#0d0a14;">
+                <canvas id="{{ g.cid }}" width="118" height="118" style="width:100%;height:auto;"></canvas>
+              </div>
+              <div style="font-size:10px;letter-spacing:1px;color:#9b8fb5;margin-top:5px;">{{ g.label }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTROL RAIL -->
+    <div style="flex:0 0 268px;width:268px;display:flex;flex-direction:column;gap:16px;">
+
+      <div style="border:2px solid #4a3f63;padding:12px;background:#160f24;">
+        <div style="font-size:11px;letter-spacing:2px;color:#caa84a;margin-bottom:10px;">THE UPGRADE</div>
+        <button class="le-btn" onClick="{{ toggleJuice }}" style="width:100%;padding:12px;font-size:14px;border-color:{{ juiceBorder }};color:{{ juiceColor }};">{{ juiceLabel }}</button>
+        <div style="font-size:10px;color:#7d7397;line-height:1.6;margin-top:8px;">{{ juiceHint }}</div>
+      </div>
+
+      <div style="border:2px solid #4a3f63;padding:12px;background:#160f24;">
+        <div style="font-size:11px;letter-spacing:2px;color:#caa84a;margin-bottom:10px;">ATTORNEY</div>
+        <div style="display:flex;gap:8px;">
+          <button class="le-btn" onClick="{{ setMale }}" style="flex:1;">MALE</button>
+          <button class="le-btn" onClick="{{ setFemale }}" style="flex:1;">FEMALE</button>
+        </div>
+      </div>
+
+      <div style="border:2px solid #4a3f63;padding:12px;background:#160f24;">
+        <div style="font-size:11px;letter-spacing:2px;color:#caa84a;margin-bottom:12px;">TRIGGER A STATE</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <sc-for list="{{ triggers }}" as="t" hint-placeholder-count="6">
+            <button class="le-btn" onClick="{{ t.fn }}">{{ t.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="border:2px solid #4a3f63;padding:12px;background:#160f24;">
+        <div style="font-size:11px;letter-spacing:2px;color:#caa84a;margin-bottom:12px;">DEPLOY OPPOSITION</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <sc-for list="{{ spawns }}" as="s" hint-placeholder-count="4">
+            <button class="le-btn" onClick="{{ s.fn }}">{{ s.label }}</button>
+          </sc-for>
+        </div>
+        <button class="le-btn" onClick="{{ clearEnemies }}" style="width:100%;margin-top:8px;border-color:#5a3f4f;">CLEAR THE ROOM</button>
+      </div>
+
+      <div style="border:2px solid #4a3f63;padding:12px;background:#160f24;">
+        <div style="font-size:11px;letter-spacing:2px;color:#caa84a;margin-bottom:12px;">JUICE MIX</div>
+        <div style="font-size:10px;color:#9b8fb5;margin-bottom:4px;letter-spacing:1px;">SQUASH &amp; STRETCH</div>
+        <input type="range" min="0" max="2" step="0.05" value="1" oninput="{{ onSquash }}">
+        <div style="font-size:10px;color:#9b8fb5;margin:12px 0 4px;letter-spacing:1px;">SCREEN SHAKE</div>
+        <input type="range" min="0" max="28" step="1" value="14" oninput="{{ onShake }}">
+        <div style="font-size:10px;color:#9b8fb5;margin:12px 0 4px;letter-spacing:1px;">HIT-STOP</div>
+        <input type="range" min="0" max="2" step="0.1" value="1" oninput="{{ onHitstop }}">
+      </div>
+
+    </div>
+  </div>
+
+  <!-- DROP-IN GUIDE -->
+  <div style="width:100%;max-width:1300px;margin-top:34px;border-top:2px solid #4a3f63;padding-top:20px;">
+    <div style="font-size:13px;letter-spacing:2px;color:#f0c75e;margin-bottom:6px;">DROP-IN — WIRING anim.js INTO THE GAME</div>
+    <div style="color:#9b8fb5;font-size:12px;line-height:1.6;margin-bottom:18px;max-width:820px;">
+      The engine is additive: it reads the state your update loop already tracks and draws through the sprites you already bake. No new art, no rewrite of the game logic — five small edits.
+    </div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;">
+      <sc-for list="{{ steps }}" as="s" hint-placeholder-count="5">
+        <div style="flex:1 1 240px;min-width:230px;border:1px solid #2a2340;background:#160f24;padding:14px;">
+          <div style="color:#5ec8f0;font-size:11px;letter-spacing:1px;margin-bottom:6px;">{{ s.n }} · {{ s.file }}</div>
+          <div style="color:#e8e0f0;font-size:12px;line-height:1.5;margin-bottom:9px;">{{ s.what }}</div>
+          <pre style="color:#9be05e;font-size:11px;line-height:1.55;white-space:pre-wrap;background:#0d0a14;border-left:2px solid #4a3f63;padding:8px 10px;overflow-x:auto;">{{ s.code }}</pre>
+        </div>
+      </sc-for>
+    </div>
+    <div style="color:#7d7397;font-size:11px;line-height:1.6;margin-top:16px;max-width:820px;">
+      Old <b style="color:#9b8fb5;">shake</b>/<b style="color:#9b8fb5;">hitStop</b>/<b style="color:#9b8fb5;">particles</b>/<b style="color:#9b8fb5;">floaters</b> map 1:1 onto <b style="color:#9be05e;">fx.addTrauma</b> / <b style="color:#9be05e;">fx.stop</b> / <b style="color:#9be05e;">fx.spark|paper</b> / <b style="color:#9be05e;">fx.number</b> — you can migrate one call site at a time and the game keeps running throughout.
+    </div>
+  </div>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { juice: true, char: 'p_m' };
+
+  // ---- stable handler refs (safe to call before mount; loop consumes flags) ----
+  toggleJuice = () => { this.opts.juice = !this.opts.juice; this.setState({ juice: this.opts.juice }); };
+  setMale     = () => { this.opts.char = 'p_m'; this.setState({ char: 'p_m' }); };
+  setFemale   = () => { this.opts.char = 'p_f'; this.setState({ char: 'p_f' }); };
+  onSquash    = (e) => { this.opts.squash  = parseFloat(e.target.value); };
+  onShake     = (e) => { this.opts.shake   = parseFloat(e.target.value); };
+  onHitstop   = (e) => { this.opts.hitstop = parseFloat(e.target.value); };
+  clearEnemies= () => { if (this.enemies) for (const en of this.enemies) if (en.rig.state !== 'die') this._killEnemy(en); };
+
+  opts = { juice: true, squash: 1, shake: 14, hitstop: 1, char: 'p_m' };
+
+  renderVals() {
+    const on = this.state.juice;
+    return {
+      juiceLabel: on ? 'NEW SYSTEM \u25cf ON' : 'ORIGINAL \u25cb OFF',
+      juiceBorder: on ? '#9be05e' : '#5a4f73',
+      juiceColor:  on ? '#9be05e' : '#9b8fb5',
+      juiceHint:   on ? 'Rigged squash/stretch, walk-bounce, shadows, hit-flash, shake, hit-stop & layered FX.'
+                      : 'Flat static sprites with a sine bob — the game as it renders today. Flip it on to compare.',
+      toggleJuice: this.toggleJuice, setMale: this.setMale, setFemale: this.setFemale,
+      onSquash: this.onSquash, onShake: this.onShake, onHitstop: this.onHitstop,
+      clearEnemies: this.clearEnemies,
+      triggers: [
+        { label: 'Strike', fn: () => this._strike() },
+        { label: 'Fire',   fn: () => this._fire() },
+        { label: 'Spin',   fn: () => this._spin() },
+        { label: 'Dash',   fn: () => this._dash() },
+        { label: 'Take Hit', fn: () => this._hurtPlayer(28, true) },
+        { label: 'K.O. / Respawn', fn: () => this._koToggle() },
+      ],
+      spawns: [
+        { label: 'Golem',   fn: () => this._spawn('golem') },
+        { label: 'Wraith',  fn: () => this._spawn('wraith') },
+        { label: 'Gremlin', fn: () => this._spawn('gremlin') },
+        { label: 'Intern',  fn: () => this._spawn('intern') },
+      ],
+      gallery: this._gallerySpec(),
+      steps: this._steps(),
+    };
+  }
+
+  _gallerySpec() {
+    return [
+      { cid: 'le-g0', label: 'IDLE',   act: null },
+      { cid: 'le-g1', label: 'WALK',   act: 'walk' },
+      { cid: 'le-g2', label: 'STRIKE', act: 'strike' },
+      { cid: 'le-g3', label: 'SPIN',   act: 'spin' },
+      { cid: 'le-g4', label: 'DASH',   act: 'dash' },
+      { cid: 'le-g5', label: 'HURT',   act: 'hurt' },
+      { cid: 'le-g6', label: 'K.O.',   act: 'die' },
+    ];
+  }
+
+  _steps() {
+    const TAG = '<' + 'script src="js/anim.js">' + '<' + '/script>';
+    return [
+      { n: '1', file: 'index.html', what: 'Load the engine after your existing scripts.',
+        code: TAG },
+      { n: '2', file: 'spawn / init', what: 'Give the player and every enemy a rig; make one shared FX.',
+        code: 'player.rig = new LEAnim.Rig({bounce:1.2});\n// in spawnEnemy():\ne.rig = new LEAnim.Rig();\ne.rig.spawn();\n// once, globally:\nconst fx = new LEAnim.FX(SPR,\n  (c,s,x,y,z,fl,a)=>drawSpriteOn(c,s,x,y,z,fl,a));' },
+      { n: '3', file: 'update.js', what: 'Step the rigs & fx; route events you already fire.',
+        code: 'player.rig.step(dt,{moving:player.moving,\n  speed:220,faceX:player.face.x});\nenemies.forEach(e=>e.rig.step(dt,\n  {moving:true,speed:e.spd,faceX:1}));\nfx.step(dt);\n// melee()->player.rig.strike()\n// spin()->player.rig.spin(); fx.ring(px,py)\n// dash ->player.rig.dash(dx,dy)' },
+      { n: '4', file: 'update.js', what: 'Reactions & impact — one line each at the old call sites.',
+        code: 'e.rig.hurt(nx,ny);           // was e.hurtT=.12\nfx.addTrauma(.6);            // was shake=6\nfx.stop(.05);                // was hitStop=.05\nfx.number(e.x,e.y,dmg,"#fff");\ne.rig.die();                 // on hp<=0 (then\n// remove the enemy when e.rig.dead)' },
+      { n: '5', file: 'render.js', what: 'Draw through the rig; let fx own shake + the FX layer.',
+        code: 'ctx.save();\nctx.translate(fx.shakeX,fx.shakeY);\nctx.rotate(fx.shakeRot);\n// per entity, instead of drawSprite:\ne.rig.draw(ctx,SPR[e.type],ex,ey,\n  size,player.x<e.x,1);\nfx.drawWorld(ctx,cam);   // particles,\n// rings, flashes, pop-numbers\nctx.restore();' },
+    ];
+  }
+
+  componentDidMount() {
+    if (!window.LEAnim || !window.SPR) { setTimeout(() => this.componentDidMount(), 60); return; }
+    const A = window.LEAnim;
+    this.A = A; this.SPR = window.SPR;
+    this.cv = document.getElementById('le-arena');
+    if (!this.cv) { setTimeout(() => this.componentDidMount(), 60); return; }
+    this.ctx = this.cv.getContext('2d');
+    this.W = 960; this.H = 560; this.cam = { x: 0, y: 0 };
+    this.gameTime = 0;
+
+    this.player = { x: 340, y: 300, r: 14, hp: 100, maxhp: 100, face: { x: 1, y: 0 },
+      rig: new A.Rig({ bounce: 1.25 }), cd: 0, meleeCd: 0, spinCd: 0, dashCd: 0, dashT: 0,
+      dashDx: 1, dashDy: 0, hurtT: 0, moving: false, meleeHit: 0, wob: 0, ko: false };
+    this.enemies = []; this.shots = []; this.eshots = [];
+    this.fx = new A.FX(this.SPR, window.LEblit);
+    this.keys = {}; this.mouse = { x: 480, y: 280, in: false, down: false };
+
+    // props for context / depth
+    this.props_ = [
+      { spr: 'plant', x: 90, y: 90, s: 40 }, { spr: 'plant', x: 870, y: 480, s: 40 },
+      { spr: 'computer', x: 820, y: 110, s: 38 }, { spr: 'computer', x: 130, y: 470, s: 38 },
+      { spr: 'file', x: 480, y: 96, s: 34 },
+    ];
+
+    // gallery loopers
+    this.gal = this._gallerySpec().map(g => ({ ...g, rig: new A.Rig({ bounce: 1.3 }), t: 0, ctx: null }));
+
+    // input
+    this._onKD = (e) => {
+      const k = e.key.toLowerCase();
+      if ([' ', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd', 'j', 'k', 'l', 'shift'].includes(k)) e.preventDefault();
+      this.keys[k] = true;
+      if (k === ' ' || k === 'j') this._strike();
+      if (k === 'l') this._spin();
+      if (k === 'shift') this._dash();
+      if (k === 'k') this._fire();
+    };
+    this._onKU = (e) => { this.keys[e.key.toLowerCase()] = false; };
+    this._onMM = (e) => { const r = this.cv.getBoundingClientRect(); this.mouse.x = (e.clientX - r.left) * (this.W / r.width); this.mouse.y = (e.clientY - r.top) * (this.H / r.height); this.mouse.in = true; };
+    this._onML = () => { this.mouse.in = false; };
+    this._onMD = () => { this.mouse.down = true; this._fire(); };
+    this._onMU = () => { this.mouse.down = false; };
+    window.addEventListener('keydown', this._onKD);
+    window.addEventListener('keyup', this._onKU);
+    this.cv.addEventListener('mousemove', this._onMM);
+    this.cv.addEventListener('mouseleave', this._onML);
+    this.cv.addEventListener('mousedown', this._onMD);
+    window.addEventListener('mouseup', this._onMU);
+
+    this._spawn('golem'); this._spawn('wraith');
+
+    this.last = performance.now();
+    this._raf = requestAnimationFrame(this._loop);
+  }
+
+  componentWillUnmount() {
+    cancelAnimationFrame(this._raf);
+    window.removeEventListener('keydown', this._onKD);
+    window.removeEventListener('keyup', this._onKU);
+    window.removeEventListener('mouseup', this._onMU);
+  }
+
+  // ---------------------------------------------------------------- loop ----
+  _loop = (now) => {
+    const dt = Math.min(0.04, (now - this.last) / 1000); this.last = now;
+    const J = this.opts;
+    const sq = J.juice ? J.squash : 1;
+    this.player.rig.intensity = sq;
+    for (const e of this.enemies) e.rig.intensity = sq;
+    this.fx.maxShake = J.juice ? J.shake : 0;
+    this.fx.hitStopScale = J.juice ? J.hitstop : 0;
+
+    if (this.fx.hitStop > 0) { this.fx.hitStop -= dt; } else { this._update(dt); }
+    this.fx.step(dt);
+    this._draw();
+    this._drawGallery(dt);
+    this._raf = requestAnimationFrame(this._loop);
+  };
+
+  _update(dt) {
+    this.gameTime += dt;
+    const p = this.player, k = this.keys;
+
+    if (!p.ko) {
+      let dx = 0, dy = 0;
+      if (k['w'] || k['arrowup']) dy--;
+      if (k['s'] || k['arrowdown']) dy++;
+      if (k['a'] || k['arrowleft']) dx--;
+      if (k['d'] || k['arrowright']) dx++;
+      p.moving = !!(dx || dy);
+
+      p.dashCd -= dt; p.cd -= dt; p.meleeCd -= dt; p.spinCd -= dt;
+      if (p.hurtT > 0) p.hurtT -= dt;
+
+      if (p.dashT > 0) {
+        p.dashT -= dt;
+        this._move(p, p.dashDx * 780, p.dashDy * 780, dt);
+        p.moving = true;
+      } else if (dx || dy) {
+        const l = Math.hypot(dx, dy); this._move(p, dx / l * 220, dy / l * 220, dt);
+        if (!this.mouse.in) p.face = { x: dx / l, y: dy / l };
+        const seg = Math.floor(p.rig.phase / Math.PI);
+        if (this.opts.juice && seg !== p._seg) { p._seg = seg; this.fx.dust(p.x, p.y + 12, 0, 0, 3); }
+      }
+      if (this.mouse.in) {
+        const a = Math.atan2(this.mouse.y - p.y, this.mouse.x - p.x);
+        p.face = { x: Math.cos(a), y: Math.sin(a) };
+      }
+      if (p.meleeHit > 0) { p.meleeHit -= dt; if (p.meleeHit <= 0) this._meleeConnect(); }
+      p.wob += dt * 3;
+      p.rig.step(dt, { moving: p.moving, speed: 220, faceX: p.face.x });
+    } else {
+      p.koT = (p.koT || 0) + dt;
+      p.rig.step(dt, { moving: false });
+    }
+
+    this._updateEnemies(dt);
+    this._updateShots(dt);
+  }
+
+  _move(e, vx, vy, dt) {
+    const W = this.W, H = this.H, m = 22;
+    e.x = Math.max(m, Math.min(W - m, e.x + vx * dt));
+    e.y = Math.max(m, Math.min(H - m, e.y + vy * dt));
+  }
+
+  // ---------------------------------------------------------- player acts ---
+  _strike() {
+    const p = this.player; if (p.ko || p.meleeCd > 0) return;
+    p.meleeCd = 0.4; p.meleeHit = 0.13; p.rig.strike();
+    if (this.opts.juice) this.fx.dust(p.x + p.face.x * 20, p.y + p.face.y * 20, p.face.x, p.face.y, 3);
+  }
+  _meleeConnect() {
+    const p = this.player;
+    const cx = p.x + p.face.x * 34, cy = p.y + p.face.y * 34;
+    let hit = false;
+    for (const e of this.enemies) {
+      if (e.rig.state === 'die') continue;
+      if (Math.hypot(e.x - cx, e.y - cy) < e.r + 30) { this._damage(e, 24, p.face.x, p.face.y, true); hit = true; }
+    }
+    if (hit && this.opts.juice) { this.fx.addTrauma(0.35); this.fx.stop(0.05); }
+  }
+  _spin() {
+    const p = this.player; if (p.ko || p.spinCd > 0) return;
+    p.spinCd = 2.2; p.rig.spin();
+    if (this.opts.juice) { this.fx.ring(p.x, p.y, '#f0c75e', 100, 0.4, 4); this.fx.addTrauma(0.4); this.fx.stop(0.04); }
+    for (const e of this.enemies) {
+      if (e.rig.state === 'die') continue;
+      const d = Math.hypot(e.x - p.x, e.y - p.y);
+      if (d < 92 + e.r) this._damage(e, 20, (e.x - p.x) / (d || 1), (e.y - p.y) / (d || 1), false);
+    }
+    this.eshots = this.eshots.filter(s => Math.hypot(s.x - p.x, s.y - p.y) > 100);
+  }
+  _dash() {
+    const p = this.player; if (p.ko || p.dashCd > 0) return;
+    const k = this.keys; let dx = 0, dy = 0;
+    if (k['w'] || k['arrowup']) dy--; if (k['s'] || k['arrowdown']) dy++;
+    if (k['a'] || k['arrowleft']) dx--; if (k['d'] || k['arrowright']) dx++;
+    const l = Math.hypot(dx, dy);
+    p.dashDx = l ? dx / l : p.face.x; p.dashDy = l ? dy / l : p.face.y;
+    p.dashT = 0.18; p.dashCd = 0.9; p.rig.dash(p.dashDx, p.dashDy);
+    if (this.opts.juice) this.fx.dust(p.x, p.y + 10, p.dashDx, p.dashDy, 7);
+  }
+  _fire() {
+    const p = this.player; if (p.ko || p.cd > 0) return;
+    p.cd = 0.16;
+    const a = Math.atan2(p.face.y, p.face.x);
+    this.shots.push({ x: p.x + p.face.x * 16, y: p.y + p.face.y * 16, vx: Math.cos(a) * 520, vy: Math.sin(a) * 520, r: 5, life: 1.4, color: '#f0c75e', trail: [] });
+    if (this.opts.juice) this.fx.muzzle(p.x + p.face.x * 18, p.y + p.face.y * 18, a, '#f0c75e');
+  }
+  _hurtPlayer(d, force) {
+    const p = this.player; if (p.ko) return;
+    if (p.hurtT > 0 && !force) { p.hp -= d * 0.4; return; }
+    p.hp -= d; p.hurtT = 0.5;
+    const ang = this.enemies.length ? Math.atan2(p.y - this.enemies[0].y, p.x - this.enemies[0].x) : Math.random() * 6.28;
+    p.rig.hurt(Math.cos(ang), Math.sin(ang), 1);
+    if (this.opts.juice) { this.fx.addTrauma(0.5); this.fx.number(p.x, p.y - 22, Math.round(d), '#ff6b6b'); }
+    if (p.hp <= 0) { p.hp = 0; this._ko(); }
+  }
+  _ko() {
+    const p = this.player; p.ko = true; p.koT = 0;
+    if (this.opts.juice) {
+      p.rig.die('crumple');
+      this.fx.stamp(p.x, p.y - 6, 'DISMISSED', '#c0392b');
+      this.fx.paper(p.x, p.y, 18); this.fx.addTrauma(0.3);
+    } else { p.rig.die(); }
+  }
+  _koToggle() {
+    const p = this.player;
+    if (p.ko) { p.ko = false; p.hp = p.maxhp; p.rig.spawn(); } else this._ko();
+  }
+
+  // ----------------------------------------------------------- enemies ------
+  _spawn(type) {
+    if (this.enemies.length > 12) return;
+    const A = this.A;
+    const stats = {
+      golem:   { hp: 90, spd: 42, r: 20, size: 60, dmg: 20, kind: 'slam' },
+      wraith:  { hp: 40, spd: 120, r: 15, size: 34, dmg: 12, kind: 'shoot' },
+      gremlin: { hp: 26, spd: 150, r: 12, size: 30, dmg: 10, kind: 'pounce' },
+      intern:  { hp: 34, spd: 95, r: 14, size: 34, dmg: 10, kind: 'chase' },
+    }[type];
+    const edge = Math.floor(Math.random() * 4);
+    let x, y;
+    if (edge === 0) { x = 40; y = 40 + Math.random() * (this.H - 80); }
+    else if (edge === 1) { x = this.W - 40; y = 40 + Math.random() * (this.H - 80); }
+    else if (edge === 2) { x = 40 + Math.random() * (this.W - 80); y = 40; }
+    else { x = 40 + Math.random() * (this.W - 80); y = this.H - 40; }
+    const e = { type, ...stats, maxhp: stats.hp, x, y, wob: Math.random() * 6, hurtT: 0,
+      rig: new A.Rig(), shotT: 1 + Math.random(), wind: 0, aimA: 0, slamT: 0, slamCd: 1 + Math.random() * 2 };
+    e.rig.spawn();
+    this.enemies.push(e);
+  }
+  _damage(e, amt, nx, ny, melee) {
+    if (e.rig.state === 'die') return;
+    e.hp -= amt; e.hurtT = 0.12; e.rig.hurt(nx, ny, melee ? 1.2 : 0.8);
+    this._move(e, nx * (melee ? 260 : 200), ny * (melee ? 260 : 200), 0.08);
+    this.fx.number(e.x, e.y - e.r - 6, Math.round(amt), '#fff');
+    if (this.opts.juice) { this.fx.spark(e.x, e.y, 4); this.fx.flash(e.x, e.y, 22); }
+    else this.fx.spark(e.x, e.y, 3);
+    if (e.hp <= 0) this._killEnemy(e);
+  }
+  _killEnemy(e) {
+    e.rig.die();
+    this.fx.paper(e.x, e.y, this.opts.juice ? 12 : 8);
+    if (this.opts.juice) { this.fx.spark(e.x, e.y, 8, 200); this.fx.ring(e.x, e.y, '#ff9bb0', 60, 0.35, 3); this.fx.addTrauma(0.4); this.fx.number(e.x, e.y - 20, 'DISMISSED', '#f0c75e', true); }
+  }
+  _updateEnemies(dt) {
+    const p = this.player;
+    for (const e of this.enemies) {
+      if (e.rig.state === 'die') { e.rig.step(dt, { moving: false }); continue; }
+      e.wob += dt * 6; if (e.hurtT > 0) e.hurtT -= dt;
+      const d = Math.hypot(p.x - e.x, p.y - e.y);
+      const ang = Math.atan2(p.y - e.y, p.x - e.x);
+      let moving = true;
+
+      if (e.kind === 'slam') {
+        if (e.slamT > 0) {
+          e.slamT -= dt; moving = false;
+          if (e.slamT <= 0) {
+            e.slamCd = 2.4;
+            if (this.opts.juice) { this.fx.ring(e.x, e.y, '#f0a032', 96, 0.4, 4); this.fx.paper(e.x, e.y, 8); this.fx.addTrauma(0.5); }
+            e.rig.punch(7);
+            if (!p.ko && d < 100) this._hurtPlayer(e.dmg, true);
+          }
+        } else {
+          e.slamCd -= dt;
+          if (d > 40) this._move(e, Math.cos(ang) * e.spd, Math.sin(ang) * e.spd, dt);
+          if (e.slamCd <= 0 && d < 96) { e.slamT = e.slamMax = 0.7; }
+        }
+      } else if (e.kind === 'shoot') {
+        const ring = 200, radial = d > ring + 25 ? 1 : d < ring - 25 ? -0.8 : 0;
+        if (e.sdir === undefined) e.sdir = Math.random() < 0.5 ? 1 : -1;
+        const mvx = Math.cos(ang) * radial + Math.cos(ang + Math.PI / 2) * e.sdir * 0.9;
+        const mvy = Math.sin(ang) * radial + Math.sin(ang + Math.PI / 2) * e.sdir * 0.9;
+        this._move(e, mvx * e.spd, mvy * e.spd, dt);
+        if (e.wind > 0) { e.wind -= dt; if (e.wind <= 0) this._eshot(e, e.aimA); }
+        else { e.shotT -= dt; if (e.shotT <= 0 && d < 360) { e.shotT = 2.2; e.aimA = ang; e.wind = e.windMax = 0.45; } }
+      } else if (e.kind === 'pounce') {
+        const spd = p.moving ? e.spd : e.spd * 1.7;
+        if (d > 24) this._move(e, Math.cos(ang) * spd, Math.sin(ang) * spd, dt);
+      } else {
+        if (d > 26) this._move(e, Math.cos(ang) * e.spd, Math.sin(ang) * e.spd, dt);
+      }
+
+      if (!p.ko && d < e.r + p.r + 6 && e.kind !== 'slam') {
+        if (p.hurtT <= 0) this._hurtPlayer(e.dmg * 0.5, false);
+      }
+      e.rig.step(dt, { moving, speed: e.spd, faceX: Math.cos(ang) });
+    }
+    this.enemies = this.enemies.filter(e => !e.rig.dead);
+  }
+  _eshot(e, a) { this.eshots.push({ x: e.x, y: e.y, vx: Math.cos(a) * 260, vy: Math.sin(a) * 260, r: 6, life: 2.4, color: '#ff5577', dmg: e.dmg }); }
+  _updateShots(dt) {
+    const p = this.player;
+    for (const s of this.shots) {
+      s.trail.push({ x: s.x, y: s.y }); if (s.trail.length > 6) s.trail.shift();
+      s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt;
+      if (s.x < 12 || s.x > this.W - 12 || s.y < 12 || s.y > this.H - 12) s.life = 0;
+      for (const e of this.enemies) {
+        if (e.rig.state === 'die') continue;
+        if (Math.hypot(s.x - e.x, s.y - e.y) < e.r + s.r) {
+          const a = Math.atan2(s.vy, s.vx);
+          this._damage(e, 12, Math.cos(a), Math.sin(a), false); s.life = 0; break;
+        }
+      }
+    }
+    this.shots = this.shots.filter(s => s.life > 0);
+    for (const s of this.eshots) {
+      s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt;
+      if (s.x < 8 || s.x > this.W - 8 || s.y < 8 || s.y > this.H - 8) s.life = 0;
+      if (s.life > 0 && !p.ko && Math.hypot(s.x - p.x, s.y - p.y) < p.r + s.r) {
+        if (p.dashT > 0) { if (!s.dodged) { s.dodged = true; this.fx.number(p.x, p.y - 26, 'EXPEDITED', '#5ec8f0'); } }
+        else { this._hurtPlayer(s.dmg, false); s.life = 0; }
+      }
+    }
+    this.eshots = this.eshots.filter(s => s.life > 0);
+  }
+
+  // ------------------------------------------------------------- draw -------
+  _draw() {
+    const ctx = this.ctx, W = this.W, H = this.H, J = this.opts;
+    ctx.clearRect(0, 0, W, H);
+    ctx.save();
+    if (J.juice) { ctx.translate(this.fx.shakeX, this.fx.shakeY); ctx.rotate(this.fx.shakeRot); }
+
+    ctx.fillStyle = '#0d0a14'; ctx.fillRect(-30, -30, W + 60, H + 60);
+    const T = 40;
+    for (let y = 0; y < H; y += T) for (let x = 0; x < W; x += T) {
+      ctx.fillStyle = '#1b1528'; ctx.fillRect(x, y, T, T);
+      if (((x / T) + (y / T)) % 2 === 0) { ctx.fillStyle = 'rgba(255,255,255,0.02)'; ctx.fillRect(x, y, T, T); }
+    }
+    ctx.fillStyle = '#2a2340'; ctx.fillRect(0, 0, W, 14); ctx.fillRect(0, H - 14, W, 14); ctx.fillRect(0, 0, 14, H); ctx.fillRect(W - 14, 0, 14, H);
+    ctx.fillStyle = '#4a3f63'; ctx.fillRect(0, 12, W, 3); ctx.fillRect(0, H - 15, W, 3);
+
+    for (const pr of this.props_) window.LEblit(ctx, this.SPR[pr.spr], pr.x, pr.y, pr.s, false, 0.9);
+
+    if (J.juice) for (const e of this.enemies) {
+      if (e.rig.state === 'die') continue;
+      if (e.kind === 'slam' && e.slamT > 0) {
+        const prog = 1 - e.slamT / e.slamMax;
+        ctx.fillStyle = `rgba(240,160,50,${0.06 + 0.14 * prog})`;
+        ctx.beginPath(); ctx.arc(e.x, e.y, 96, 0, 7); ctx.fill();
+        ctx.strokeStyle = `rgba(240,160,50,${0.35 + 0.45 * prog})`; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(e.x, e.y, 96 * prog, 0, 7); ctx.stroke();
+      } else if (e.kind === 'shoot' && e.wind > 0) {
+        const prog = 1 - e.wind / e.windMax, a = e.aimA;
+        ctx.save(); ctx.strokeStyle = `rgba(255,85,119,${0.2 + 0.5 * prog})`; ctx.lineWidth = 2; ctx.setLineDash([6, 5]);
+        ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.lineTo(e.x + Math.cos(a) * 130, e.y + Math.sin(a) * 130); ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    for (const s of this.shots) {
+      if (J.juice) for (let i = 0; i < s.trail.length; i++) { const t = s.trail[i]; ctx.globalAlpha = (i / s.trail.length) * 0.4; ctx.fillStyle = s.color; ctx.beginPath(); ctx.arc(t.x, t.y, s.r * 0.7, 0, 7); ctx.fill(); }
+      ctx.globalAlpha = 1; ctx.fillStyle = s.color; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 7); ctx.fill();
+    }
+    for (const s of this.eshots) { ctx.fillStyle = s.color; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 7); ctx.fill(); ctx.globalAlpha = 0.3; ctx.beginPath(); ctx.arc(s.x, s.y, s.r + 3, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }
+
+    const ents = [this.player, ...this.enemies].sort((a, b) => a.y - b.y);
+    for (const e of ents) (e === this.player) ? this._drawPlayer() : this._drawEnemy(e);
+
+    this.fx.drawWorld(ctx, this.cam);
+    ctx.restore();
+
+    this._drawHUD();
+  }
+
+  _drawEnemy(e) {
+    const ctx = this.ctx, spr = this.SPR[e.type], flip = this.player.x < e.x;
+    if (this.opts.juice) e.rig.draw(ctx, spr, e.x, e.y, e.size, flip, 1);
+    else {
+      const a = e.hurtT > 0 && Math.floor(this.gameTime * 20) % 2 === 0 ? 0.5 : 1;
+      window.LEblit(ctx, spr, e.x, e.y + Math.sin(e.wob) * 2, e.size, flip, a);
+    }
+    if (e.rig.state !== 'die') {
+      const bw = e.type === 'golem' ? 46 : 28;
+      ctx.fillStyle = '#000'; ctx.fillRect(e.x - bw / 2, e.y - e.r - 14, bw, 5);
+      ctx.fillStyle = '#9be05e'; ctx.fillRect(e.x - bw / 2, e.y - e.r - 14, bw * Math.max(0, e.hp / e.maxhp), 5);
+    }
+  }
+
+  _drawPlayer() {
+    const ctx = this.ctx, p = this.player, base = this.state.char, f = p.face;
+    let spr = this.SPR[base], flip = false;
+    if (Math.abs(f.x) >= Math.abs(f.y) && f.x !== 0) { spr = this.SPR[base + '_s']; flip = f.x < 0; }
+    else if (f.y < 0) spr = this.SPR[base + '_u'];
+
+    if (this.opts.juice) p.rig.draw(ctx, spr, p.x, p.y, 40, flip, 1);
+    else {
+      const a = p.hurtT > 0 && Math.floor(this.gameTime * 20) % 2 === 0 ? 0.4 : 1;
+      window.LEblit(ctx, spr, p.x, p.y + Math.sin(p.wob) * 2, 40, flip, a);
+    }
+
+    if (!p.ko) {
+      const faceA = Math.atan2(f.y, f.x); let bA = faceA + 0.6, bR = 20;
+      if (p.rig.state === 'strike') { const t = p.rig.stateT / 0.34; bA = faceA + (t * 2.4 - 1.2); bR = 32; }
+      if (p.rig.state === 'spin') { const t = p.rig.stateT / 0.42; bA = t * Math.PI * 4; bR = 46; }
+      const ox = this.opts.juice ? p.rig.dx : 0, oy = this.opts.juice ? p.rig.bob : 0;
+      window.LEblit(ctx, this.SPR.briefcase, p.x + Math.cos(bA) * bR + ox, p.y + Math.sin(bA) * bR + oy, 20, Math.cos(bA) < 0);
+    }
+  }
+
+  _drawHUD() {
+    const ctx = this.ctx, p = this.player;
+    ctx.font = 'bold 12px "Courier New",monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = '#9b8fb5'; ctx.fillText('BILLABLE ENERGY', 22, 34);
+    ctx.fillStyle = '#3a2440'; ctx.fillRect(22, 40, 200, 12);
+    ctx.fillStyle = p.hp / p.maxhp > 0.3 ? '#9be05e' : '#ff6b6b'; ctx.fillRect(22, 40, 200 * Math.max(0, p.hp / p.maxhp), 12);
+    ctx.fillStyle = '#fff'; ctx.fillText(`${Math.max(0, Math.ceil(p.hp))}/${p.maxhp}`, 228, 51);
+    if (p.ko && (!this.opts.juice || (p.koT || 0) > 0.55)) { ctx.textAlign = 'center'; ctx.font = 'bold 22px "Courier New",monospace'; ctx.fillStyle = '#ff6b6b'; ctx.fillText('MOTION TO DISMISS: GRANTED', this.W / 2, this.H / 2 - 10); ctx.font = '12px "Courier New",monospace'; ctx.fillStyle = '#9b8fb5'; ctx.fillText('press K.O. / RESPAWN to file an appeal', this.W / 2, this.H / 2 + 14); ctx.textAlign = 'left'; }
+  }
+
+  _drawGallery(dt) {
+    for (const g of this.gal) {
+      if (!g.ctx) { const c = document.getElementById(g.cid); if (!c) continue; g.ctx = c.getContext('2d'); g.cw = c.width; g.ch = c.height; }
+      const ctx = g.ctx; g.t += dt; g.rig.intensity = this.opts.squash;
+      const moving = g.act === 'walk';
+      const interval = g.act === 'die' ? 1.7 : g.act === 'dash' ? 1.1 : 1.5;
+      if (g.act && g.act !== 'walk' && g.t > interval) {
+        g.t = 0;
+        if (g.act === 'die') { if (g.rig.dead || g.rig.state === 'die') g.rig.spawn(); else g.rig.die(); }
+        else if (g.act === 'strike') g.rig.strike();
+        else if (g.act === 'spin') g.rig.spin();
+        else if (g.act === 'dash') g.rig.dash(1, 0);
+        else if (g.act === 'hurt') g.rig.hurt(1, -0.2, 1);
+      }
+      if (g.rig.dead) g.rig.spawn();
+      g.rig.step(dt, { moving, speed: 220, faceX: 1 });
+
+      ctx.clearRect(0, 0, g.cw, g.ch);
+      ctx.fillStyle = '#0d0a14'; ctx.fillRect(0, 0, g.cw, g.ch);
+      ctx.strokeStyle = '#241d36'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(12, 92); ctx.lineTo(g.cw - 12, 92); ctx.stroke();
+      g.rig.draw(ctx, this.SPR[this.state.char], g.cw / 2, 74, 52, false, 1);
+    }
+  }
+}
+</script>
+</body>
+</html>

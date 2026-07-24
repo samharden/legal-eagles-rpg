@@ -455,7 +455,7 @@ function talkLenny(){
     ], () => {
       flags.lennyQ = 2; flags.ethics += 2;
       giveItem('pro_bono_plaque', true);
-      floaters.push({ x:player.x, y:player.y-22, text:'+0 XP (PRO BONO) · +2 ETHICS', t:1.6, color:'#9be05e' });
+      bark(player.x, player.y-22, '+0 XP (PRO BONO) · +2 ETHICS', '#9be05e', 1.6);
       announce('Case closed. Fee: nothing — but Lenny had a Pro Bono plaque engraved for you. Equip it from your bag [I]. It was simply the right thing to do.', false, 5);
     });
   } else {
@@ -767,10 +767,19 @@ function startGame(genderId, classId){
     perks: [], standT: 0, contUsed: false,
     inventory: [], equip: { weapon:null, accessory:null, suit:null },
     billables: 0,
+    rig: new LEAnim.Rig({ bounce: 1.2 }),   // procedural animation: squash, bounce, strike, death
   };
+  // the shared FX layer — built once, then reused across new games and NG+ runs
+  if(!fx) fx = new LEAnim.FX(SPR, (c,s,x,y,z,fl,a)=>{
+    c.save(); c.imageSmoothingEnabled=false; c.globalAlpha=a==null?1:a;
+    c.translate(x,y); if(fl) c.scale(-1,1);
+    c.drawImage(s,-z/2,-z/2,z,z); c.restore();
+  });
+  fx.parts.length = fx.floats.length = fx.rings.length = fx.flashes.length = fx.stamps.length = 0;
+  fx.trauma = 0; fx.hitStop = 0;   // a fresh run starts on a still, quiet screen
   invOpen = false; invSel = null;
   qInit();
-  shots=[]; enemyShots=[]; floaters=[]; particles=[];
+  shots=[]; enemyShots=[];
   allies=[]; servers=[]; dlg=null; companion=null;
   loadWorld('office');
   flags = { ethics:0, ambition:0, chad:0, rosaQ:0, bennyQ:0, doloresQ:0,

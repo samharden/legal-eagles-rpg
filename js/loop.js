@@ -9,11 +9,16 @@ function step(now){
     if(helpOpen){ draw(); if(!IS_TOUCH) drawHelp(); }
     else if(invOpen){ draw(); if(!IS_TOUCH){ drawInventory(); padDrawCursor(invRects); } }
     else if(shopOpen){ draw(); if(!IS_TOUCH){ drawShop(); padDrawCursor(shopRects); } }
-    else { if(hitStop>0){ hitStop -= dt; } else { update(dt); } draw(); } // hit-stop freezes the world, not the render
+    else { if(fx.hitStop>0){ fx.hitStop -= dt; } else { update(dt); } draw(); } // hit-stop freezes the world, not the render
   }
   else if(state==='intro'){ updateIntro(dt); drawIntro(); }
   else if(state==='dialog'){ draw(); if(!IS_TOUCH) drawDialog(); }
-  else if(state==='gameover'||state==='victory'){ draw(); drawEnd(); }
+  else if(state==='gameover'||state==='victory'){
+    // the world is over but the animation isn't: keep the player's rig and the
+    // FX layer ticking so the crumple and the DISMISSED stamp play out
+    if(player && player.rig){ player.rig.step(dt, { moving:false }); fx.step(dt); }
+    draw(); drawEnd();
+  }
   updateMobilePanel();
 }
 function loop(now){

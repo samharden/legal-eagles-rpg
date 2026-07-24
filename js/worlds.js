@@ -314,6 +314,7 @@ function loadWorld(id){
   worldId = id; const w = worlds[id];
   map = w.grid; MAPW = w.w; MAPH = w.h;
   enemies = w.enemies; pickups = w.pickups;
+  enemies.forEach(ensureRig);   // pre-placed + save-restored enemies arrive rig-less
   extras = w.extras || [];
 }
 function setWorld(id, px, py){

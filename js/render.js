@@ -9,7 +9,7 @@ function toggleHelp(){
 }
 function draw(){
   ctx.save();
-  if(shake>0) ctx.translate((Math.random()*2-1)*shake*0.6, (Math.random()*2-1)*shake*0.6);
+  if(fx.trauma>0){ ctx.translate(fx.shakeX, fx.shakeY); ctx.rotate(fx.shakeRot); }
   ctx.clearRect(-20,-20,W+40,CH+40);
   ctx.fillStyle='#0d0a14'; ctx.fillRect(-20,-20,W+40,CH+40);
 
@@ -187,7 +187,8 @@ function draw(){
   // enemies
   for(const e of enemies){
     const ex=e.x-cam.x, ey=e.y-cam.y + Math.sin(e.wob)*2;
-    drawSprite(SPR[e.type], ex, ey, e.boss?64:34, player.x < e.x, e.hurtT>0?0.55:1);
+    e.rig.draw(ctx, SPR[e.type], ex, ey, e.boss?64:34, player.x < e.x, 1);  // rig owns the hit-flash now
+    if(e.dying) continue;   // no HP bar or telegraphs over a body mid-dismissal
     // hp bar
     const bw = e.boss?60:30;
     ctx.fillStyle='#000'; ctx.fillRect(ex-bw/2, ey-e.r-12, bw, 5);
@@ -249,9 +250,6 @@ function draw(){
   // printer companion (floats, bobbing)
   if(companion) drawSprite(SPR[companion.spr], companion.x-cam.x, companion.y-cam.y + Math.sin(gameTime*4)*2, 30, player.x < companion.x);
 
-  // particles
-  for(const p of particles) drawSprite(SPR[p.spr], p.x-cam.x, p.y-cam.y, 12, false, Math.min(1,p.t*2));
-
   // player
   const px=player.x-cam.x, py=player.y-cam.y;
   const blink = player.hurtT>0 && Math.floor(gameTime*20)%2===0;
@@ -259,13 +257,14 @@ function draw(){
   let pspr = SPR[player.spr], pflip = false;
   if(Math.abs(f.x) >= Math.abs(f.y) && f.x !== 0){ pspr = SPR[player.spr+'_s']; pflip = f.x < 0; }
   else if(f.y < 0) pspr = SPR[player.spr+'_u'];
-  drawSprite(pspr, px, py, 38, pflip, blink?0.4:1);
-  // briefcase: resting at the hip, arcing on a strike, orbiting on a spin
+  player.rig.draw(ctx, pspr, px, py, 38, pflip, blink?0.4:1);
+  // briefcase: resting at the hip, arcing on a strike, orbiting on a spin —
+  // offset by the rig so it rides the walk-hop and knockback with the body
   const faceA = Math.atan2(f.y, f.x);
   let bA = faceA + 0.6, bR = 20;
   if(player.swingT > 0){ bA = faceA + ((0.18-player.swingT)/0.18)*2.4 - 1.2; bR = 32; }
   if(player.spinT > 0){ bA = ((0.35-player.spinT)/0.35)*Math.PI*2; bR = 48; }
-  drawSprite(SPR.briefcase, px+Math.cos(bA)*bR, py+Math.sin(bA)*bR, 20, Math.cos(bA)<0);
+  drawSprite(SPR.briefcase, px+Math.cos(bA)*bR+player.rig.dx, py+Math.sin(bA)*bR+player.rig.bob, 20, Math.cos(bA)<0);
   if(player.spinT > 0){
     ctx.strokeStyle = `rgba(240,199,94,${Math.min(1,player.spinT*2.5)})`; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(px, py, 30 + 60*(1-(player.spinT/0.35)), 0, 7); ctx.stroke();
@@ -275,13 +274,8 @@ function draw(){
     ctx.beginPath(); ctx.arc(px, py, 26, 0, 7); ctx.stroke();
   }
 
-  // floaters
-  ctx.font='bold 13px monospace';
-  for(const f of floaters){
-    ctx.globalAlpha=Math.min(1,f.t*2); ctx.fillStyle=f.color;
-    ctx.fillText(f.text, f.x-cam.x, f.y-cam.y);
-  }
-  ctx.globalAlpha=1;
+  // FX layer: particles, rings, impact flashes, pop numbers, rubber stamps
+  fx.drawWorld(ctx, cam);
 
   // per-map lighting mood: a color wash and/or a personal-space vignette (see seedExtras)
   const mood = worlds[worldId].mood;

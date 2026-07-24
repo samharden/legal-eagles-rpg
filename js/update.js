@@ -33,7 +33,6 @@ function update(dt){
   if(!dlg && enemies.length===0 && perksPending() > 0) offerPerk();
   if(msg.t>0) msg.t -= dt;
   if(levelFlash>0) levelFlash -= dt;
-  if(shake>0) shake -= dt*40;
 
   // player movement
   let dx=0, dy=0;
@@ -53,7 +52,7 @@ function update(dt){
     moveEntity(player, player.dashDx*880, player.dashDy*880, dt);
     player.face = { x:player.dashDx, y:player.dashDy };
     player.moving = true;
-    particles.push({ x:player.x, y:player.y, vx:-player.dashDx*60, vy:-player.dashDy*60, t:0.18, spr:'spark' });
+    fx.dust(player.x, player.y, player.dashDx, player.dashDy, 2);
     if(perkHas('dashTrail')) for(const e of enemies){   // Scorched Earth: the wake burns
       if(Math.hypot(e.x-player.x, e.y-player.y) < 42){ e.hp -= 55*dmgMult()*dt; e.hurtT = 0.1; }
     }
@@ -62,9 +61,12 @@ function update(dt){
     player.dashDx = l ? dx/l : player.face.x;
     player.dashDy = l ? dy/l : player.face.y;
     player.dashT = 0.16 * perkMul('dashLenMul'); player.dashCd = 1.6 * perkMul('dashCdMul');
+    player.rig.dash(player.dashDx, player.dashDy);
     SFX.dash();
   } else if(dx||dy){ const l=Math.hypot(dx,dy); moveEntity(player, dx/l*220, dy/l*220, dt);
     if(!padAim) player.face = {x:dx/l, y:dy/l}; }   // right-stick aim outranks run direction
+  // procedural animation: idle breathe / walk bounce / transient states (dash is set above)
+  player.rig.step(dt, { moving: player.moving, speed: 220, faceX: player.face.x });
   player.pushCd = (player.pushCd||0) - dt;
   if((dx||dy) && player.pushCd <= 0){
     if(dx && tryPush(Math.sign(dx),0)) player.pushCd = 0.22;
@@ -152,7 +154,7 @@ function update(dt){
         tone({f:60, f2:30, type:'sawtooth', t:1.2, vol:0.25}); // something old exhales
         spawnEnemy('grandfather', 31*TILE+20, 12*TILE+20);
         announce('The valet cage swings open. Cigar smoke gathers into a shape behind the partner sedans. "Billables aren\'t everything, associate. They\'re the ONLY thing."', false, 5.5);
-        shake = Math.max(shake, 10);
+        fx.addTrauma(0.5);
       } else announce('A valet cage, padlocked. A small brass plate: KEY WITH VALET. Below it, engraved: W. A Worthington might still have it.', false, 3.5);
       used = true;
     }
@@ -195,7 +197,7 @@ function update(dt){
     if(!used) for(const ex of extras){
       if(Math.hypot(player.x-ex.x, player.y-ex.y) < 44){
         const pool = enemies.length ? EXTRA_BARKS.panic : (EXTRA_BARKS[worldId] || EXTRA_BARKS.office);
-        floaters.push({ x:ex.x, y:ex.y-26, text:pool[Math.floor(Math.random()*pool.length)], t:2.4, color:'#bcb0d4' });
+        bark(ex.x, ex.y-26, pool[Math.floor(Math.random()*pool.length)], '#bcb0d4');
         ex.barkT = 7 + Math.random()*15;
         used = true; break;
       }
@@ -228,7 +230,7 @@ function update(dt){
         const heal = Math.round((flags.coffeeUp ? 60 : 40) * perkMul('coffeeMul'));
         player.hp = Math.min(player.maxhp, player.hp + heal);
         player.coffeeCd = (flags.coffeeUp ? 6 : 12) / (perkHas('coffeeMul') ? 2 : 1);
-        floaters.push({ x:player.x, y:player.y-22, text:`+${heal} CAFFEINE`, t:1, color:'#9be05e' });
+        fx.number(player.x, player.y-22, `+${heal} CAFFEINE`, '#9be05e');
         SFX.coffee();
         announce(flags.coffeeUp ? 'The rebuilt machine produces something between espresso and a legal threat. (+60 Billable Energy)'
                                 : 'You drink the firm coffee. It tastes like deadlines and regret. (+40 Billable Energy)', false, 3);
@@ -266,7 +268,7 @@ function update(dt){
         }
       }
       if(cart.hp <= 0){
-        for(let i=0;i<20;i++) particles.push({ x:cart.x, y:cart.y, vx:(Math.random()*2-1)*180, vy:(Math.random()*2-1)*180, t:0.5+Math.random()*0.4, spr:'paper' });
+        fx.paper(cart.x, cart.y, 20); fx.addTrauma(0.4);
         cart = null; flags.mailQ = 0; flags.mailFailed = true;
         SFX.crash();
         announce('The mail cart is DOWN. Envelopes everywhere. Rosa felt that from the mailroom.', false, 4.5);
@@ -301,7 +303,7 @@ function update(dt){
         if(flags.baneWeak){ mult *= 0.65; edge += ' You cite 12 Yale L.J. 404 (1959). He flinches, structurally.'; }
         if(flags.lore >= 7){ mult *= 0.75; edge += ' Seven files of evidence burn in your briefcase.'; }
         b.hp = b.maxhp * mult;
-        SFX.boom(); shake = Math.max(shake, 12);
+        SFX.boom(); fx.addTrauma(0.6);
         announce('BANE TAKES THE BENCH. "Forty years on this docket, counselor. Overruled — ALL of it."' + edge, false, 6);
       }
     }
@@ -339,14 +341,17 @@ function update(dt){
     if(blockedShot(s.x,s.y)) s.life=0;
     if(s.life>0 && Math.hypot(s.x-player.x,s.y-player.y) < player.r+s.r){
       if(player.dashT>0){ // mid-dash: the filing sails through where you just were
-        if(!s.dodged){ s.dodged = true; floaters.push({ x:player.x, y:player.y-26, text:'EXPEDITED', t:0.7, color:'#5ec8f0' }); }
-      } else { hurtPlayer(s.dmg); s.life=0; }
+        if(!s.dodged){ s.dodged = true; fx.number(player.x, player.y-26, 'EXPEDITED', '#5ec8f0'); }
+      } else { hurtPlayer(s.dmg, false, s.x-s.vx*0.05, s.y-s.vy*0.05); s.life=0; }
     }
   }
   enemyShots = enemyShots.filter(s=>s.life>0);
 
   // enemies
   for(const e of enemies){
+    // dying enemies play out their death animation and nothing else: no AI, no
+    // contact damage, no taking hits. They leave in the filter below.
+    if(e.dying){ e.rig.step(dt, { moving:false }); continue; }
     e.wob += dt*6;
     if(e.hurtT>0) e.hurtT -= dt;
     if(e.slowT>0) e.slowT -= dt;
@@ -365,7 +370,7 @@ function update(dt){
         if(ph.shotCd!==undefined) e.shotCd = ph.shotCd;
         if(ph.windup!==undefined) e.windup = ph.windup;
         if(ph.spd!==undefined) e.spd = e.baseSpd*ph.spd;
-        if(ph.say){ announce(ph.say, false, 3); shake=Math.max(shake,10); hitStop=Math.max(hitStop,0.08); if(SFX.boss) SFX.boss(); }
+        if(ph.say){ announce(ph.say, false, 3); fx.addTrauma(0.5); fx.stop(0.08); fx.ring(e.x, e.y, '#ff9bb0', 140, 0.45, 4); if(SFX.boss) SFX.boss(); }
       }
     }
     // target the mail cart instead of the player when it's closer
@@ -376,6 +381,7 @@ function update(dt){
       if(dc < d){ tgt = cart; d = dc; }
     }
     const ang = Math.atan2(tgt.y-e.y, tgt.x-e.x);
+    e.rig.step(dt, { moving: !stunned && d>30, speed: e.spd, faceX: Math.cos(ang) });
     // CHARGER state machine (bailiff): approach → wind up (rooted tell) → committed
     // straight lunge → recover (rooted & vulnerable, so a whiffed charge is punishable).
     // While winding/dashing/recovering it drives its own motion, so the normal chase below
@@ -396,13 +402,13 @@ function update(dt){
         // a connecting lunge is one heavy hit that sends you flying (wall-aware),
         // then the charger is spent — no grinding a pinned player
         if(tgt===player && Math.hypot(player.x-e.x, player.y-e.y) < e.r + player.r + 6){
-          hurtPlayer(e.dmg);
+          hurtPlayer(e.dmg, false, e.x, e.y);
           moveEntity(player, e.chDx*1500, e.chDy*1500, 0.12);
-          shake = Math.max(shake, 9); hitStop = Math.max(hitStop, 0.07);
-          floaters.push({ x:player.x, y:player.y-30, text:'TACKLED!', t:0.9, color:'#ff9bb0' });
+          fx.addTrauma(0.45); fx.stop(0.07);
+          fx.number(player.x, player.y-30, 'TACKLED!', '#ff9bb0', true);
           e.chState='recover'; e.chT = C.recover;
         }
-        else if(e.chT<=0){ e.chState='recover'; e.chT = C.recover; floaters.push({ x:e.x, y:e.y-e.r-6, text:'WINDED', t:0.6, color:'#f0c75e' }); }
+        else if(e.chT<=0){ e.chState='recover'; e.chT = C.recover; fx.number(e.x, e.y-e.r-6, 'WINDED', '#f0c75e'); }
       } else { // recover
         charging = true; e.chT -= dt;
         if(e.chT<=0){ e.chState='ready'; e.chCd = C.cd; }
@@ -421,14 +427,15 @@ function update(dt){
         if(e.slamT <= 0){
           e.slamCd = S.cd;
           if(Math.hypot(player.x-e.x, player.y-e.y) < S.radius + player.r){
-            hurtPlayer(e.dmg*S.mult);
+            hurtPlayer(e.dmg*S.mult, false, e.x, e.y);
             const dp = Math.hypot(player.x-e.x, player.y-e.y)||1;   // shoved off the impact
             moveEntity(player, (player.x-e.x)/dp*900, (player.y-e.y)/dp*900, 0.1);
           }
           if(cart && Math.hypot(cart.x-e.x, cart.y-e.y) < S.radius + cart.r) cart.hp -= e.dmg*S.mult;
-          shake = Math.max(shake, 6); SFX.slam();
-          for(let i=0;i<8;i++){ const a=i/8*Math.PI*2;
-            particles.push({ x:e.x+Math.cos(a)*20, y:e.y+Math.sin(a)*20, vx:Math.cos(a)*200, vy:Math.sin(a)*200, t:0.3+Math.random()*0.15, spr:'paper' }); }
+          fx.addTrauma(0.3); SFX.slam();
+          e.rig.punch(7);
+          fx.ring(e.x, e.y, '#f09632', S.radius, 0.3, 3);
+          fx.paper(e.x, e.y, 8, 200);
         }
       } else {
         e.slamCd -= dt;
@@ -465,10 +472,10 @@ function update(dt){
     const touch = (e.boss ? 30 : 17) + 17;
     if(d < touch && !e.slam){
       if(tgt === player){
-        hurtPlayer(e.dmg*dt*2.2, true);
+        hurtPlayer(e.dmg*dt*2.2, true, e.x, e.y);
         if(e.type==='gremlin' && player.coffeeCd < 8){
           player.coffeeCd = 8;
-          floaters.push({ x:player.x, y:player.y-30, text:'CAFFEINE STOLEN!', t:0.9, color:'#9be05e' });
+          fx.number(player.x, player.y-30, 'CAFFEINE STOLEN!', '#9be05e');
         }
       }
       else cart.hp -= e.dmg*dt*2.2;
@@ -482,8 +489,9 @@ function update(dt){
           const a = i/12*Math.PI*2;
           enemyShots.push({ x:e.x, y:e.y, vx:Math.cos(a)*210, vy:Math.sin(a)*210, dmg:e.dmg, r:7, life:2.2, color:'#f0c75e' });
         }
-        floaters.push({ x:e.x, y:e.y-44, text:'GAVEL.', t:0.9, color:'#ff9bb0' });
-        shake = Math.max(shake, 8); hitStop = Math.max(hitStop, 0.05); SFX.boom();
+        fx.number(e.x, e.y-44, 'GAVEL.', '#ff9bb0', true);
+        fx.ring(e.x, e.y, '#f0c75e', 160, 0.45, 4);
+        fx.addTrauma(0.4); fx.stop(0.05); SFX.boom();
       }
     }
     // shooting — telegraphed: lock aim, wind up (drawn in render), THEN fire along the
@@ -511,26 +519,33 @@ function update(dt){
       if(s.life<=0 || s.hit.has(e)) continue;
       if(Math.hypot(s.x-e.x, s.y-e.y) < e.r + s.r){
         if(e.dodge && Math.random() < e.dodge){     // wraith slips the shot — strike or spin it
-          floaters.push({ x:e.x, y:e.y-e.r-6, text:'WITHDRAWN', t:0.5, color:'#9b8fb5' });
+          fx.number(e.x, e.y-e.r-6, 'WITHDRAWN', '#9b8fb5');
           if(s.pierce) s.hit.add(e); else s.life = 0;
           continue;
         }
         let dmg = s.dmg * (1 - (e.resist||0));       // golem/instrument: paper-dense, shrugs off paper
         if(perkHas('execute') && e.hp < e.maxhp*0.35) dmg *= 1.2;   // The Closer: end it
         e.hp -= dmg; e.hurtT = 0.12;
-        floaters.push({ x:e.x, y:e.y-e.r-6, text:e.resist?'DENSE '+Math.round(dmg):Math.round(dmg), t:0.6, color:e.resist?'#9b8fb5':'#fff' });
-        for(let i=0;i<2;i++) particles.push({ x:s.x, y:s.y, vx:(Math.random()*2-1)*110, vy:(Math.random()*2-1)*110, t:0.14+Math.random()*0.1, spr:'spark' });
+        const a2 = Math.atan2(s.vy, s.vx);           // recoil along the shot, not the shooter
+        e.rig.hurt(Math.cos(a2), Math.sin(a2), 0.6);
+        fx.number(e.x, e.y-e.r-6, e.resist?'DENSE '+Math.round(dmg):Math.round(dmg), e.resist?'#9b8fb5':'#fff');
+        fx.spark(s.x, s.y, 2, 110);
         if(s.pierce) s.hit.add(e); else s.life = 0;
       }
     }
   }
-  // deaths
+  // deaths — trigger is split from removal so the death animation gets to play.
+  // Everything below runs exactly once, on the frame the enemy is dismissed.
   for(const e of enemies){
-    if(e.hp<=0){
+    if(e.hp<=0 && !e.dying){
+      e.dying = true;
+      e.rig.die();
+      fx.paper(e.x, e.y, e.boss?24:12); fx.spark(e.x, e.y, 8, 200);
+      fx.ring(e.x, e.y, '#ff9bb0', e.boss?120:60);
       const q = QUESTS[questIdx];
       if(questPhase==='active' && e.type===q.goal.enemy) killCount++;
       flags.totalKills = (flags.totalKills||0) + 1;            // lifetime tally for the performance review
-      if(e.boss) hitStop = Math.max(hitStop, 0.18);            // a boss death lands hard
+      if(e.boss) fx.stop(0.18);                                // a boss death lands hard
       questEvent('kill', { enemy:e.type });
       boardKill(e.type);                                       // assignment-board matter progress
       gainXP(e.xp);
@@ -545,16 +560,14 @@ function update(dt){
         flags.grandfatherDown = true;
         announce('Worthington II dissipates into cigar smoke and unvested equity. The garage feels... settled.', false, 5);
       }
-      shake = Math.max(shake, e.boss?14:5);
-      for(let i=0;i<(e.boss?40:12);i++)
-        particles.push({ x:e.x, y:e.y, vx:(Math.random()*2-1)*180, vy:(Math.random()*2-1)*180, t:0.5+Math.random()*0.4, spr: Math.random()<0.5?'paper':'spark' });
+      fx.addTrauma(e.boss?0.7:0.4);
       if(Math.random()<0.35 || e.boss)
-        floaters.push({ x:e.x, y:e.y-20, text:KILL_QUIPS[Math.floor(Math.random()*KILL_QUIPS.length)], t:1, color:'#f0c75e' });
+        fx.number(e.x, e.y-20, KILL_QUIPS[Math.floor(Math.random()*KILL_QUIPS.length)], '#f0c75e', !!e.boss);
       if(Math.random()<0.18 && !e.boss)
         pickups.push({ x:e.x, y:e.y, spr:'coffee', t:0, heal:18 });
     }
   }
-  enemies = enemies.filter(e=>e.hp>0);
+  enemies = enemies.filter(e=>!e.rig.dead);
 
   // endless Document Review: floor cleared → pay the wave, breathe, next production
   if(review && worldId==='office'){
@@ -590,7 +603,7 @@ function update(dt){
       ex.barkT = 7 + Math.random()*15;
       if(panic || Math.hypot(player.x-ex.x, player.y-ex.y) < 260){
         const pool = panic ? EXTRA_BARKS.panic : (EXTRA_BARKS[worldId] || EXTRA_BARKS.office);
-        floaters.push({ x:ex.x, y:ex.y-26, text:pool[Math.floor(Math.random()*pool.length)], t:2.4, color:'#bcb0d4' });
+        bark(ex.x, ex.y-26, pool[Math.floor(Math.random()*pool.length)], '#bcb0d4');
       }
     }
   }
@@ -606,7 +619,7 @@ function update(dt){
       al.cd = 0.5 / perkMul('allyRate');   // Second Chair: co-counsel bills double-time
       const a = Math.atan2(best.y-al.y, best.x-al.x);
       shots.push({ x:al.x, y:al.y, vx:Math.cos(a)*480, vy:Math.sin(a)*480, dmg:9, r:4, color:'#e8d06a', pierce:false, homing:false, life:1.4, hit:new Set() });
-      if(Math.random() < 0.1) floaters.push({ x:al.x, y:al.y-24, text:'BILLED!', t:0.7, color:'#e8d06a' });
+      if(Math.random() < 0.1) fx.number(al.x, al.y-24, 'BILLED!', '#e8d06a');
     }
   }
 
@@ -622,7 +635,7 @@ function update(dt){
       companion.cd = 1.3 / perkMul('allyRate');
       const a = Math.atan2(best.y-companion.y, best.x-companion.x);
       shots.push({ x:companion.x, y:companion.y, vx:Math.cos(a)*430, vy:Math.sin(a)*430, dmg:7*dmgMult(), r:5, color:'#cfd6e0', pierce:false, homing:false, life:1.5, hit:new Set() });
-      if(Math.random() < 0.18) floaters.push({ x:companion.x, y:companion.y-22, text:'PC LOAD LETTER', t:0.7, color:'#cfd6e0' });
+      if(Math.random() < 0.18) fx.number(companion.x, companion.y-22, 'PC LOAD LETTER', '#cfd6e0');
     }
   } else companion = null;
 
@@ -634,7 +647,7 @@ function update(dt){
       if(p.heal){
         const heal = Math.round(p.heal * perkMul('coffeeMul'));
         player.hp = Math.min(player.maxhp, player.hp + heal);
-        floaters.push({ x:player.x, y:player.y-22, text:`+${heal} CAFFEINE`, t:0.8, color:'#9be05e' });
+        fx.number(player.x, player.y-22, `+${heal} CAFFEINE`, '#9be05e');
       } else if(p.kind === 'lore'){
         flags.lore++; gainXP(10);
         startDialog([N('dusty', LORE[p.idx])], () => {
@@ -662,25 +675,27 @@ function update(dt){
         announce('A forgotten retainer chest! Sixty XP of pre-paid, never-billed 1986 legal fees.', false, 4);
       } else if(p.kind === 'file'){
         collectCount++;
-        floaters.push({ x:player.x, y:player.y-22, text:p.label||'PRIVILEGED FILE SECURED', t:1, color:'#5ec8f0' });
+        bark(player.x, player.y-22, p.label||'PRIVILEGED FILE SECURED', '#5ec8f0', 1.4);
       }
       p.dead = true;
     }
   }
   pickups = pickups.filter(p=>!p.dead);
 
-  // floaters & particles
-  for(const f of floaters){ f.t -= dt; f.y -= 26*dt; }
-  floaters = floaters.filter(f=>f.t>0);
-  for(const p of particles){ p.t-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=0.94; p.vy*=0.94; }
-  particles = particles.filter(p=>p.t>0);
+  fx.step(dt);   // particles, rings, flashes, pop numbers, stamps, trauma shake
 
-  if(player.hp<=0){ state='gameover'; SFX.jingleLose(); }
+  if(player.hp<=0 && state!=='gameover'){
+    state='gameover'; SFX.jingleLose();
+    player.rig.die('crumple');
+    fx.stamp(player.x, player.y-6, 'DISMISSED', '#c0392b');
+  }
 }
 
-function hurtPlayer(d, contact=false){
+// sx,sy — where the blow came from, so the recoil shoves the right way.
+// Optional: without it the player just flashes and squashes in place.
+function hurtPlayer(d, contact=false, sx, sy){
   if(player.shieldT>0){                         // Retainer in effect: the firm absorbs it
-    if(!contact && Math.random()<0.5) floaters.push({ x:player.x, y:player.y-26, text:'RETAINED', t:0.7, color:'#5ec8f0' });
+    if(!contact && Math.random()<0.5) fx.number(player.x, player.y-26, 'RETAINED', '#5ec8f0');
     return;
   }
   d *= (1 - equipDefense());   // suit / accessory armor soaks a fraction of every hit
@@ -689,17 +704,21 @@ function hurtPlayer(d, contact=false){
     player.contUsed = true;
     player.hp = 30; player.hurtT = 0.6;
     player.shieldT = Math.max(player.shieldT||0, 1);
-    shake = Math.max(shake, 10); SFX.promote();
+    fx.addTrauma(0.5); fx.ring(player.x, player.y, '#f0c75e', 130, 0.5, 4); SFX.promote();
     announce('CONTINGENCY FEE INVOKED. The firm declines your death — once per floor. The invoice is enormous.', false, 4.5);
     return;
   }
   if(player.hurtT>0 && contact) { player.hp -= d; return; } // contact ticks don't spam quips
   player.hp -= d;
   if(!contact || Math.random()<0.05){
-    player.hurtT = 0.5; shake = Math.max(shake,6);
+    player.hurtT = 0.5; fx.addTrauma(0.5);
+    const kx = sx===undefined ? 0 : player.x-sx, ky = sy===undefined ? 0 : player.y-sy;
+    const kl = Math.hypot(kx, ky) || 1;
+    player.rig.hurt(kx/kl, ky/kl, 1);
+    if(!contact) fx.number(player.x, player.y-26, Math.round(d), '#ff6b6b');
     SFX.hurt();
     if(Math.random()<0.4)
-      floaters.push({ x:player.x, y:player.y-26, text:HURT_QUIPS[Math.floor(Math.random()*HURT_QUIPS.length)], t:1, color:'#ff6b6b' });
+      bark(player.x, player.y-40, HURT_QUIPS[Math.floor(Math.random()*HURT_QUIPS.length)], '#ff6b6b', 1.2);
   }
 }
 
